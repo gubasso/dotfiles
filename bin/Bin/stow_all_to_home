@@ -1,0 +1,2 @@
+#!/bin/sh
+stow -vt --dir=${DOTFILESDIR} --target=${HOME} */

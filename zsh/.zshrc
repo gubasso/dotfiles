@@ -56,6 +56,7 @@ export FZF_CTRL_R_OPTS="--preview 'echo {}' --preview-window down:3:hidden:wrap 
 #########################
 # Environment Variables #
 #########################
+export DOTFILESDIR="${HOME}/.dotfiles"
 export VISUAL=nvim
 export EDITOR=nvim
 # Add my personal binaries to the PATH
