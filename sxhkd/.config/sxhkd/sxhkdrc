@@ -1,0 +1,14 @@
+# Key bindings for sxhkd
+
+XF86AudioRaiseVolume
+    pamixer -i 5 #increase the volume by 5
+
+XF86AudioLowerVolume
+    pamixer -d 5 #decrease the volume by 5
+
+XF86AudioMute
+    pamixer -t #toggle between mute and unmute
+
+control + alt + l
+    slock
+
