@@ -10,11 +10,6 @@ sysmodmap=/etc/X11/xinit/.Xmodmap
 if [ -f $sysresources ]; then
 
 
-
-
-
-
-
     xrdb -merge $sysresources
 
 fi
@@ -24,12 +19,6 @@ if [ -f $sysmodmap ]; then
 fi
 
 if [ -f "$userresources" ]; then
-
-
-
-
-
-
 
     xrdb -merge "$userresources"
 
@@ -48,14 +37,24 @@ if [ -d /etc/X11/xinit/xinitrc.d ] ; then
  unset f
 fi
 
+#############
+# gubasso's #
+#############
+
+[ -f /etc/xprofile ] && source /etc/xprofile
+[ -f ~/.xprofile ] && source ~/.xprofile
+[ -f ~/.profile ] && source ~/.profile
+
 # ssh-agent start with X, integration with keepassxc
 # eval $(ssh-agent)
-
-# Bind keys
-sxhkd &
 
 # Setup br abnt2 keyboard layout with dead keys and accents
 # Switch caps lock and Esc
 setxkbmap -model abnt2 -layout br -option "caps:swapescape"
 
-exec ${HOME}/Bin/startdwm
+# hide mouse when typing
+xbanish &
+
+# Run KDE Plasma
+export DESKTOP_SESSION=plasma
+exec startplasma-x11

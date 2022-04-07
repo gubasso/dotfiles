@@ -1,14 +1,25 @@
 # Key bindings for sxhkd
 
+#increase the volume by 5
 XF86AudioRaiseVolume
-    pamixer -i 5 #increase the volume by 5
+    pamixer -i 5 && sh /home/gubasso/Projects/gdsb/status/volume
 
+#decrease the volume by 5
 XF86AudioLowerVolume
-    pamixer -d 5 #decrease the volume by 5
+    pamixer -d 5 && sh /home/gubasso/Projects/gdsb/status/volume
 
+#toggle between mute and unmute
 XF86AudioMute
-    pamixer -t #toggle between mute and unmute
+    pamixer -t && sh /home/gubasso/Projects/gdsb/status/volume
 
 control + alt + l
     slock
 
+XF86MonBrightness{Up,Down}
+	brightnessctl --device=intel_backlight set {+5%,5%-}
+
+Print
+	scshot select
+
+shift + Print
+	scshot full

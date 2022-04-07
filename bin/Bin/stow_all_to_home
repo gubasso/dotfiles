@@ -1,2 +1,3 @@
 #!/bin/sh
-stow -vt --dir=${DOTFILESDIR} --target=${HOME} */
+cd ${DOTFILESDIR}
+stow -v -t ${HOME} */

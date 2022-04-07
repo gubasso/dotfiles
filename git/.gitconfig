@@ -2,6 +2,6 @@
 [user]
 # Please adapt and uncomment the following lines:
 name = Gustavo Basso
-email = gubasso@cwnt.io
+email = gubasso@git.dev
 [init]
 	defaultBranch = master

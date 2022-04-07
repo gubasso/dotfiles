@@ -1,0 +1,29 @@
+###########
+# Aliases #
+###########
+# References:
+# [^al1]: https://www.homeonrails.com/2016/05/truecolor-in-gnome-terminal-tmux-and-neovim/
+# [^al2]: My notes, Dotfiles
+# [^al3]: [Clear a terminal screen for real: KDE](https://stackoverflow.com/questions/5367068/clear-a-terminal-screen-for-real)
+# [^al4]: `cat file | xclip -selection clipboard` [How can I copy the output of a command directly into my clipboard?](https://stackoverflow.com/questions/5130968/how-can-i-copy-the-output-of-a-command-directly-into-my-clipboard#5130969)
+
+alias ipac="sudo pacman -Syu"
+alias iaur="sudo pacman -Syu && paru -Syu && paru -S"
+alias rs_rmshred="shred -n10 -uz"
+alias ls='exa'
+alias tree='exa --tree --all --git-ignore --ignore-glob ".git"'
+alias cat='bat'
+alias rg='rg --hidden --smart-case'
+alias tmux="env TERM=xterm-256color tmux" # [^al1]
+alias cl='clear'
+alias clrm='clear && echo -en "\e[3J"' #[^al3]
+alias cf='cd ${HOME} && `__fzf_cd__`' #change dir with fuzzy
+alias ga='git add . && git commit'
+alias gam='git add . && git commit -m'
+alias ss='sudo systemctl'
+alias toxclip='xclip -selection clipboard' #[^al4]
+alias rm='rmtrash'
+alias rmdir='rmdirtrash'
+alias sudo="sudo "
+
+

@@ -1,6 +1,10 @@
+#!/bin/sh
+
 while true; do
 	# restart dwm without logging out or closing appications
 	# Mod-Shift-Q
 	# No error logging
+
+    [ -f ~/.profile ] && source ~/.profile
 	dwm >/dev/null 2>&1
 done

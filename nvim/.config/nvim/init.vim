@@ -7,6 +7,13 @@
 """"""""""""
 " vim-plug "
 """"""""""""
+" https://github.com/junegunn/vim-plug/wiki/tips#automatic-installation
+let data_dir = has('nvim') ? stdpath('data') . '/site' : '~/.vim'
+if empty(glob(data_dir . '/autoload/plug.vim'))
+  silent execute '!curl -fLo '.data_dir.'/autoload/plug.vim --create-dirs  https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim'
+  autocmd VimEnter * PlugInstall --sync | source $MYVIMRC
+endif
+
 call plug#begin('~/.local/share/nvim/plugged')
 
 Plug 'junegunn/vim-easy-align'
@@ -28,8 +35,10 @@ Plug 'christoomey/vim-tmux-navigator'
 Plug 'benmills/vimux'
 Plug 'wellle/targets.vim'
 Plug 'jesseleite/vim-agriculture'
-Plug 'mzlogin/vim-markdown-toc'
 Plug 'kovetskiy/sxhkd-vim'
+Plug 'mzlogin/vim-markdown-toc'
+Plug 'godlygeek/tabular'
+Plug 'preservim/vim-markdown'
 
 " Themes
 Plug 'sickill/vim-monokai'
@@ -67,11 +76,16 @@ set nowritebackup
 set shortmess-=S " When searching a for a word, it can be useful to know how many matches there are in the file, like [1/4].
 
 let g:vim_monokai_tasty_italic = 1
-colorscheme vim-monokai-tasty
+" colorscheme vim-monokai-tasty
 " colorscheme monokai
 " colorscheme monokai_pro
+colorscheme tender
 
-hi link markdownError Normal " [^6]
+
+" 'preservim/vim-markdown'
+let g:vim_markdown_folding_disabled = 1
+" hi link markdownError Normal " [^6]
+
 set autoread " Autoload file changes. You can undo by pressing u. [^11]
 " Triger `autoread` when files changes on disk [^11]
 " https://unix.stackexchange.com/questions/149209/refresh-changed-content-of-file-opened-in-vim/383044#383044
@@ -220,8 +234,8 @@ endfunction
 command -bar VimuxZoomAndInspectGoTop :call VimuxZoomAndInspectGoTop()
 
 " move by one line[^16]
-nnoremap j gj
-nnoremap k gk
+" nnoremap j gj
+" nnoremap k gk
 
 " Goyo and Limelight[^17]
 nnoremap <Leader>gy :Goyo<CR>
@@ -268,7 +282,11 @@ syntax enable
 " Inactive Options "
 """"""""""""""""""""
 
+hi Normal guibg=#111111 ctermbg=black
 " hi! Normal ctermbg=NONE guibg=NONE " Keep terminal background
+" hi Normal guibg=#111111 ctermbg=black
+" highlight Normal ctermbg=black
+" highlight NonText ctermbg=black
 
 " Swapfiles
 " Centralised swapfiles
