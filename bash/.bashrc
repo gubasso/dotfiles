@@ -22,17 +22,10 @@ export PS1="\W > "
 # sources
 source /usr/share/fzf/key-bindings.bash
 source /usr/share/fzf/completion.bash
+# usage: _fzf_setup_completion path|dir|var|alias|host COMMANDS...
+# https://github.com/junegunn/fzf#supported-commands
+_fzf_setup_completion dir gocryptfs
 
 # asdf
 . /opt/asdf-vm/asdf.sh
-
-# gitignore generator
-function gi() { curl -sL https://www.toptal.com/developers/gitignore/api/$@ ;}
-
-###############
-# Exercism.io #
-###############
-if [ -f ~/.config/exercism/exercism_completion.bash ]; then
-    source ~/.config/exercism/exercism_completion.bash
-fi
 

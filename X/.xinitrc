@@ -50,7 +50,7 @@ fi
 
 # Setup br abnt2 keyboard layout with dead keys and accents
 # Switch caps lock and Esc
-setxkbmap -model abnt2 -layout br -option "caps:swapescape"
+# setxkbmap -model abnt2 -layout br -option "caps:swapescape"
 
 # hide mouse when typing
 xbanish &

@@ -22,8 +22,28 @@ alias ga='git add . && git commit'
 alias gam='git add . && git commit -m'
 alias ss='sudo systemctl'
 alias toxclip='xclip -selection clipboard' #[^al4]
-alias rm='rmtrash'
+# alias rm='rmtrash'
+alias rm='trash'
 alias rmdir='rmdirtrash'
 alias sudo="sudo "
 
+# dvc
+alias dvc="poetry run dvc"
 
+# gitignore generator
+function gi() { curl -sL https://www.toptal.com/developers/gitignore/api/$@ ;}
+
+# bug issue tracker close issue
+# bug commit close issue (bcc)
+function bcc() {
+    git add . && git commit -m "issue ${@} locked"
+    bug close $@ && git add . && git commit -m "issue ${@} closed"
+}
+# bug commit WIP issue (bcw)
+function bcw() {
+    git add . && git commit -m "issue ${@} WIP"
+}
+
+
+
+function fz() { fd -t d | fzf ;}

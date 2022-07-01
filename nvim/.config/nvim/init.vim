@@ -38,18 +38,23 @@ Plug 'jesseleite/vim-agriculture'
 Plug 'kovetskiy/sxhkd-vim'
 Plug 'mzlogin/vim-markdown-toc'
 Plug 'godlygeek/tabular'
-Plug 'preservim/vim-markdown'
+Plug 'tpope/vim-fugitive'
+Plug 'junegunn/gv.vim'
+Plug 'rbong/vim-flog'
+Plug 'vim-airline/vim-airline'
+Plug 'vim-airline/vim-airline-themes'
 
 " Themes
-Plug 'sickill/vim-monokai'
-Plug 'phanviet/vim-monokai-pro'
-Plug 'patstockwell/vim-monokai-tasty'
+" Plug 'sickill/vim-monokai'
+" Plug 'phanviet/vim-monokai-pro'
+" Plug 'patstockwell/vim-monokai-tasty'
+Plug 'challenger-deep-theme/vim', { 'as': 'challenger-deep' }
+Plug 'dracula/vim', { 'as': 'dracula' }
 
 call plug#end() " [^1]
 """""""""""""""""""""""""""
 """""""""""""""""""""""""""
 """""""""""""""""""""""""""
-
 
 """""""""""""""
 " Basic Setup "
@@ -60,6 +65,9 @@ set expandtab               " Insert spaces when TAB is pressed.
 set tabstop=4 softtabstop=4 " Render TABs using this many spaces.
 set shiftwidth=4            " Indentation amount for < and > commands.
 set inccommand=split        " shows search matches (or substitutions matches) in a split window, in real time... live feedback
+set list
+set list lcs=tab:\|\ ,trail:-
+
 set encoding=utf-8
 set hidden " allow [^13] "E37: No write since last change (add ! to override)". switch to a different buffer for referencing some code and switch back
 set ignorecase " ignores case sensitivity by default
@@ -79,12 +87,10 @@ let g:vim_monokai_tasty_italic = 1
 " colorscheme vim-monokai-tasty
 " colorscheme monokai
 " colorscheme monokai_pro
-colorscheme tender
+" colorscheme tender
+colorscheme dracula
 
-
-" 'preservim/vim-markdown'
-let g:vim_markdown_folding_disabled = 1
-" hi link markdownError Normal " [^6]
+hi link markdownError Normal " [^6]
 
 set autoread " Autoload file changes. You can undo by pressing u. [^11]
 " Triger `autoread` when files changes on disk [^11]
@@ -116,7 +122,10 @@ command! -nargs=+ -complete=command Redir let s:reg = @@ | redir @"> | silent ex
 " editorconfig [^7]
 let g:EditorConfig_exclude_patterns = ['fugitive://.*', 'scp://.*'] " exclude pattern
 au FileType gitcommit let b:EditorConfig_disable = 1 " disable EditorConfig for all git commit messages (filetype gitcommit)
-let g:EditorConfig_verbose=1
+" au FileType markdown let b:EditorConfig_disable = 1
+" let g:EditorConfig_verbose=1
+
+au FileType markdown nnoremap <leader>r :norm k0f^l"nyiw<cr>ji[^<c-r>=<c-r>n+1<cr>]: []()<esc>
 
 
 
@@ -183,6 +192,11 @@ vnoremap  <leader>y  "+y
 nnoremap  <leader>Y  "+yg_
 nnoremap  <leader>y  "+y
 nnoremap  <leader>yy  "+yy
+" Cut to clipboard
+vnoremap  <leader>d  "+ygvd
+nnoremap  <leader>D  "+yg_dg_
+nnoremap  <leader>d  "+d
+nnoremap  <leader>dd  "+yydd
 " Paste from clipboard
 nnoremap <leader>p "+p
 nnoremap <leader>P "+P
@@ -282,7 +296,7 @@ syntax enable
 " Inactive Options "
 """"""""""""""""""""
 
-hi Normal guibg=#111111 ctermbg=black
+" hi Normal guibg=#111111 ctermbg=black
 " hi! Normal ctermbg=NONE guibg=NONE " Keep terminal background
 " hi Normal guibg=#111111 ctermbg=black
 " highlight Normal ctermbg=black
