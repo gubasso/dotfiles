@@ -17,6 +17,6 @@ setxkbmap -model abnt2 -layout br -option "caps:swapescape"
 # hide mouse when typing
 xbanish &
 
-# Run KDE Plasma
-export DESKTOP_SESSION=plasma
-exec startplasma-x11
+redshift -03500
+xset r rate 300 50
+exec dwm

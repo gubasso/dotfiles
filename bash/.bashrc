@@ -1,6 +1,4 @@
-#
 # ~/.bashrc
-#
 
 source ~/.shell_alias
 source ~/.shell_env_vars

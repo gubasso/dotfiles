@@ -1,8 +1,5 @@
-#
 # ~/.zprofile
-#
-
 [ -f ~/.xprofile ] && source ~/.xprofile
 [ -f ~/.profile ] && source ~/.profile
-[[ -f ~/.zshrc ]] && . ~/.zshrc
+[[ -f ~/.zshrc ]] && source ~/.zshrc
 

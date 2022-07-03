@@ -7,8 +7,12 @@
 # [^al3]: [Clear a terminal screen for real: KDE](https://stackoverflow.com/questions/5367068/clear-a-terminal-screen-for-real)
 # [^al4]: `cat file | xclip -selection clipboard` [How can I copy the output of a command directly into my clipboard?](https://stackoverflow.com/questions/5130968/how-can-i-copy-the-output-of-a-command-directly-into-my-clipboard#5130969)
 
-alias ipac="sudo pacman -Syu"
-alias iaur="sudo pacman -Syu && paru -Syu && paru -S"
+# pacman/paru install packages
+function ipac() {
+    sudo pacman -Syu ${@}
+    paru -Syu ${@}
+}
+
 alias rs_rmshred="shred -n10 -uz"
 alias ls='exa'
 alias tree='exa --tree --all --git-ignore --ignore-glob ".git"'
@@ -22,9 +26,7 @@ alias ga='git add . && git commit'
 alias gam='git add . && git commit -m'
 alias ss='sudo systemctl'
 alias toxclip='xclip -selection clipboard' #[^al4]
-# alias rm='rmtrash'
-alias rm='trash'
-alias rmdir='rmdirtrash'
+alias rm='trash-put'
 alias sudo="sudo "
 
 # dvc
@@ -43,7 +45,5 @@ function bcc() {
 function bcw() {
     git add . && git commit -m "issue ${@} WIP"
 }
-
-
 
 function fz() { fd -t d | fzf ;}
