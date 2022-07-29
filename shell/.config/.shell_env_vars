@@ -17,9 +17,4 @@ export FZF_CTRL_R_OPTS="--preview 'echo {}' --preview-window down:3:hidden:wrap 
 export DOTFILESDIR="${HOME}/.dotfiles"
 export VISUAL=nvim
 export EDITOR=nvim
-export BROWSER=librewolf
 export TERMINAL=alacritty
-# Add my personal binaries to the PATH
-export PATH="${PATH}:${HOME}/BinPub"
-export PATH="${PATH}:${HOME}/BinPriv"
-export PATH="${PATH}:${HOME}/.local/bin"

@@ -27,6 +27,8 @@ Plug 'tpope/vim-repeat'
 Plug 'tpope/vim-commentary'
 Plug 'tpope/vim-repeat'
 Plug 'tpope/vim-fugitive'
+Plug 'tpope/vim-eunuch'
+Plug 'rbong/vim-flog'
 Plug 'mattn/emmet-vim'
 Plug 'editorconfig/editorconfig-vim'
 Plug 'pangloss/vim-javascript'
@@ -43,6 +45,7 @@ Plug 'junegunn/gv.vim'
 Plug 'rbong/vim-flog'
 Plug 'vim-airline/vim-airline'
 Plug 'vim-airline/vim-airline-themes'
+Plug 'justinmk/vim-dirvish'
 
 " Themes
 " Plug 'sickill/vim-monokai'
@@ -69,7 +72,7 @@ set list
 set list lcs=tab:\|\ ,trail:-
 
 set encoding=utf-8
-set hidden " allow [^13] "E37: No write since last change (add ! to override)". switch to a different buffer for referencing some code and switch back
+set hidden " allow [^13] 'E37: No write since last change (add ! to override)'. switch to a different buffer for referencing some code and switch back
 set ignorecase " ignores case sensitivity by default
 set smartcase " no case sensitivity, unless if uppercase character is introduced
 set splitright " To make vsplit put the new buffer on the right of the current buffer:
@@ -82,6 +85,8 @@ set colorcolumn=80
 set nobackup
 set nowritebackup
 set shortmess-=S " When searching a for a word, it can be useful to know how many matches there are in the file, like [1/4].
+set scrolloff=8
+set sidescrolloff=8
 
 let g:vim_monokai_tasty_italic = 1
 " colorscheme vim-monokai-tasty
@@ -125,9 +130,29 @@ au FileType gitcommit let b:EditorConfig_disable = 1 " disable EditorConfig for 
 " au FileType markdown let b:EditorConfig_disable = 1
 " let g:EditorConfig_verbose=1
 
-au FileType markdown nnoremap <leader>r :norm k0f^l"nyiw<cr>ji[^<c-r>=<c-r>n+1<cr>]: []()<esc>
+" auto create docs markdown helpers
+augroup mdhelpers
+    au!
+    "" reference structure with a sequence number
+    au FileType markdown nnoremap <leader>ri o[^1]: []()"+pT)
+    au FileType markdown nnoremap <leader>rs :norm 0ll:let @n=0"nyiwo[^=n+1]: []()"+pT)
+    "" code block: simple
+    au FileType markdown nnoremap <leader>cc o``````kk
+    au FileType markdown nnoremap <leader>cp o``````kk"+p
+    "" code block: with file name
+    au FileType markdown nnoremap <leader>ff o**``**``````kkkklll
+    au FileType markdown nnoremap <leader>fp o**``**``````kk"+p
+    "" link and paste at end
+    au FileType markdown nnoremap <leader>i i[]()"+pT)
+augroup END
 
-
+augroup mdfiletypes
+    " associate *.foo with bar filetype
+    " do not override previouslly setted filetypes
+    au!
+    au BufNewFile,BufRead *.rmd setfiletype markdown
+    au BufNewFile,BufRead Description setfiletype markdown
+augroup END
 
 " FZF Rg[^3]
 function! RipgrepFzf(query, fullscreen)
@@ -280,6 +305,9 @@ augroup rust_work
     au FileType rust nnoremap <Leader>t :wa<cr> \| :call VimuxRunCommand("clrm; cargo test -- --nocapture")<CR>
     au FileType rust nnoremap <Leader>c :wa<cr> \| :call VimuxRunCommand("clrm; cargo clippy")<CR>
 augroup END
+
+" gopass security: https://github.com/gopasspw/gopass/blob/master/docs/setup.md#securing-your-editor
+au BufNewFile,BufRead /dev/shm/gopass.* setlocal noswapfile nobackup noundofile
 
 " Easy Align
 nmap ga <Plug>(EasyAlign)

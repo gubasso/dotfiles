@@ -2,24 +2,24 @@
 
 #increase the volume by 5
 XF86AudioRaiseVolume
-    pamixer -i 5 && sh /home/gubasso/Projects/gdsb/status/volume
+    pamixer -i 5 && sb-sendsignal 5
 
 #decrease the volume by 5
 XF86AudioLowerVolume
-    pamixer -d 5 && sh /home/gubasso/Projects/gdsb/status/volume
+    pamixer -d 5 && sb-sendsignal 5
 
 #toggle between mute and unmute
 XF86AudioMute
-    pamixer -t && sh /home/gubasso/Projects/gdsb/status/volume
+    pamixer -t && sb-sendsignal 5
 
 control + alt + l
     slock
 
 XF86MonBrightness{Up,Down}
-	brightnessctl --device=intel_backlight set {+5%,5%-}
+	brightnessctl --device=intel_backlight set {+1%,1%-}
 
 Print
-	scshot select
+	flameshot gui
 
 shift + Print
-	scshot full
+	flameshot full

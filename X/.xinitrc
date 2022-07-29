@@ -8,7 +8,7 @@
 [ -f ~/.profile ] && source ~/.profile
 
 # ssh-agent start with X, integration with keepassxc
-# eval $(ssh-agent)
+eval $(ssh-agent)
 
 # Setup br abnt2 keyboard layout with dead keys and accents
 # Switch caps lock and Esc
@@ -17,6 +17,11 @@ setxkbmap -model abnt2 -layout br -option "caps:swapescape"
 # hide mouse when typing
 xbanish &
 
-redshift -03500
+pcmanfm -d &
+
+sxhkd &
+
+dwmblocks &
+
 xset r rate 300 50
-exec dwm
+exec ./.local/bin/startdwm

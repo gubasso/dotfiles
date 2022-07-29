@@ -7,12 +7,10 @@
 # [^al3]: [Clear a terminal screen for real: KDE](https://stackoverflow.com/questions/5367068/clear-a-terminal-screen-for-real)
 # [^al4]: `cat file | xclip -selection clipboard` [How can I copy the output of a command directly into my clipboard?](https://stackoverflow.com/questions/5130968/how-can-i-copy-the-output-of-a-command-directly-into-my-clipboard#5130969)
 
-# pacman/paru install packages
-function ipac() {
-    sudo pacman -Syu ${@}
-    paru -Syu ${@}
-}
-
+alias n="nvim"
+alias sp="paru -Ss"
+alias spi="paru -Q | rg"
+function p() {paru -Syu ${@} && sb-sendsignal 10 ;}
 alias rs_rmshred="shred -n10 -uz"
 alias ls='exa'
 alias tree='exa --tree --all --git-ignore --ignore-glob ".git"'
@@ -21,13 +19,18 @@ alias rg='rg --hidden --smart-case'
 alias tmux="env TERM=xterm-256color tmux" # [^al1]
 alias cl='clear'
 alias clrm='clear && echo -en "\e[3J"' #[^al3]
-alias cf='cd ${HOME} && `__fzf_cd__`' #change dir with fuzzy
-alias ga='git add . && git commit'
-alias gam='git add . && git commit -m'
 alias ss='sudo systemctl'
 alias toxclip='xclip -selection clipboard' #[^al4]
 alias rm='trash-put'
 alias sudo="sudo "
+
+#docker
+alias d='sudo docker'
+
+#git
+alias ga='git add -A && git commit'
+alias gam='ga -m'
+function gampsh() { gam "${@}" && git push ;}
 
 # dvc
 alias dvc="poetry run dvc"
@@ -37,13 +40,33 @@ function gi() { curl -sL https://www.toptal.com/developers/gitignore/api/$@ ;}
 
 # bug issue tracker close issue
 # bug commit close issue (bcc)
-function bcc() {
-    git add . && git commit -m "issue ${@} locked"
-    bug close $@ && git add . && git commit -m "issue ${@} closed"
-}
 # bug commit WIP issue (bcw)
+alias b='bug'
+alias bc='bug create'
+alias bl='bug list'
+alias be='bug edit'
+alias bt='bug tag'
+alias bi='bug identifier'
+alias br='bug relabel'
+alias bs='bug status'
+alias bp='bug priority'
+alias bm='bug milestone'
+alias brm='bug roadmap'
+function bcc() {
+    issue="Issue: $(bug list ${@} | awk -F ': ' '/Title/ {print $2}') (#${@})"
+    git add -A && git commit -m "(locked) ${issue}"
+    bug close $@ && git add -A && git commit -m "(closed) ${issue}"
+}
 function bcw() {
-    git add . && git commit -m "issue ${@} WIP"
+    issue="Issue: $(bug list ${@} | awk -F ': ' '/Title/ {print $2}') (#${@})"
+    git add -A && git commit -m "(WIP) ${issue}"
 }
 
-function fz() { fd -t d | fzf ;}
+# jq json validation
+function jsonval() {
+    if jq empty ${@}; then
+      echo "JSON is valid"
+    else
+      echo "JSON is invalid"
+    fi
+}
