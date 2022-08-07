@@ -1,7 +1,7 @@
 # ~/.bashrc
 
-source ~/.shell_alias
-source ~/.shell_env_vars
+. $XDG_CONFIG_HOME/.shell_alias
+. $XDG_CONFIG_HOME/.shell_env_vars
 
 # If not running interactively, don't do anything
 [[ $- != *i* ]] && return

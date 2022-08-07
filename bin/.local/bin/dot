@@ -1,0 +1,3 @@
+#!/bin/sh
+cd $DOTFILESDIR
+stow -vt ${HOME} ${1}

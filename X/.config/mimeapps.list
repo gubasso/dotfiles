@@ -1,4 +1,3 @@
-
 [Default Applications]
 text/html=librewolf.desktop
 x-scheme-handler/http=librewolf.desktop

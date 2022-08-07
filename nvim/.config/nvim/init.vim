@@ -46,14 +46,8 @@ Plug 'rbong/vim-flog'
 Plug 'vim-airline/vim-airline'
 Plug 'vim-airline/vim-airline-themes'
 Plug 'justinmk/vim-dirvish'
-
-" Themes
-" Plug 'sickill/vim-monokai'
-" Plug 'phanviet/vim-monokai-pro'
-" Plug 'patstockwell/vim-monokai-tasty'
-Plug 'challenger-deep-theme/vim', { 'as': 'challenger-deep' }
-Plug 'dracula/vim', { 'as': 'dracula' }
-
+" colorscheme/theme
+Plug 'arcticicestudio/nord-vim'
 call plug#end() " [^1]
 """""""""""""""""""""""""""
 """""""""""""""""""""""""""
@@ -88,12 +82,8 @@ set shortmess-=S " When searching a for a word, it can be useful to know how man
 set scrolloff=8
 set sidescrolloff=8
 
-let g:vim_monokai_tasty_italic = 1
-" colorscheme vim-monokai-tasty
-" colorscheme monokai
-" colorscheme monokai_pro
-" colorscheme tender
-colorscheme dracula
+let g:gruvbox_contrast_dark = 'soft'
+colorscheme nord
 
 hi link markdownError Normal " [^6]
 
@@ -129,6 +119,11 @@ let g:EditorConfig_exclude_patterns = ['fugitive://.*', 'scp://.*'] " exclude pa
 au FileType gitcommit let b:EditorConfig_disable = 1 " disable EditorConfig for all git commit messages (filetype gitcommit)
 " au FileType markdown let b:EditorConfig_disable = 1
 " let g:EditorConfig_verbose=1
+
+" js helpers
+augroup jshelpers
+    au! FileType javascript nnoremap <leader>c "cyiwoconsole.log(c)
+augroup END
 
 " auto create docs markdown helpers
 augroup mdhelpers
@@ -229,7 +224,10 @@ vnoremap <leader>p "+p
 vnoremap <leader>P "+P<Paste>
 " FZF: Insert mode completion
 imap <expr> <c-x><c-k> fzf#vim#complete#word({'window': { 'width': 0.2, 'height': 0.9, 'xoffset': 1 }})
-inoremap <expr> <c-x><c-f> fzf#vim#complete#path('fd --hidden --follow --exclude .git')
+" Add fzf-complete-path-relative #628 
+" https://github.com/junegunn/fzf.vim/pull/628#issuecomment-1182944962
+" inoremap <expr> <c-x><c-f> fzf#vim#complete("fd --type f --hidden --print0 <Bar> xargs --null realpath --relative-to " . expand("%:h"))
+inoremap <c-x><c-f> ./<c-r>=fzf#vim#complete("fd --type f --hidden --print0 <Bar> xargs --null realpath --relative-to " . expand("%:h"))<cr>
 imap <c-x><c-l> <plug>(fzf-complete-line)
 inoremap <expr> <c-x><c-i> fzf#vim#complete(fzf#wrap({
   \ 'prefix': '^.*$',
@@ -239,7 +237,6 @@ inoremap <expr> <c-x><c-i> fzf#vim#complete(fzf#wrap({
 " FZF
 nnoremap <C-p> :Files!<CR>
 nnoremap <C-f> :RG!<CR>
-nnoremap <leader>l :RG!<CR>
 nnoremap <C-q>f :History<CR>
 nnoremap <C-q>c :History:<CR>
 nnoremap <C-q>s :History/<CR>
