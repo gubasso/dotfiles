@@ -1,0 +1,15 @@
+{
+    "workspace.library": [
+        "/home/gubasso/.config/nvim",
+        "/home/gubasso/.local/share/nvim/lazy/lazy.nvim",
+        "/home/gubasso/.local/share/nvim/lazy/nvim-lspconfig",
+        "/home/gubasso/.local/share/nvim/lazy/mason-lspconfig.nvim",
+        "/home/gubasso/.local/share/nvim/lazy/mason.nvim",
+        "/home/gubasso/.local/share/nvim/lazy/mason-tool-installer.nvim",
+        "/home/gubasso/.local/share/nvim/lazy/nord.nvim",
+        "/usr/share/nvim/runtime",
+        "/usr/lib/nvim",
+        "/home/gubasso/.local/state/nvim/lazy/readme",
+        "${3rd}/luassert/library"
+    ]
+}

@@ -1,2 +1,9 @@
 degit
-slugify-cli
+neovim
+vscode-langservers-extracted
+typescript
+typescript-language-server
+svelte-language-server
+dockerfile-language-server-nodejs
+ls_emmet
+bash-language-server

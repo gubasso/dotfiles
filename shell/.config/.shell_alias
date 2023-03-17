@@ -7,22 +7,25 @@
 # [^al3]: [Clear a terminal screen for real: KDE](https://stackoverflow.com/questions/5367068/clear-a-terminal-screen-for-real)
 # [^al4]: `cat file | xclip -selection clipboard` [How can I copy the output of a command directly into my clipboard?](https://stackoverflow.com/questions/5130968/how-can-i-copy-the-output-of-a-command-directly-into-my-clipboard#5130969)
 
+alias wk="tmuxp load cadelab"
+
 alias n="nvim"
 alias sp="paru -Ss"
 alias spi="paru -Q | rg"
 function p() {paru -Syu ${@} && sb-sendsignal 10 ;}
-alias rs_rmshred="shred -n10 -uz"
+alias rms="shred -n10 -uz"
+alias rm='rmtrash'
+alias rmdir='rmdirtrash'
 alias ls='exa'
 alias tree='exa --tree --all --git-ignore --ignore-glob ".git"'
 alias cat='bat'
 alias rg='rg --hidden --smart-case'
-alias tmux="env TERM=xterm-256color tmux" # [^al1]
 alias cl='clear'
 alias clrm='clear && echo -en "\e[3J"' #[^al3]
 alias ss='sudo systemctl'
 alias toxclip='xclip -selection clipboard' #[^al4]
-alias rm='trash-put'
 alias sudo="sudo "
+alias rs='rsync -vurzP'
 
 #docker
 alias d='sudo docker'
@@ -31,6 +34,7 @@ alias d='sudo docker'
 alias ga='git add -A && git commit'
 alias gam='ga -m'
 function gampsh() { gam "${@}" && git push ;}
+alias gsync='git pull && gampsh up'
 
 # dvc
 alias dvc="poetry run dvc"

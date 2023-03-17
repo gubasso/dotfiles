@@ -32,5 +32,9 @@ sxhkd &
 
 dwmblocks &
 
+dropbox &
+
+thunar --daemon &
+
 xset r rate 300 50
 exec dwm

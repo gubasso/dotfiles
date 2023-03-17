@@ -1,7 +1,10 @@
 # This is Git's per-user configuration file.
 [user]
 # Please adapt and uncomment the following lines:
-name = Gustavo Basso
-email = gubasso@git.dev
+    name = Gustavo Basso
+    email = gubasso@cwnt.io
+	signingkey = 7CCE369973230977391A01A85263B3301AFE1919
 [init]
 	defaultBranch = master
+[pull]
+	rebase = false

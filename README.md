@@ -22,7 +22,6 @@ stow -vt ~ *
 
 stow never overrides anything
 
-
 ## References:
 
 [1]: [Sync your .dotfiles with git and GNU #Stow like a pro! - DevInsideYou](https://www.youtube.com/watch?v=CFzEuBGPPPg)
