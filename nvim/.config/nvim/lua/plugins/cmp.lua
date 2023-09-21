@@ -1,4 +1,3 @@
-
 return {
   {
     "L3MON4D3/LuaSnip",
@@ -7,7 +6,7 @@ return {
   { "hrsh7th/cmp-nvim-lsp" },
   { "hrsh7th/cmp-nvim-lsp-signature-help" },
   { "hrsh7th/cmp-path" },
-  { "lukas-reineke/cmp-rg" },
+  -- { "lukas-reineke/cmp-rg" },
   { "hrsh7th/cmp-emoji" },
   { "chrisgrieser/cmp-nerdfont" },
   {
@@ -18,8 +17,8 @@ return {
       "hrsh7th/cmp-nvim-lsp-signature-help",
       "hrsh7th/cmp-path",
       "tzachar/cmp-fuzzy-buffer",
-      "tzachar/cmp-fuzzy-path",
-      "lukas-reineke/cmp-rg",
+      -- "tzachar/cmp-fuzzy-path",
+      -- "lukas-reineke/cmp-rg",
       "hrsh7th/cmp-emoji",
       "chrisgrieser/cmp-nerdfont",
     },
@@ -62,8 +61,8 @@ return {
             { name = 'nvim_lsp_signature_help' },
             { name = 'path' },
             { name = 'fuzzy_buffer' },
-            { name = 'fuzzy_path'},
-            { name = 'rg', keyword_length = 2 },
+            -- { name = 'fuzzy_path'},
+            -- { name = 'rg', keyword_length = 2 },
             { name = 'emoji' },
             { name = 'nerdfont' },
           },
@@ -77,11 +76,11 @@ return {
           { name = 'fuzzy_buffer' }
         })
       })
-      cmp.setup.cmdline(':', {
-        sources = cmp.config.sources({
-          { name = 'fuzzy_path' }
-        })
-      })
+      -- cmp.setup.cmdline(':', {
+      --   sources = cmp.config.sources({
+      --     { name = 'fuzzy_path' }
+      --   })
+      -- })
       cmp.event:on(
         'confirm_done',
         cmp_autopairs.on_confirm_done()

@@ -7,9 +7,11 @@
 # [^al3]: [Clear a terminal screen for real: KDE](https://stackoverflow.com/questions/5367068/clear-a-terminal-screen-for-real)
 # [^al4]: `cat file | xclip -selection clipboard` [How can I copy the output of a command directly into my clipboard?](https://stackoverflow.com/questions/5130968/how-can-i-copy-the-output-of-a-command-directly-into-my-clipboard#5130969)
 
-alias wk="tmuxp load cadelab"
+alias trust="tmuxp load rust"
 
 alias n="nvim"
+alias vf="fd --type f --hidden --exclude .git | fzf-tmux -p | xargs nvim"
+alias vp="cd \`fd --type d --hidden --exclude .git | fzf-tmux -p\` && nvim"
 alias sp="paru -Ss"
 alias spi="paru -Q | rg"
 function p() {paru -Syu ${@} && sb-sendsignal 10 ;}
@@ -26,6 +28,19 @@ alias ss='sudo systemctl'
 alias toxclip='xclip -selection clipboard' #[^al4]
 alias sudo="sudo "
 alias rs='rsync -vurzP'
+function slug() {
+  slugify --separator _ ${@} | tr -d '\n' | tee >(toxclip)
+}
+function lc() {
+  cargo new ${1} --lib && bug create -n ${1}
+}
+
+function pomo() {
+  if [ -n "$1" ]; then
+    cowsay Work for $1
+    tclock timer -d $1 -e "while true; do xcowsay Acabou o tempo!; paplay /home/gubasso/Sounds/bell_zen_01.wav; done"
+  fi
+}
 
 #docker
 alias d='sudo docker'
@@ -35,6 +50,7 @@ alias ga='git add -A && git commit'
 alias gam='ga -m'
 function gampsh() { gam "${@}" && git push ;}
 alias gsync='git pull && gampsh up'
+alias gstaged='git diff --name-only --cached'
 
 # dvc
 alias dvc="poetry run dvc"
@@ -43,8 +59,6 @@ alias dvc="poetry run dvc"
 function gi() { curl -sL https://www.toptal.com/developers/gitignore/api/$@ ;}
 
 # bug issue tracker close issue
-# bug commit close issue (bcc)
-# bug commit WIP issue (bcw)
 alias b='bug'
 alias bc='bug create'
 alias bl='bug list'
@@ -56,15 +70,6 @@ alias bs='bug status'
 alias bp='bug priority'
 alias bm='bug milestone'
 alias brm='bug roadmap'
-function bcc() {
-    issue="Issue: $(bug list ${@} | awk -F ': ' '/Title/ {print $2}') (#${@})"
-    git add -A && git commit -m "(locked) ${issue}"
-    bug close $@ && git add -A && git commit -m "(closed) ${issue}"
-}
-function bcw() {
-    issue="Issue: $(bug list ${@} | awk -F ': ' '/Title/ {print $2}') (#${@})"
-    git add -A && git commit -m "(WIP) ${issue}"
-}
 
 # jq json validation
 function jsonval() {

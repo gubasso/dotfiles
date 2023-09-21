@@ -17,6 +17,24 @@ if not vim.loop.fs_stat(lazypath) then
 end
 vim.opt.rtp:prepend(lazypath)
 
+local api = vim.api
+local M = {}
+-- function to create a list of commands and convert them to autocommands
+-------- This function is taken from https://github.com/norcalli/nvim_utils
+function M.nvim_create_augroups(definitions)
+    for group_name, definition in pairs(definitions) do
+        api.nvim_command('augroup '..group_name)
+        api.nvim_command('autocmd!')
+        for _, def in ipairs(definition) do
+            local command = table.concat(vim.tbl_flatten{'autocmd', def}, ' ')
+            api.nvim_command(command)
+        end
+        api.nvim_command('augroup END')
+    end
+end
+
+
+
 -- vim.keymap.set('i', '<M-e>', '')
 -- vim.keymap.set('n', '<M-e>', '')
 
@@ -59,6 +77,9 @@ vim.opt.shortmess:append('c') -- " When searching a for a word, it can be useful
 vim.opt.undofile = true
 vim.opt.autoread = true
 
+vim.opt.hlsearch = false
+vim.opt.incsearch = true
+
 
 vim.cmd([[
 " https://vi.stackexchange.com/questions/13692/prevent-focusgained-autocmd-running-in-command-line-editing-mode
@@ -88,7 +109,11 @@ nnoremap <silent> <c-c> :if (&hlsearch == 1) \| set nohlsearch \| else \| set hl
 " Put <enter> to work too! Otherwise <enter> moves to the next line, which we can
 " already do by pressing the <j> key, which is a waste of keys!
 " Be useful <enter> key!:
-nnoremap <silent> <cr> :let searchTerm = '\v<'.expand("<cword>").'>' <bar> let @/ = searchTerm <bar> echo '/'.@/ <bar> call histadd("search", searchTerm) <bar> set hls<cr>
+nnoremap <silent> <leader><cr> :let searchTerm = '\v<'.expand("<cword>").'>' <bar> let @/ = searchTerm <bar> echo '/'.@/ <bar> call histadd("search", searchTerm) <bar> set hls<cr>
+]])
+
+vim.cmd([[
+let g:rustfmt_autosave = 1
 ]])
 
 
@@ -96,7 +121,14 @@ vim.opt.spelllang = 'en_us'
 -- vim.opt.spell = true
 
 
-
-
-
 require("lazy").setup("plugins")
+-- local autoCommands = {
+--     -- other autocommands
+--     open_folds = {
+--         {"BufReadPost,FileReadPost", "*", "normal zR"}
+--     }
+-- }
+-- M.nvim_create_augroups(autoCommands) -- [^1]
+
+-- References:
+-- [^1]: https://www.jmaguire.tech/posts/treesitter_folding/

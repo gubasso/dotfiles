@@ -3,6 +3,8 @@ autoload -Uz colors && colors
 
 export ZCOMPDUMP_FILE="${XDG_CACHE_HOME}/zsh/zcompdump"
 export ZPLUGINS_DIR="${XDG_CACHE_HOME}/zsh/plugins"
+export FUNCTIONS_DIR="${XDG_CONFIG_HOME}/zsh/zfunc"
+fpath+="${FUNCTIONS_DIR}"
 # Basic auto/tab complete:
 # optimizing compinit loading time: https://medium.com/@dannysmith/little-thing-2-speeding-up-zsh-f1860390f92
 autoload -Uz compinit

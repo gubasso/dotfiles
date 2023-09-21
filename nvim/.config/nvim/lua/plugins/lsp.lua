@@ -69,18 +69,6 @@ return {
         automatic_setup = true,
       })
       require("null-ls").setup()
-      require 'mason-null-ls'.setup_handlers()
-    end,
-  },
-  { "mfussenegger/nvim-dap", lazy = false },
-  {
-    "jay-babu/mason-nvim-dap.nvim",
-    lazy = false,
-    config = function()
-      require("mason-nvim-dap").setup({
-        automatic_setup = true,
-      })
-      require 'mason-nvim-dap'.setup_handlers {}
     end,
   },
   {

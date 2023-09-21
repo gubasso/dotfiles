@@ -15,7 +15,10 @@ return {
           "html",
           "css",
           "python",
-          "svelte"
+          "svelte",
+          "toml",
+          "json",
+          "markdown",
         },
         sync_install = false,
         auto_install = true,
@@ -26,6 +29,11 @@ return {
         autotag = { enable = true, },
         autopairs = { enable = true, },
       }
+
+      -- -- Treesitter folding
+      -- vim.wo.foldmethod = 'expr'
+      -- vim.wo.foldexpr = 'nvim_treesitter#foldexpr()'
+
     end,
   },
   { 'windwp/nvim-ts-autotag', config = true, },
