@@ -42,15 +42,18 @@ function pomo() {
   fi
 }
 
+#zshrc
+alias srczshrc='source ~/.config/zsh/.zshrc'
+
 #docker
 alias d='sudo docker'
 
 #git
-alias ga='git add -A && git commit'
-alias gam='ga -m'
-function gampsh() { gam "${@}" && git push ;}
+alias ga='git add -A'
+alias gac='git add -A && git commit'
+alias gacm='git add -A && git commit -m'
+function gacmp() { gacm "${@}" && git push ;}
 alias gsync='git pull && gampsh up'
-alias gstaged='git diff --name-only --cached'
 
 # dvc
 alias dvc="poetry run dvc"
