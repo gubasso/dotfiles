@@ -20,7 +20,7 @@ augroup END
 " https://vi.stackexchange.com/questions/13091/autocmd-event-for-autoread
 " autocmd FileChangedShellPost *
 "   \ echohl WarningMsg | echo "File changed on disk. Buffer reloaded." | echohl None
-" ]])
+]])
 
 -- Check if we need to reload the file when it changed
 vim.api.nvim_create_autocmd({ "FocusGained", "TermClose", "TermLeave" }, {

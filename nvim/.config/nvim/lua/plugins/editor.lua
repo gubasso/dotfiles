@@ -1,5 +1,5 @@
 return {
-  -- { 'jiangmiao/auto-pairs' },
+  { 'jiangmiao/auto-pairs' },
   {
     'stevearc/oil.nvim',
     opts = {},
@@ -107,7 +107,7 @@ return {
       require("which-key").register({
         prefix = '<leader>',
         e = {
-          t = {
+          e = {
             function()
               require("neo-tree.command").execute({
                 toggle = true,
@@ -125,7 +125,7 @@ return {
               })
             end, "Files (netrw style)"
           },
-          T = {
+          f = {
             function()
               require("neo-tree.command").execute({
                 toggle = true,
@@ -256,7 +256,8 @@ return {
   -- fuzzy finder
   { 'nvim-telescope/telescope-fzf-native.nvim', build = 'make' },
   {
-    'nvim-telescope/telescope.nvim', branch = '0.1.x',
+    'nvim-telescope/telescope.nvim',
+    branch = '0.1.x',
     dependencies = {
       'nvim-lua/plenary.nvim',
       'folke/todo-comments.nvim',
@@ -367,20 +368,130 @@ return {
         },
       })
       require("which-key").register({
-        prefix = '<leader>',
-        x = {
-          name = "+diagnostics/quickfix" ,
-          d = { function() tr.open("document_diagnostics") end, "document"},
-          w = { function() tr.open("workspace_diagnostics") end, "workspace"},
-          q = { function() tr.open("quickfix") end, "quickfix"},
-          l = { function() tr.open("loclist") end, "loclist"},
-          r = { function() tr.open("lsp_references") end, "lsp references"},
-          t = { "<cmd>TodoTrouble<cr>", "Todo" },
-          T = { "<cmd>TodoTrouble keywords=TODO,FIX,FIXME<cr>", "Todo/Fix/Fixme" },
-        },
+        prefix = '<leader>x',
+        d = { function() tr.open("document_diagnostics") end, "document"},
+        w = { function() tr.open("workspace_diagnostics") end, "workspace"},
+        q = { function() tr.open("quickfix") end, "quickfix"},
+        l = { function() tr.open("loclist") end, "loclist"},
+        r = { function() tr.open("lsp_references") end, "lsp references"},
+        t = { "<cmd>TodoTrouble<cr>", "Todo" },
+        T = { "<cmd>TodoTrouble keywords=TODO,FIX,FIXME<cr>", "Todo/Fix/Fixme" },
       })
 
     end,
+  },
+  {
+    "ThePrimeagen/harpoon",
+    dependencies = {
+      "nvim-lua/plenary.nvim",
+      "rcarriga/nvim-notify",
+    },
+    keys = {
+      {
+        "<s-h>",
+        function()
+          require("harpoon.mark").add_file()
+          require("notify")("harpoon added")
+        end,
+        desc = "add file",
+      },
+      {
+        "<leader>1",
+        function()
+          require("harpoon.ui").nav_file(1)
+        end,
+        desc = "File 1"
+      },
+      {
+        "<leader>2",
+        function()
+          require("harpoon.ui").nav_file(2)
+        end,
+        desc = "File 2"
+      },
+      {
+        "<leader>3",
+        function()
+          require("harpoon.ui").nav_file(3)
+        end,
+        desc = "File 3"
+      },
+      {
+        "<leader>4",
+        function()
+          require("harpoon.ui").nav_file(4)
+        end,
+        desc = "File 4"
+      },
+      {
+        "<leader>5",
+        function()
+          require("harpoon.ui").nav_file(5)
+        end,
+        desc = "File 5"
+      },
+      {
+        "<leader>6",
+        function()
+          require("harpoon.ui").nav_file(6)
+        end,
+        desc = "File 6"
+      },
+      {
+        "<leader>7",
+        function()
+          require("harpoon.ui").nav_file(7)
+        end,
+        desc = "File 7"
+      },
+      {
+        "<leader>8",
+        function()
+          require("harpoon.ui").nav_file(8)
+        end,
+        desc = "File 8"
+      },
+      {
+        "<leader>9",
+        function()
+          require("harpoon.ui").nav_file(9)
+        end,
+        desc = "File 9"
+      },
+      {
+        "<leader>ha",
+        function()
+          require("harpoon.mark").add_file()
+        end,
+        desc = "add file"
+      },
+      {
+        "<leader>hh",
+        function()
+          require("harpoon.ui").toggle_quick_menu()
+        end,
+        desc = "menu"
+      },
+      {
+        "<leader>hp",
+        function()
+          require("harpoon.ui").nav_prev()
+        end,
+        desc = "prev mark"
+      },
+      {
+        "<leader>hn",
+        function()
+          require("harpoon.ui").nav_next()
+        end,
+        desc = "next mark"
+      },
+    },
+    opts = {
+      menu = {
+        width = vim.api.nvim_win_get_width(0) - 4,
+      },
+    },
   },
 
 }

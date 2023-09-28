@@ -1,3 +1,45 @@
+local function diagnostic_goto(next, severity)
+  local go = next and vim.diagnostic.goto_next or vim.diagnostic.goto_prev
+  severity = severity and vim.diagnostic.severity[severity] or nil
+  return function()
+    go({ severity = severity })
+  end
+end
+
+local lsp_keys = {
+  { "<leader>cd", vim.diagnostic.open_float, desc = "Line Diagnostics" },
+  { "<leader>cl", "<cmd>LspInfo<cr>", desc = "Lsp Info" },
+  { "gd", function() require("telescope.builtin").lsp_definitions({ reuse_win = true }) end, desc = "Goto Definition"},
+  { "gr", "<cmd>Telescope lsp_references<cr>", desc = "References" },
+  { "gD", vim.lsp.buf.declaration, desc = "Goto Declaration" },
+  { "gI", function() require("telescope.builtin").lsp_implementations({ reuse_win = true }) end, desc = "Goto Implementation" },
+  { "gy", function() require("telescope.builtin").lsp_type_definitions({ reuse_win = true }) end, desc = "Goto T[y]pe Definition" },
+  { "K", vim.lsp.buf.hover, desc = "Hover" },
+  { "gK", vim.lsp.buf.signature_help, desc = "Signature Help"},
+  { "<c-k>", vim.lsp.buf.signature_help, mode = "i", desc = "Signature Help" },
+  { "]d", diagnostic_goto(true), desc = "Next Diagnostic" },
+  { "[d", diagnostic_goto(false), desc = "Prev Diagnostic" },
+  { "]e", diagnostic_goto(true, "ERROR"), desc = "Next Error" },
+  { "[e", diagnostic_goto(false, "ERROR"), desc = "Prev Error" },
+  { "]w", diagnostic_goto(true, "WARN"), desc = "Next Warning" },
+  { "[w", diagnostic_goto(false, "WARN"), desc = "Prev Warning" },
+  { "<leader>ca", vim.lsp.buf.code_action, desc = "Code Action", mode = { "n", "v" } },
+  {
+    "<leader>cA",
+    function()
+      vim.lsp.buf.code_action({
+        context = {
+          only = {
+            "source",
+          },
+          diagnostics = {},
+        },
+      })
+    end,
+    desc = "Source Action",
+  }
+}
+
 return {
   {
     "williamboman/mason.nvim",
@@ -13,6 +55,7 @@ return {
       "williamboman/mason.nvim",
       "neovim/nvim-lspconfig",
       "hrsh7th/cmp-nvim-lsp",
+      'nvim-telescope/telescope.nvim',
     },
     config = function()
       local lspconfig = require("lspconfig")
@@ -52,6 +95,22 @@ return {
           }
         end,
 
+        ["rust_analyzer"] = function ()
+          lspconfig.rust_analyzer.setup {
+            capabilities = capabilities,
+            settings = {
+              ["rust-analyzer"] = {
+                -- Add clippy lints for Rust.
+                checkOnSave = {
+                  allFeatures = true,
+                  command = "clippy",
+                  extraArgs = { "--no-deps" },
+                },
+              },
+            },
+          }
+        end,
+
       }
       require("mason-lspconfig").setup {
         handlers = handlers,
@@ -59,6 +118,7 @@ return {
         ensure_installed = ensure_installed,
       }
     end,
+    keys = lsp_keys,
   },
 
   {
@@ -113,6 +173,18 @@ return {
       { '<leader>ul', '<Plug>(toggle-lsp-diag)', desc = 'Toggle All Lsp Diag' },
       { '<leader>uL', '<Plug>(toggle-lsp-diag-default)', desc = 'Set All Lsp to default' },
       { '<leader>ut', '<Plug>(toggle-lsp-diag-vtext)', desc = 'Lsp Vtext Toggle' },
+      { '<leader>ut', '<Plug>(toggle-lsp-diag-vtext)', desc = 'Lsp Vtext Toggle' },
+      { '<leader>ud', function ()
+        vim.diagnostic.enable()
+        require("notify")("Vim Diag Enabled")
+      end , desc = 'On vim diagnostics' },
+      { '<leader>uD', function ()
+        vim.diagnostic.disable()
+        require("notify")("Vim Diag Disabled")
+      end , desc = 'Off vim diagnostics' },
+      { '<leader>ui', function ()
+        vim.lsp.inlay_hint(0, nil)
+      end , desc = 'Toggle Inlay Hints' },
     },
     config = function ()
       require('toggle_lsp_diagnostics').init()

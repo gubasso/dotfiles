@@ -267,10 +267,11 @@ return {
     "smjonas/inc-rename.nvim",
     config = function()
       require("which-key").register({
-        prefix = '<leader>',
+        prefix = '<leader>c',
         r = {
           function()
-            return ":IncRename " .. vim.fn.expand("<cword>")
+            -- return ":IncRename " .. vim.fn.expand("<cword>")
+            return ":" .. require("inc_rename").config.cmd_name .. " " .. vim.fn.expand("<cword>")
           end,
           expr = true,
           "Rename"

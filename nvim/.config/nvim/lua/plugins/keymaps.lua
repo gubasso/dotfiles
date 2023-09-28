@@ -40,7 +40,9 @@ return {
         ["<leader>e"] = { name = "+explorer" },
         ["<leader>z"] = { name = "+zen/focus mode" },
         ["<leader>l"] = { name = "+lsp" },
-        ["<leader>u"] = { name = "+deactivate" },
+        ["<leader>u"] = { name = "+toggle/show/hide" },
+        ["<leader>h"] = { name = "+harpoon" },
+        ["<leader>x"] = { name = "+diagnostics/quickfix" },
         ["gx"] = {[[:silent execute '!xdg-open ' . shellescape(expand('<cfile>'), 1)<cr>]], "open in browser" },
         ["]"] = { name = "+next" },
         ["["] = { name = "+prev" },
@@ -48,13 +50,33 @@ return {
         ["<leader>w"] = {':wa<CR>', 'Save all'},
         ["<leader>q"] = {'<cmd>wa<CR><cmd>q<CR>', 'Save all and Quit'},
         ["<leader><tab>"] = { "<cmd>b#<CR>", "" },
+        -- Resize window using <ctrl> arrow keys
         ["<c-c>"] = { ':set hlsearch!<cr>' , "toggles hlsearch" },
+        ["<C-Up>"] = { "<cmd>resize +2<cr>",  "Increase window height" },
+        ["<C-Down>"] = { "<cmd>resize -2<cr>",  "Decrease window height" },
+        ["<C-Left>"] = { "<cmd>vertical resize -2<cr>",  "Decrease window width" },
+        ["<C-Right>"] = { "<cmd>vertical resize +2<cr>",  "Increase window width" },
+        -- Move Lines
+        ["<A-j>"] = { "<cmd>m .+1<cr>==",  "Move down" },
+        ["<A-k>"] = { "<cmd>m .-2<cr>==", "Move up" },
+
+
       })
       require("which-key").register({
         mode = "v",
+        -- Move Lines (v)
+        ["<A-j>"] = { "<esc><cmd>m .+1<cr>==gi", "Move down" },
+        ["<A-k>"] = { "<esc><cmd>m .-2<cr>==gi", "Move up" },
         ["<"] = { "<gv", "" },
         [">"] = { ">gv", "" },
       })
+      require("which-key").register({
+        mode = "i",
+        -- Move Lines (i)
+        ["<A-j>"] = { ":m '>+1<cr>gv=gv", "Move down" },
+        ["<A-k>"] = { ":m '<-2<cr>gv=gv", "Move up" },
+      })
+
       require("which-key").register({
         mode = { "n", "v" },
         prefix = '<leader>',
