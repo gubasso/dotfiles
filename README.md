@@ -14,7 +14,7 @@ stow -vt ~ *
 
 **FLAGS:**
 
-- `-n`: for checking, no do, just show before, simulation mode
+- `-n`: dry / for checking, no do, just show before, simulation mode
 - `-v`: verbose
 - `-`: target directory must be `~`
 - `*`: everything... all dirs inside .dotfiles
