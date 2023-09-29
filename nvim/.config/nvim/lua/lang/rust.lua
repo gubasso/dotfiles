@@ -7,8 +7,16 @@ vim.api.nvim_create_autocmd("FileType", {
     local buf = vim.api.nvim_get_current_buf()
     vim.keymap.set(
     'n',
+    '<LocalLeader>T',
+    '<cmd>wa<CR><cmd>call VimuxRunCommand("clrm; cargo nextest run")<cr>',
+    {
+      desc = '(vmux) Rust Run All Tests',
+      buffer = buf,
+    })
+    vim.keymap.set(
+    'n',
     '<LocalLeader>t',
-    '<cmd>wa<CR><cmd>call VimuxRunCommand("clrm; cargo test -p " . expand("%:.:h:h") . " -- --nocapture --test-threads 1")<cr>',
+    '<cmd>wa<CR><cmd>call VimuxRunCommand("clrm; cargo nextest run -p " . expand("%:.:h:h") . " --no-capture --test-threads 1")<cr>',
     {
       desc = '(vmux) Rust Run Test (file)',
       buffer = buf,

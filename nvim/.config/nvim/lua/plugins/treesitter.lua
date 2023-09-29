@@ -94,5 +94,5 @@ return {
       auto_install = true,
     },
   },
-  { 'windwp/nvim-ts-autotag', config = true, },
+  { 'windwp/nvim-ts-autotag', opts = {} },
 }

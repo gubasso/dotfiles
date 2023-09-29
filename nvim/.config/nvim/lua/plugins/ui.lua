@@ -1,13 +1,32 @@
 return {
   -- colorscheme
   {
+    "catppuccin/nvim",
+    name = "catppuccin",
+    lazy = false,
+    priority = 1000,
+    init = function()
+      vim.cmd("colorscheme catppuccin-frappe")
+    end
+  },
+  {
+    "folke/tokyonight.nvim",
+    lazy = false,
+    priority = 1000,
+    opts = {
+      style = "storm",
+    },
+    -- init = function()
+    --   vim.cmd("colorscheme tokyonight")
+    -- end
+  },
+  {
     "shaunsingh/nord.nvim",
-    lazy = false, -- make sure we load this during startup if it is your main colorscheme
-    priority = 1000, -- make sure to load this before all the other start plugins
-    config = function()
-      -- load the colorscheme here
-      vim.cmd([[colorscheme nord]])
-    end,
+    lazy = false,
+    priority = 1000,
+    -- init = function()
+    --   vim.cmd("colorscheme nord")
+    -- end
   },
   {
     "rcarriga/nvim-notify",
@@ -103,7 +122,8 @@ return {
     config = function()
       require('lualine').setup {
         options = {
-          theme = 'nord',
+          -- theme = 'nord',
+          theme = 'catppuccin',
           section_separators = '',
           component_separators = '',
         }

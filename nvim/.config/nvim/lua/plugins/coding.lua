@@ -52,6 +52,7 @@ return {
   { "saadparwaiz1/cmp_luasnip" },
   { "hrsh7th/cmp-emoji" },
   { "chrisgrieser/cmp-nerdfont" },
+  { "jcha0713/cmp-tw2css" },
   {
     'hrsh7th/nvim-cmp',
     dependencies = {
@@ -66,6 +67,7 @@ return {
       "hrsh7th/cmp-emoji",
       "chrisgrieser/cmp-nerdfont",
       'windwp/nvim-autopairs',
+      "jcha0713/cmp-tw2css",
     },
 
     keys = {
@@ -115,6 +117,7 @@ return {
           { name = "path" },
           { name = "emoji" },
           { name = 'nerdfont' },
+          { name = 'cmp-tw2css' },
         }),
         sorting = defaults.sorting,
         -- https://github.com/hrsh7th/nvim-cmp/wiki/Menu-Appearance#custom-menu-direction
@@ -290,6 +293,30 @@ return {
       "nvim-neo-tree/neo-tree.nvim",
     },
     config = true,
+  },
+
+  {
+    'nvim-pack/nvim-spectre',
+    dependencies = {
+      'nvim-lua/plenary.nvim'
+    },
+    keys = {
+      { "<leader>cS", function() require("spectre").toggle() end, desc = 'Spectre Toggle' },
+      { "<leader>cw", function() require("spectre").open_visual({select_word=true}) end, desc = 'Spectre Search current word' },
+      { "<leader>cw", function() require("spectre").open_visual({select_word=true}) end, desc = 'Spectre Search current word', mode = 'v' },
+      { "<leader>c/", function() require("spectre").open_file_search({select_word=true}) end, desc = 'Spectre Search on current file' },
+    }
+  },
+
+  {
+    "sindrets/diffview.nvim",
+    opts = {
+      view = {
+        merge_tool = {
+          layout = "diff4_mixed",
+        }
+      }
+    },
   },
 
 }

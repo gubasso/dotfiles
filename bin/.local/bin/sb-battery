@@ -3,15 +3,15 @@ battery=/sys/class/power_supply/BAT0
 capacity=$(cat ${battery}/capacity)
 
 case "$(cat "$battery/status" 2>&1)" in
-    "Full") status="⚡" ;;
-    "Discharging") status="🔋" ;;
-    "Charging") status="🔌" ;;
+    "Full") status="󱊣" ;;
+    "Discharging") status="󰂍" ;;
+    "Charging") status="󰢝" ;;
     "Not charging") status="🛑" ;;
-    "Unknown") status="♻️" ;;
+    "Unknown") status="󰂑" ;;
     *) exit 1 ;;
 esac
 
 # Will make a warn variable if discharging and low
-[ "$status" = "🔋" ] && [ "$capacity" -le 25 ] && warn="❗"
+[ "$status" = "󱃍" ] && [ "$capacity" -le 25 ] && warn="❗"
 # Prints the info
 printf "%s%s%d%%" "$status" "$warn" "$capacity"; unset warn
