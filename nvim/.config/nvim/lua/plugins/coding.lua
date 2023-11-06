@@ -52,7 +52,12 @@ return {
   { "saadparwaiz1/cmp_luasnip" },
   { "hrsh7th/cmp-emoji" },
   { "chrisgrieser/cmp-nerdfont" },
-  { "jcha0713/cmp-tw2css" },
+  {
+    "jcha0713/cmp-tw2css",
+    config = function ()
+      require('cmp-tw2css').setup()
+    end
+  },
   {
     'hrsh7th/nvim-cmp',
     dependencies = {
@@ -110,6 +115,7 @@ return {
           }), -- Accept currently selected item. Set `select` to `false` to only confirm explicitly selected items.
         }),
         sources = cmp.config.sources({
+          { name = 'cmp-tw2css' },
           { name = "nvim_lsp" },
           { name = "luasnip" },
           { name = 'nvim_lsp_signature_help' },
@@ -117,7 +123,6 @@ return {
           { name = "path" },
           { name = "emoji" },
           { name = 'nerdfont' },
-          { name = 'cmp-tw2css' },
         }),
         sorting = defaults.sorting,
         -- https://github.com/hrsh7th/nvim-cmp/wiki/Menu-Appearance#custom-menu-direction
@@ -317,6 +322,15 @@ return {
         }
       }
     },
+  },
+
+  { "tpope/vim-fugitive" },
+
+  {
+    "olrtg/nvim-emmet",
+    -- config = function()
+    --   vim.keymap.set({ "n", "v" }, '<leader>xe', require('nvim-emmet').wrap_with_abbreviation)
+    -- end,
   },
 
 }

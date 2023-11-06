@@ -29,4 +29,5 @@ require('lang')
 
 vim.cmd([[
 autocmd CursorHold * echo ''
+autocmd BufNewFile,BufRead /dev/shm/gopass* setlocal noswapfile nobackup noundofile shada=""
 ]])

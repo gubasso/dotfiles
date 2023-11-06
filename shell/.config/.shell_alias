@@ -53,7 +53,14 @@ alias ga='git add -A'
 alias gac='git add -A && git commit'
 alias gacm='git add -A && git commit -m'
 function gacmp() { gacm "${@}" && git push ;}
-alias gsync='git pull && gampsh up'
+alias gauthor='printf "$(git config --local user.name) <$(git config --local user.email)>"'
+alias gsync='git pull && git push'
+
+#gopass
+alias gp='gopass'
+alias gps='gopass show'
+alias gpy='gopass sync'
+alias gpe='gopass edit'
 
 # dvc
 alias dvc="poetry run dvc"

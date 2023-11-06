@@ -64,11 +64,20 @@ return {
         enabled = false,
       },
       lsp = {
+        progress = {
+          enabled = false,
+        },
         -- override markdown rendering so that **cmp** and other plugins use **Treesitter**
         override = {
           ["vim.lsp.util.convert_input_to_markdown_lines"] = true,
           ["vim.lsp.util.stylize_markdown"] = true,
           ["cmp.entry.get_documentation"] = true,
+        },
+        signature = {
+          auto_open = {
+            enabled = false,
+            trigger = false,
+          }
         },
       },
       -- you can enable a preset for easier configuration
@@ -122,7 +131,6 @@ return {
     config = function()
       require('lualine').setup {
         options = {
-          -- theme = 'nord',
           theme = 'catppuccin',
           section_separators = '',
           component_separators = '',
@@ -133,11 +141,11 @@ return {
   {
     "lukas-reineke/indent-blankline.nvim",
     config = function ()
-      require("ibl").setup {
-        space_char_blankline = " ",
-        show_current_context = true,
-        show_current_context_start = true,
-      }
+      local config = require("ibl.config").default_config
+      config.indent.tab_char = config.indent.char
+      config.scope.enabled = false
+      config.indent.char = "|"
+      require("ibl").setup(config)
     end
   },
 }

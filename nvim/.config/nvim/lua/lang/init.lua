@@ -20,6 +20,11 @@ vim.api.nvim_create_autocmd("FileType", {
         vim.opt_local.spelllang = { "en" }
       end,
       { desc =  'Spelllang en'})
+    vim.keymap.set(
+      'n',
+      '<LocalLeader>t',
+      '<cmd>wa<CR><cmd>call VimuxRunCommand("doctoc .")<cr>',
+      { desc =  'Add/Update TOC to all markdown'})
     -- vim.opt_local.spell = true
   end,
 })

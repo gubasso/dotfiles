@@ -48,7 +48,15 @@ return {
       vim.g.tmux_navigator_preserve_zoom = 1
     end
   },
-  { "norcalli/nvim-colorizer.lua", config = true, },
+  {
+    "norcalli/nvim-colorizer.lua",
+    config = function ()
+      require'colorizer'.setup({
+        '*';
+        css = { css = true; };
+      })
+    end
+  },
   {
     "iamcco/markdown-preview.nvim",
     build = function() vim.fn["mkdp#util#install"]() end,
@@ -62,7 +70,7 @@ return {
     config = function()
       require("which-key").register({
         prefix = '<leader>z',
-        a = { ":Twilight<CR>", "Twilight" },
+        t = { ":Twilight<CR>", "Twilight" },
       })
     end,
   },
@@ -80,7 +88,6 @@ return {
         f = { truezen.focus, "TZFocus" },
         m = { truezen.minimalist,"TZMinimalist" },
         a = { truezen.ataraxis,"TZAtaraxis" },
-        t = {':Twilight<cr>', 'Twilight'},
       })
       require("which-key").register({
         prefix = '<leader>z',
@@ -105,55 +112,53 @@ return {
     },
     config = function()
       require("which-key").register({
-        prefix = '<leader>',
+        prefix = '<leader>e',
         e = {
-          e = {
-            function()
-              require("neo-tree.command").execute({
-                toggle = true,
-                source = "filesystem",
-                position = "left",
-              })
-            end, "Files (Neotree)"
-          },
-          ["."] = {
-            function()
-              require("neo-tree.command").execute({
-                toggle = true,
-                source = "filesystem",
-                position = "current",
-              })
-            end, "Files (netrw style)"
-          },
-          f = {
-            function()
-              require("neo-tree.command").execute({
-                toggle = true,
-                source = "filesystem",
-                position = "left",
-                reveal = true,
-              })
-            end, "Curr File (Neotree)"
-          },
-          b = {
-            function()
-              require("neo-tree.command").execute({
-                toggle = true,
-                source = "buffers",
-                position = "left",
-              })
-            end, "Buffers"
-          },
-          g = {
-            function()
-              require("neo-tree.command").execute({
-                toggle = true,
-                source = "git_status",
-                position = "left",
-              })
-            end, "Git Status"
-          },
-        }
+          function()
+            require("neo-tree.command").execute({
+              toggle = true,
+              source = "filesystem",
+              position = "left",
+            })
+          end, "Files (Neotree)"
+        },
+        ["."] = {
+          function()
+            require("neo-tree.command").execute({
+              toggle = true,
+              source = "filesystem",
+              position = "current",
+            })
+          end, "Files (netrw style)"
+        },
+        f = {
+          function()
+            require("neo-tree.command").execute({
+              toggle = true,
+              source = "filesystem",
+              position = "left",
+              reveal = true,
+            })
+          end, "Curr File (Neotree)"
+        },
+        b = {
+          function()
+            require("neo-tree.command").execute({
+              toggle = true,
+              source = "buffers",
+              position = "left",
+            })
+          end, "Buffers"
+        },
+        g = {
+          function()
+            require("neo-tree.command").execute({
+              toggle = true,
+              source = "git_status",
+              position = "left",
+            })
+          end, "Git Status"
+        },
       })
       local opts = {
         close_if_last_window = true,
@@ -270,13 +275,8 @@ return {
         gd = { function() tlb.lsp_definitions({ reuse_win = true }) end, "Goto Definition" },
         gD = { vim.lsp.buf.declaration , "Goto Declaration" },
         gr = { function() tlb.lsp_references() end, "References" },
-        gi = { function() tlb.lsp_implementations({ reuse_win = true }) end, "Goto Implementation" },
+        gI = { function() tlb.lsp_implementations({ reuse_win = true }) end, "Goto Implementation" },
         gy = { function() tlb.lsp_type_definitions({ reuse_win = true }) end, "Goto T[y]pe Definition" },
-        K = { vim.lsp.buf.hover, "Hover"},
-        gK = { vim.lsp.buf.signature_help, "Signature Help" },
-        ["<c-k>"] = { vim.lsp.buf.signature_help, mode = "i", "Signature Help" },
-        ["]d"] = { vim.diagnostic.goto_next, "Next Diagnostic" },
-        ["[d"] = { vim.diagnostic.goto_prev,  "Prev Diagnostic" },
       })
       require("which-key").register({
         prefix = '<leader>',
@@ -493,5 +493,20 @@ return {
       },
     },
   },
-
+  {
+    -- "jackMort/ChatGPT.nvim",
+    "dreamsofcode-io/ChatGPT.nvim",
+    dependencies = {
+      "MunifTanjim/nui.nvim",
+      "nvim-lua/plenary.nvim",
+      "nvim-telescope/telescope.nvim"
+    },
+    event = "VeryLazy",
+    config = function()
+      local secrets = vim.fn.expand("$SECRETS")
+      require("chatgpt").setup({
+        async_api_key_cmd = "gopass show -o api_tokens/openai/chatgpt.nvim"
+      })
+    end,
+  }
 }

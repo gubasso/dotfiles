@@ -3,7 +3,7 @@
 # Please adapt and uncomment the following lines:
 	name = Gustavo Basso
 	email = gubasso@eambar.net
-	signingkey = 7CCE369973230977391A01A85263B3301AFE1919
+	signingkey = gubasso@eambar.net
 [init]
 	defaultBranch = master
 [pull]

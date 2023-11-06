@@ -43,9 +43,15 @@ return {
         ["<leader>u"] = { name = "+toggle/show/hide" },
         ["<leader>h"] = { name = "+harpoon" },
         ["<leader>x"] = { name = "+diagnostics/quickfix" },
+        ["]"] = {
+          name = "+next",
+          ["c"] = { "]c", "Next diff" }
+        },
+        ["["] = {
+          name = "+prev",
+          ["c"] = { "[c", "Previous diff" },
+        },
         ["gx"] = {[[:silent execute '!xdg-open ' . shellescape(expand('<cfile>'), 1)<cr>]], "open in browser" },
-        ["]"] = { name = "+next" },
-        ["["] = { name = "+prev" },
         ["<leader>b"] = { name = "+buffer" },
         ["<leader>w"] = {':wa<CR>', 'Save all'},
         ["<leader>q"] = {'<cmd>wa<CR><cmd>q<CR>', 'Save all and Quit'},
