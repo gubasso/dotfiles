@@ -15,7 +15,7 @@ fi
 [ -f ~/.profile ] && source ~/.profile
 
 # ssh-agent start with X, integration with keepassxc
-eval $(ssh-agent)
+# eval $(ssh-agent)
 
 # Setup br abnt2 keyboard layout with dead keys and accents
 # Switch caps lock and Esc
@@ -37,4 +37,5 @@ dropbox &
 thunar --daemon &
 
 xset r rate 300 50
-exec startdwm
+# exec startdwm
+exec dwm

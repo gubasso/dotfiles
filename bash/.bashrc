@@ -27,3 +27,5 @@ _fzf_setup_completion dir gocryptfs
 # asdf
 . /opt/asdf-vm/asdf.sh
 
+. "/home/gubasso/.asdf/asdf.sh"
+. "/home/gubasso/.asdf/completions/asdf.bash"

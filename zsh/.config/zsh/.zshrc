@@ -67,6 +67,17 @@ export YSU_MODE=ALL
 # asdf
 source /opt/asdf-vm/asdf.sh
 
+# keychain
+# eval $(keychain --nogui --eval gubasso-ed25519)
+eval $(keychain --nogui --quiet --noask --eval --agents ssh,gpg \
+  cwntroot-ed25519 \
+  gubasso-android-ed25519 \
+  gubasso-ed25519 \
+  id_rsa \
+  sysking-eambar-ed25519 \
+  gubasso@eambar.net \
+  gubasso@cwnt.io)
+
 #######
 # Fzf #
 #######

@@ -72,7 +72,6 @@ return {
         'pylsp',
         'marksman',
         'yamlls',
-        -- 'sqlls',
       }
       local handlers = {
 
@@ -81,16 +80,6 @@ return {
             capabilities = capabilities
           }
         end,
-
-        -- ["sqlls"] = function ()
-        --   require'lspconfig'.sqlls.setup{
-        --     capabilities = capabilities,
-        --     filetypes = { 'sql' },
-        --     root_dir = function(_)
-        --       return vim.loop.cwd()
-        --     end,
-        --   }
-        -- end,
 
         ["lua_ls"] = function ()
           lspconfig.lua_ls.setup {

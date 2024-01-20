@@ -14,7 +14,7 @@ alias vf="fd --type f --hidden --exclude .git | fzf-tmux -p | xargs nvim"
 alias vp="cd \`fd --type d --hidden --exclude .git | fzf-tmux -p\` && nvim"
 alias sp="paru -Ss"
 alias spi="paru -Q | rg"
-function p() {paru -Syu ${@} && sb-sendsignal 10 ;}
+function p() {paru -Syyu ${@} && sb-sendsignal 10 ;}
 alias rms="shred -n10 -uz"
 alias rm='rmtrash'
 alias rmdir='rmdirtrash'
@@ -46,7 +46,8 @@ function pomo() {
 alias srczshrc='source ~/.config/zsh/.zshrc'
 
 #docker
-alias d='sudo docker'
+alias d='docker'
+alias dc='docker compose'
 
 #git
 alias ga='git add -A'
@@ -54,7 +55,7 @@ alias gac='git add -A && git commit'
 alias gacm='git add -A && git commit -m'
 function gacmp() { gacm "${@}" && git push ;}
 alias gauthor='printf "$(git config --local user.name) <$(git config --local user.email)>"'
-alias gsync='git pull && git push'
+alias gsync='git add -A && git commit -m "up"; git pull && git push'
 
 #gopass
 alias gp='gopass'
