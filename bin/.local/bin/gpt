@@ -1,0 +1,2 @@
+#!/bin/sh
+chromium https://chat.openai.com/ "--profile-directory=Profile 5"

@@ -1,0 +1,3 @@
+#!/bin/sh
+chromium gmail.com music.youtube.com youtube.com "--profile-directory=Profile 2"
+# chromium gmail.com youtube.com music.youtube.com "--profile-directory=Profile 2" --app-id=fmgjjmmmlfnkbppncabfkddbjimcfncm

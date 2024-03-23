@@ -65,7 +65,7 @@ export YSU_MODE=ALL
 . $XDG_CONFIG_HOME/.shell_env_vars
 
 # asdf
-source /opt/asdf-vm/asdf.sh
+# source /opt/asdf-vm/asdf.sh
 
 # keychain
 # eval $(keychain --nogui --eval gubasso-ed25519)

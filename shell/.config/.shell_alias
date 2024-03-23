@@ -32,7 +32,7 @@ function slug() {
   slugify --separator _ ${@} | tr -d '\n' | tee >(toxclip)
 }
 function lc() {
-  cargo new ${1} --lib && bug create -n ${1}
+  cargo new ${1} --lib && ripi issue create ${1} -a
 }
 
 function pomo() {
