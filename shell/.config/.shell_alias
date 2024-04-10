@@ -28,8 +28,18 @@ alias ss='sudo systemctl'
 alias toxclip='xclip -selection clipboard' #[^al4]
 alias sudo="sudo "
 alias rs='rsync -vurzP'
+function now() {
+  date "+%Y-%m-%d %H:%M:%S" | tr -d '\n' | tee >(toxclip)
+}
 function slug() {
   slugify --separator _ ${@} | tr -d '\n' | tee >(toxclip)
+}
+function mktask() {
+  slug_str=$(slugify --separator _ ${@})
+  date_iso=$(date "+%Y%m%d-%H%M")
+  dir_name="${date_iso}-${slug_str}" $()
+  echo $dir_name | tr -d '\n' | tee >(toxclip)
+  mkdir -p "$dir_name"
 }
 function lc() {
   cargo new ${1} --lib && ripi issue create ${1} -a
@@ -43,7 +53,10 @@ function pomo() {
 }
 
 #zshrc
-alias srczshrc='source ~/.config/zsh/.zshrc'
+alias src_zshrc='source ~/.config/zsh/.zshrc'
+
+# asdf
+alias src_asdf='. /opt/asdf-vm/asdf.sh'
 
 #docker
 alias d='docker'
@@ -56,6 +69,9 @@ alias gacm='git add -A && git commit -m'
 function gacmp() { gacm "${@}" && git push ;}
 alias gauthor='printf "$(git config --local user.name) <$(git config --local user.email)>"'
 alias gsync='git add -A && git commit -m "up"; git pull && git push'
+
+# asdf + pre-commit + git
+alias gsa='src_asdf && pre-commit run && gsync'
 
 #gopass
 alias gp='gopass'

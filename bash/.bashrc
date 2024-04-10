@@ -29,3 +29,4 @@ _fzf_setup_completion dir gocryptfs
 
 . "/home/gubasso/.asdf/asdf.sh"
 . "/home/gubasso/.asdf/completions/asdf.bash"
+. "$HOME/.cargo/env"

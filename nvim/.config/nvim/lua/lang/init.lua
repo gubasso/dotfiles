@@ -2,6 +2,12 @@ require('lang.rust')
 
 local au = require('core.autocmds')
 
+-- googlescript gs as javascript js
+vim.api.nvim_create_autocmd({"BufRead", "BufNewFile"}, {
+  pattern = {"*.gs"},
+  command = "set filetype=javascript",
+})
+
 -- wrap and check for spell in text filetypes
 vim.api.nvim_create_autocmd("FileType", {
   group = au.augroup("wrap_spell"),

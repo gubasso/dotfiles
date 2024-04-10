@@ -1,0 +1,2 @@
+#!/bin/sh
+chromium https://web.telegram.org/ "--profile-directory=Profile 7"
