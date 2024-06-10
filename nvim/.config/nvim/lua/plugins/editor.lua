@@ -166,7 +166,17 @@ return {
         enable_git_status = true,
         enable_diagnostics = true,
         -- Enable normal mode for input dialogs.
-        enable_normal_mode_for_inputs = true,
+        -- enable_normal_mode_for_inputs = true,
+        event_handlers = {
+          {
+            event = "neo_tree_popup_input_ready",
+            ---@param args { bufnr: integer, winid: integer }
+            handler = function(args)
+              vim.cmd("stopinsert")
+              vim.keymap.set("i", "<esc>", vim.cmd.stopinsert, { noremap = true, buffer = args.bufnr })
+            end,
+          }
+        },
         filesystem = {
           use_libuv_file_watcher = true,
           filtered_items = {

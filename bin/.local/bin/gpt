@@ -1,2 +1,2 @@
 #!/bin/sh
-chromium https://chat.openai.com/ https://instatext.io/editor/ "--profile-directory=Profile 5"
+chromium https://chat.openai.com/ https://instatext.io/editor/ https://phrasly.ai/ "--profile-directory=Profile 5"

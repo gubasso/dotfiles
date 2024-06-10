@@ -1,19 +1,21 @@
 #########################
 # Environment Variables #
 #########################
+
 # fzf
 export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git' #[^fzf1]
 export FZF_DEFAULT_OPTS='--no-height --layout=reverse --inline-info' #[^fzf1]
 export FZF_TMUX=1 #[^fzf1]
-# CTRL_T
+## CTRL_T
 export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND" # To apply the command to CTRL-T as well[^fzf1]
 export FZF_CTRL_T_OPTS="--select-1 --exit-0 --preview '(highlight -O ansi -l {} 2> /dev/null || cat {} || tree -C {}) 2> /dev/null | head -200'" # Using highlight (http://www.andre-simon.de/doku/highlight/en/highlight.html)[^fzf1]
-# ALT_C
+## ALT_C
 export FZF_ALT_C_COMMAND='fd --type d --hidden --follow --exclude .git'
 export FZF_ALT_C_OPTS="--preview 'tree -C {} | head -200'"
-# CTRL_R
+## CTRL_R
 export FZF_CTRL_R_OPTS="--preview 'echo {}' --preview-window down:3:hidden:wrap --bind '?:toggle-preview'" # Full command on preview window, `?` key for toggling the preview window[^fzf1]
 
+export npm_config_prefix="$HOME/.local"
 export DOTFILESDIR="${HOME}/.dotfiles"
 export VISUAL=nvim
 export EDITOR=nvim

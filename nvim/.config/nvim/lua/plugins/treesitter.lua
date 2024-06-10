@@ -41,64 +41,77 @@ return {
       local configs = require("nvim-treesitter.configs")
 
       configs.setup({
-          ensure_installed = {
-            'astro',
-            "bash",
-            "c",
-            'css',
-            'glimmer',
-            'graphql',
-            'html',
-            'javascript',
-            "jsdoc",
-            "json",
-            'lua',
-            "luadoc",
-            "luap",
-            "markdown",
-            "markdown_inline",
-            'python',
-            "query",
-            "regex",
-            "ron",
-            "rust",
-            'scss',
-            'svelte',
-            'tsx',
-            'typescript',
-            'vim',
-            "vimdoc",
-            'vue',
-            "yaml",
-            "toml",
-            "sql",
+        ensure_installed = {
+          'dockerfile',
+          'astro',
+          "bash",
+          "c",
+          'css',
+          'glimmer',
+          'graphql',
+          'html',
+          'javascript',
+          "jsdoc",
+          "json",
+          'lua',
+          "luadoc",
+          "luap",
+          "markdown",
+          "markdown_inline",
+          'python',
+          "query",
+          "regex",
+          "ron",
+          "rust",
+          'scss',
+          'svelte',
+          'tsx',
+          'typescript',
+          'vim',
+          "vimdoc",
+          'vue',
+          "yaml",
+          "toml",
+          "sql",
+        },
+        sync_install = false,
+        highlight = {
+          enable = true,
+          additional_vim_regex_highlighting = false,
+        },
+        indent = { enable = true },
+        auto_install = true,
+        incremental_selection = {
+          enable = true,
+          keymaps = {
+            init_selection = "<C-space>",
+            node_incremental = "<C-space>",
+            scope_incremental = false,
+            node_decremental = "<bs>",
           },
-          sync_install = false,
-          highlight = {
-            enable = true,
-            additional_vim_regex_highlighting = false,
-          },
-          indent = { enable = true },
-          auto_install = true,
-          incremental_selection = {
-            enable = true,
-            keymaps = {
-              init_selection = "<C-space>",
-              node_incremental = "<C-space>",
-              scope_incremental = false,
-              node_decremental = "<bs>",
-            },
-          },
-          context_commentstring = {
-            enable = true,
-            enable_autocmd = false,
-          },
-          autotag = { enable = true, },
-          autopairs = { enable = true, },
-        })
+        },
+        autopairs = { enable = true, },
+      })
+
+
     end,
   },
 
-  { 'windwp/nvim-ts-autotag', opts = {} },
+  {
+    'windwp/nvim-ts-autotag',
+    config = function ()
+      require('nvim-ts-autotag').setup()
+    end
+  },
+
+  {
+    'JoosepAlviste/nvim-ts-context-commentstring',
+    config = function ()
+      require('ts_context_commentstring').setup {
+        enable = true,
+        enable_autocmd = false,
+      }
+    end
+  },
 
 }

@@ -157,18 +157,18 @@ return {
 
   {
     "kylechui/nvim-surround",
-    version = "*", -- Use for stability; omit to use `main` branch for the latest features
-    event = "VeryLazy",
-    config = true,
-  },
+      version = "*", -- Use for stability; omit to use `main` branch for the latest features
+      event = "VeryLazy",
+      config = true,
+    },
 
-  -- comments
-  {
-    "JoosepAlviste/nvim-ts-context-commentstring",
-    dependencies = { "nvim-treesitter/nvim-treesitter", },
-    lazy = true,
-    opts = {
-      enable_autocmd = false,
+    -- comments
+    {
+      "JoosepAlviste/nvim-ts-context-commentstring",
+      dependencies = { "nvim-treesitter/nvim-treesitter", },
+      lazy = true,
+      opts = {
+        enable_autocmd = false,
     },
   },
   {

@@ -126,11 +126,11 @@
 #############
 
 # Key bindings for sxhkd
-# reset and apply changes: killall sxhkd; setsid sxhkd &
+# reset and apply changes:
+# killall sxhkd; setsid sxhkd &
 
 control + alt + k ; {k,u,l}
     gopass ls --flat | dmenu -l 10 | xargs -I_ --no-run-if-empty gopass show -c _ {_,url,login} &>/dev/null
-
 
 #increase the volume by 5
 XF86AudioRaiseVolume
