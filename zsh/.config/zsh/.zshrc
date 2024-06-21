@@ -61,6 +61,7 @@ zsh_add_plugin "MichaelAquilina/zsh-you-should-use"
 export YSU_MESSAGE_POSITION="after"
 export YSU_MODE=ALL
 
+
 . $XDG_CONFIG_HOME/.shell_alias
 . $XDG_CONFIG_HOME/.shell_env_vars
 
