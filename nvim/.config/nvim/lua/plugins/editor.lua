@@ -512,8 +512,11 @@ return {
       "nvim-telescope/telescope.nvim"
     },
     event = "VeryLazy",
+    keymaps = {
+      close = { '<C-c>', 'q' }
+    },
     config = function()
-      local secrets = vim.fn.expand("$SECRETS")
+      -- local secrets = vim.fn.expand("$SECRETS")
       require("chatgpt").setup({
         async_api_key_cmd = "gopass show -o api_tokens/openai/chatgpt.nvim"
       })

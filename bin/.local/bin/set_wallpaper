@@ -1,0 +1,4 @@
+#!/bin/bash
+
+WALLPAPER_DIR="$HOME/.wallpaper"
+feh --recursive --bg-fill --randomize "$WALLPAPER_DIR" &

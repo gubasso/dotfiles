@@ -1,0 +1,10 @@
+[Unit]
+Description=Run wallpaper.service daily
+Requires=wallpaper.service
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+
+[Install]
+WantedBy=default.target

@@ -1,6 +1,8 @@
 vim.g.mapleader = ' '
 vim.g.maplocalleader = ','
 local opt = vim.opt
+vim.o.title = true
+vim.o.titlestring = "Neovim - %f"
 opt.autowrite = true -- Enable auto write
 -- vim.opt.clipboard = 'unnamedplus'
 opt.completeopt = "menu,menuone,noselect"

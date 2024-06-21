@@ -14,7 +14,7 @@ alias vf="fd --type f --hidden --exclude .git | fzf-tmux -p | xargs nvim"
 alias vp="cd \`fd --type d --hidden --exclude .git | fzf-tmux -p\` && nvim"
 alias sp="paru -Ss"
 alias spi="paru -Q | rg"
-function p() {
+function up() {
   dfxvm update
   paru -Syu ${@} && sb-sendsignal 10
 ;}
@@ -80,16 +80,15 @@ alias gac='git add -A && git commit'
 alias gacm='git add -A && git commit -m'
 function gacmp() { gacm "${@}" && git push ;}
 alias gauthor='printf "$(git config --local user.name) <$(git config --local user.email)>"'
-alias gsync='git add -A && git commit -m "up"; git pull && git push'
-
-# asdf + pre-commit + git
-alias gsa='src_asdf && pre-commit run && gsync'
+# git + pre-commit
+alias pre='git add -A && pre-commit run'
+alias gup='git add -A && git commit -m "up" && git push'
 
 #gopass
-alias gp='gopass'
-alias gps='gopass show'
-alias gpy='gopass sync'
-alias gpe='gopass edit'
+alias gop='gopass'
+alias gops='gopass show'
+alias gopy='gopass sync'
+alias gope='gopass edit'
 
 # dvc
 alias dvc="poetry run dvc"

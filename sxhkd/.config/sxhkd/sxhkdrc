@@ -129,8 +129,9 @@
 # reset and apply changes:
 # killall sxhkd; setsid sxhkd &
 
-control + alt + k ; {k,u,l}
-    gopass ls --flat | dmenu -l 10 | xargs -I_ --no-run-if-empty gopass show -c _ {_,url,login} &>/dev/null
+# gopass
+control + alt + k ; {k,n,l}
+    gopass ls --flat | dmenu -l 10 | xargs -I_ --no-run-if-empty gopass show -c _ {_,username,url} &>/dev/null
 
 #increase the volume by 5
 XF86AudioRaiseVolume

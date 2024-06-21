@@ -28,6 +28,7 @@ require"lazy".setup('plugins')
 require('lang')
 
 vim.cmd([[
-autocmd CursorHold * echo ''
+" autocmd CursorHold * echo ''
+" secure editing gopass entries
 autocmd BufNewFile,BufRead /dev/shm/gopass* setlocal noswapfile nobackup noundofile shada=""
 ]])
