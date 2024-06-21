@@ -21,8 +21,8 @@ function up() {
 alias rms="shred -n10 -uz"
 alias rm='rmtrash'
 alias rmdir='rmdirtrash'
-alias ls='exa'
-alias tree='exa --tree --all --git-ignore --ignore-glob ".git"'
+alias ls='eza'
+alias tree='eza --tree --all --git-ignore --ignore-glob ".git"'
 alias cat='bat'
 alias rg='rg --hidden --smart-case'
 alias cl='clear'
