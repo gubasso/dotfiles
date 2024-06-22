@@ -9,6 +9,7 @@
 
 alias trust="tmuxp load rust"
 
+alias "cd.."="cd .."
 alias n="nvim"
 alias vf="fd --type f --hidden --exclude .git | fzf-tmux -p | xargs nvim"
 alias vp="cd \`fd --type d --hidden --exclude .git | fzf-tmux -p\` && nvim"

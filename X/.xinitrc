@@ -52,9 +52,6 @@ fi
 # gubasso's #
 #############
 
-[ -f ~/.xprofile ] && source ~/.xprofile
-[ -f ~/.profile ] && source ~/.profile
-
 # ssh-agent start with X, integration with keepassxc
 # eval $(ssh-agent)
 
@@ -62,7 +59,7 @@ fi
 # Switch caps lock and Esc
 # setxkbmap -model abnt2 -layout br -option "caps:swapescape"
 
-picom -b
+picom &
 
 # hide mouse when typing
 xbanish &

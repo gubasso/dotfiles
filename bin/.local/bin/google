@@ -1,3 +1,2 @@
 #!/bin/sh
-chromium gmail.com music.youtube.com youtube.com https://calendar.google.com/ "--profile-directory=Profile 2"
-# chromium gmail.com youtube.com music.youtube.com "--profile-directory=Profile 2" --app-id=fmgjjmmmlfnkbppncabfkddbjimcfncm
+chromium https://track.toggl.com/timer https://calendar.google.com/ music.youtube.com gmail.com youtube.com "--profile-directory=Profile 2"
