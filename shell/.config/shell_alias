@@ -77,9 +77,11 @@ alias gac='git add -A && git commit'
 alias gacm='git add -A && git commit -m'
 function gacmp() { gacm "${@}" && git push ;}
 alias gauthor='printf "$(git config --local user.name) <$(git config --local user.email)>"'
-# git + pre-commit
-alias pre='git add -A && pre-commit run'
+alias gp='git push'
 alias gup='git add -A && git commit -m "up" && git push'
+
+# pre-commit + git
+alias pre='git add -A && pre-commit run'
 
 #gopass
 alias gop='gopass'

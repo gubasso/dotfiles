@@ -1,27 +1,53 @@
-# zinit plugin manager, installed from AUR
+# [Profiling zsh setup with zprof](https://www.dotruby.com/tapas/profiling-zsh-setup-with-zprof)
+# [Profiling zsh startup time](https://stevenvanbael.com/profiling-zsh-startup)
+# cmd to profile:
+# time ZSH_DEBUGRC=1 zsh -i -c exit
+# just the time:
+# time zsh -i -c exit
+if [[ -n "$ZSH_DEBUGRC" ]]; then
+  zmodload zsh/zprof
+fi
+# -------------- zinit plygin manager (AUR) -----------------------------------
 source /usr/share/zinit/zinit.zsh
-## zinit plugins
-zinit light zsh-users/zsh-syntax-highlighting
-zinit light zsh-users/zsh-completions
-zinit light zsh-users/zsh-autosuggestions
-zinit light Aloxaf/fzf-tab
-zinit light MichaelAquilina/zsh-you-should-use
-zinit ice depth=1; zinit light jeffreytse/zsh-vi-mode
+
+# plugins
+zinit lucid wait light-mode for \
+  Aloxaf/fzf-tab \
+  MichaelAquilina/zsh-you-should-use
+zinit lucid wait for \
+  OMZP::command-not-found
+
+zinit pack for ls_colors
+
+# completions should be the last [^1]
+zinit wait lucid light-mode for \
+  atinit"zicompinit; zicdreplay" \
+      zsh-users/zsh-syntax-highlighting \
+      OMZP::colored-man-pages \
+  atload"_zsh_autosuggest_start" \
+      zsh-users/zsh-autosuggestions \
+  blockf atpull'zinit creinstall -q .' \
+      zsh-users/zsh-completions
+
+# zinit light zsh-users/zsh-syntax-highlighting
+# zinit light zsh-users/zsh-autosuggestions
+# zinit light zsh-users/zsh-completions
+# zinit light nyquase/vi-mode
+# zinit light b4b4r07/zsh-vimode-visual
+# zinit light jeffreytse/zsh-vi-mode
 ## zinit Oh-my-zsh snippets/plugins
 ## https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins
-zinit snippet OMZP::command-not-found
+# # Load completions
+# autoload -Uz compinit && compinit
+# # zinit replay cache completions
+# zinit cdreplay -q
 
-# Load completions
-autoload -Uz compinit && compinit
-
-# zinit replay cache completions
-zinit cdreplay -q
-
-# Completion styling
-zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
+#---------------- Completion styling ------------------------------------------
 zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
+zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
 zstyle ':completion:*' menu no
 zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls --color $realpath'
+#
 
 # fzf
 ## Set up fzf key bindings and fuzzy completion
@@ -55,41 +81,15 @@ eval $(keychain --nogui --quiet --noask --eval --agents ssh,gpg \
   gubasso@eambar.net \
   gubasso@cwnt.io)
 
-# Unused
-## vi mode: substituted by zinit ice depth=1; zinit light jeffreytse/zsh-vi-mode
-### Change cursor shape for different vi modes.
-#### https://unix.stackexchange.com/questions/433273/changing-cursor-style-based-on-mode-in-both-zsh-and-vim
-### function zle-keymap-select {
-###   if [[ ${KEYMAP} == vicmd ]] ||
-###      [[ $1 = 'block' ]]; then
-###     echo -ne '\e[2 q'
-###   elif [[ ${KEYMAP} == main ]] ||
-###        [[ ${KEYMAP} == viins ]] ||
-###        [[ ${KEYMAP} = '' ]] ||
-###        [[ $1 = 'beam' ]]; then
-###     echo -ne '\e[6 q'
-###   fi
-### }
-### zle -N zle-keymap-select
-### zle-line-init() {
-###     zle -K viins # initiate `vi insert` as keymap (can be removed if `bindkey -V` has been set elsewhere)
-###     echo -ne "\e[6 q"
-### }
-### zle -N zle-line-init
-### echo -ne '\e[6 q' # Use beam shape cursor on startup.
-### preexec() { echo -ne '\e[6 q' ;} # Use beam shape cursor for each new prompt.
-### Keybindings
-#### vi mode
-### bindkey -v
-### bindkey -v '^?' backward-delete-char
-### export KEYTIMEOUT=1
-#### Edit line in vim with ctrl-e:
-###autoload edit-command-line; zle -N edit-command-line
-###bindkey '^e' edit-command-line
-
-
 # end of .zshrc
-eval "$(oh-my-posh init zsh --config $XDG_CONFIG_HOME/ohmyposh/zen.toml)"
+# eval "$(oh-my-posh init zsh --config $XDG_CONFIG_HOME/ohmyposh/zen.toml)"
+eval "$(starship init zsh)"
 eval "$(zoxide init --cmd cd zsh)"
 # ---
+# Profiling
+if [[ -n "$ZSH_DEBUGRC" ]]; then
+  zprof
+fi
 
+# References:
+# [^1]: https://github.com/zdharma-continuum/zinit?tab=readme-ov-file#calling-compinit-with-turbo-mode "Calling compinit With Turbo Mode"
