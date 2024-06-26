@@ -43,6 +43,7 @@ return {
   },
   {
     "christoomey/vim-tmux-navigator",
+    lazy = false,
     config = function ()
       vim.g.tmux_navigator_disable_when_zoomed = 1
       vim.g.tmux_navigator_preserve_zoom = 1
@@ -503,23 +504,23 @@ return {
       },
     },
   },
-  {
-    -- "jackMort/ChatGPT.nvim",
-    "dreamsofcode-io/ChatGPT.nvim",
-    dependencies = {
-      "MunifTanjim/nui.nvim",
-      "nvim-lua/plenary.nvim",
-      "nvim-telescope/telescope.nvim"
-    },
-    event = "VeryLazy",
-    keymaps = {
-      close = { '<C-c>', 'q' }
-    },
-    config = function()
-      -- local secrets = vim.fn.expand("$SECRETS")
-      require("chatgpt").setup({
-        async_api_key_cmd = "gopass show -o api_tokens/openai/chatgpt.nvim"
-      })
-    end,
-  }
+  -- {
+  --   -- "jackMort/ChatGPT.nvim",
+  --   "dreamsofcode-io/ChatGPT.nvim",
+  --   dependencies = {
+  --     "MunifTanjim/nui.nvim",
+  --     "nvim-lua/plenary.nvim",
+  --     "nvim-telescope/telescope.nvim"
+  --   },
+  --   event = "VeryLazy",
+  --   keymaps = {
+  --     close = { '<C-c>', 'q' }
+  --   },
+  --   config = function()
+  --     -- local secrets = vim.fn.expand("$SECRETS")
+  --     require("chatgpt").setup({
+  --       async_api_key_cmd = "gopass show -o api_tokens/openai/chatgpt.nvim"
+  --     })
+  --   end,
+  -- }
 }

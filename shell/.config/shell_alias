@@ -9,10 +9,7 @@
 
 alias trust="tmuxp load rust"
 
-alias "cd.."="cd .."
 alias n="nvim"
-alias vf="fd --type f --hidden --exclude .git | fzf-tmux -p | xargs nvim"
-alias vp="cd \`fd --type d --hidden --exclude .git | fzf-tmux -p\` && nvim"
 alias sp="paru -Ss"
 alias spi="paru -Q | rg"
 function up() {
@@ -23,6 +20,7 @@ alias rms="shred -n10 -uz"
 alias rm='rmtrash'
 alias rmdir='rmdirtrash'
 alias ls='eza'
+alias ll='eza -la'
 alias tree='eza --tree --all --git-ignore --ignore-glob ".git"'
 alias cat='bat'
 alias rg='rg --hidden --smart-case'
@@ -32,6 +30,7 @@ alias ss='sudo systemctl'
 alias toxclip='xclip -selection clipboard' #[^al4]
 alias sudo="sudo "
 alias rs='rsync -vurzP'
+alias dot="cd $HOME/.dotfiles"
 function now() {
   date "+%Y-%m-%d %H:%M:%S" | tr -d '\n' | tee >(toxclip)
 }
@@ -64,9 +63,6 @@ function pomo() {
     tclock timer -d $1 -e "while true; do xcowsay Acabou o tempo!; paplay /home/gubasso/Sounds/bell_zen_01.wav; done"
   fi
 }
-
-#zshrc
-alias src_zshrc='source ~/.config/zsh/.zshrc'
 
 # asdf
 alias src_asdf='. /opt/asdf-vm/asdf.sh'

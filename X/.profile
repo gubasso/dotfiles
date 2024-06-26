@@ -8,6 +8,9 @@
 . "$XDG_CONFIG_HOME/shell_alias"
 . "$XDG_CONFIG_HOME/shell_env_vars"
 
+. "$HOME/.cargo/env"
+. "$XDG_DATA_HOME/dfx/env"
+
 # auto run exec startx after login
 if [ -z "${DISPLAY}" ] && [ "${XDG_VTNR}" -eq 1 ]; then
 	exec startx

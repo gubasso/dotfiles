@@ -3,17 +3,52 @@
 #########################
 
 # fzf
-export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git' #[^fzf1]
-export FZF_DEFAULT_OPTS='--no-height --layout=reverse --inline-info' #[^fzf1]
-export FZF_TMUX=1 #[^fzf1]
+## vars
+skip=".git,node_modules,target"
+bat_cmd="bat -n --color=always"
+tree_cmd='eza --tree --all --git-ignore --ignore-glob ".git" --color=always'
+preview="($bat_cmd {} 2> /dev/null || $tree_cmd {} 2> /dev/null) | head -200"
+
+
+## Defaults
+export FZF_DEFAULT_COMMAND="fd --hidden --follow --color=always"
+export FZF_DEFAULT_OPTS="
+  --select-1 --exit-0
+  --walker-skip $skip
+  --no-height
+  --layout=reverse
+  --ansi
+  --inline-info"
+export FZF_TMUX=1
 ## CTRL_T
-export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND" # To apply the command to CTRL-T as well[^fzf1]
-export FZF_CTRL_T_OPTS="--select-1 --exit-0 --preview '(highlight -O ansi -l {} 2> /dev/null || cat {} || tree -C {}) 2> /dev/null | head -200'" # Using highlight (http://www.andre-simon.de/doku/highlight/en/highlight.html)[^fzf1]
+export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+export FZF_CTRL_T_OPTS="
+  --preview '$preview'
+  --bind 'ctrl-/:change-preview-window(down|hidden|)'"
 ## ALT_C
-export FZF_ALT_C_COMMAND='fd --type d --hidden --follow --exclude .git'
-export FZF_ALT_C_OPTS="--preview 'tree -C {} | head -200'"
+export FZF_ALT_C_COMMAND="$FZF_DEFAULT_COMMAND --type d"
+export FZF_ALT_C_OPTS="
+  --preview '$tree_cmd {} | head -200'"
 ## CTRL_R
-export FZF_CTRL_R_OPTS="--preview 'echo {}' --preview-window down:3:hidden:wrap --bind '?:toggle-preview'" # Full command on preview window, `?` key for toggling the preview window[^fzf1]
+# bat_shell="bat --language sh --plain --color=always"
+export FZF_CTRL_R_OPTS="
+  --preview 'echo {}' --preview-window down:3:hidden:wrap
+  --bind 'ctrl-/:toggle-preview'
+  --bind 'ctrl-y:execute-silent(echo -n {} | xclip -selection clipboard)+abort'
+  --color header:italic
+  --header 'Press ^y to copy command into clipboard'"
+## COMPLETIONS **
+export FZF_COMPLETION_OPTS="
+  --preview '$preview'
+  --info=inline"
+_fzf_compgen_path() {
+  fd --hidden --follow --color=always . "$1"
+}
+
+_fzf_compgen_dir() {
+  fd --hidden --follow --color=always --type d . "$1"
+}
+
 
 # generate with `dircolors` command
 # https://unix.stackexchange.com/questions/545413/setting-ls-colors-has-no-effect
@@ -26,6 +61,13 @@ export VISUAL=nvim
 export EDITOR=nvim
 export TERMINAL=alacritty
 export SECRETS="$HOME/Dropbox/VaultEncrypted"
-. "$HOME/.cargo/env"
-. "$XDG_DATA_HOME/dfx/env"
-export PATH="/home/gubasso/.local/share/solana/install/active_release/:$PATH"
+
+export R_PROFILE_USER="$XDG_CONFIG_HOME/R"
+export R_HOME_USER="$HOME/.R"
+
+export GOPATH="$HOME/.go"
+export GOBIN="$GOPATH/bin"
+
+SOLANA_PATH="$XDG_DATA_HOME/solana/install/active_release/"
+
+export PATH="$PATH:$GOBIN:$SOLANA_PATH"

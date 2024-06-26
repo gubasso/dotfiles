@@ -1,5 +1,3 @@
-# archwiki: Used for setting user's interactive shell configuration and executing commands, will be read when starting as an interactive shell
-
 # zinit plugin manager, installed from AUR
 source /usr/share/zinit/zinit.zsh
 ## zinit plugins
@@ -8,12 +6,14 @@ zinit light zsh-users/zsh-completions
 zinit light zsh-users/zsh-autosuggestions
 zinit light Aloxaf/fzf-tab
 zinit light MichaelAquilina/zsh-you-should-use
+zinit ice depth=1; zinit light jeffreytse/zsh-vi-mode
 ## zinit Oh-my-zsh snippets/plugins
 ## https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins
 zinit snippet OMZP::command-not-found
 
 # Load completions
 autoload -Uz compinit && compinit
+
 # zinit replay cache completions
 zinit cdreplay -q
 
@@ -40,37 +40,7 @@ setopt appendhistory
 setopt sharehistory
 setopt hist_ignore_space
 
-
-# Change cursor shape for different vi modes.
-## https://unix.stackexchange.com/questions/433273/changing-cursor-style-based-on-mode-in-both-zsh-and-vim
-function zle-keymap-select {
-  if [[ ${KEYMAP} == vicmd ]] ||
-     [[ $1 = 'block' ]]; then
-    echo -ne '\e[2 q'
-  elif [[ ${KEYMAP} == main ]] ||
-       [[ ${KEYMAP} == viins ]] ||
-       [[ ${KEYMAP} = '' ]] ||
-       [[ $1 = 'beam' ]]; then
-    echo -ne '\e[6 q'
-  fi
-}
-zle -N zle-keymap-select
-zle-line-init() {
-    zle -K viins # initiate `vi insert` as keymap (can be removed if `bindkey -V` has been set elsewhere)
-    echo -ne "\e[6 q"
-}
-zle -N zle-line-init
-echo -ne '\e[6 q' # Use beam shape cursor on startup.
-preexec() { echo -ne '\e[6 q' ;} # Use beam shape cursor for each new prompt.
-
 # Keybindings
-## vi mode
-bindkey -v
-bindkey -v '^?' backward-delete-char
-export KEYTIMEOUT=1
-## Edit line in vim with ctrl-e:
-autoload edit-command-line; zle -N edit-command-line
-bindkey '^e' edit-command-line
 ## History search just for the command already typed in shell
 bindkey '^p' history-search-backward
 bindkey '^n' history-search-forward
@@ -85,6 +55,41 @@ eval $(keychain --nogui --quiet --noask --eval --agents ssh,gpg \
   gubasso@eambar.net \
   gubasso@cwnt.io)
 
+# Unused
+## vi mode: substituted by zinit ice depth=1; zinit light jeffreytse/zsh-vi-mode
+### Change cursor shape for different vi modes.
+#### https://unix.stackexchange.com/questions/433273/changing-cursor-style-based-on-mode-in-both-zsh-and-vim
+### function zle-keymap-select {
+###   if [[ ${KEYMAP} == vicmd ]] ||
+###      [[ $1 = 'block' ]]; then
+###     echo -ne '\e[2 q'
+###   elif [[ ${KEYMAP} == main ]] ||
+###        [[ ${KEYMAP} == viins ]] ||
+###        [[ ${KEYMAP} = '' ]] ||
+###        [[ $1 = 'beam' ]]; then
+###     echo -ne '\e[6 q'
+###   fi
+### }
+### zle -N zle-keymap-select
+### zle-line-init() {
+###     zle -K viins # initiate `vi insert` as keymap (can be removed if `bindkey -V` has been set elsewhere)
+###     echo -ne "\e[6 q"
+### }
+### zle -N zle-line-init
+### echo -ne '\e[6 q' # Use beam shape cursor on startup.
+### preexec() { echo -ne '\e[6 q' ;} # Use beam shape cursor for each new prompt.
+### Keybindings
+#### vi mode
+### bindkey -v
+### bindkey -v '^?' backward-delete-char
+### export KEYTIMEOUT=1
+#### Edit line in vim with ctrl-e:
+###autoload edit-command-line; zle -N edit-command-line
+###bindkey '^e' edit-command-line
+
+
 # end of .zshrc
 eval "$(oh-my-posh init zsh --config $XDG_CONFIG_HOME/ohmyposh/zen.toml)"
+eval "$(zoxide init --cmd cd zsh)"
 # ---
+

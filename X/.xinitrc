@@ -59,8 +59,6 @@ fi
 # Switch caps lock and Esc
 # setxkbmap -model abnt2 -layout br -option "caps:swapescape"
 
-picom &
-
 # hide mouse when typing
 xbanish &
 
@@ -79,5 +77,6 @@ thunar --daemon &
 set_wallpaper
 
 xset r rate 300 50
+
 # exec startdwm
 exec dwm

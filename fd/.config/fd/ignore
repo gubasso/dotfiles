@@ -1,0 +1,89 @@
+.git/
+.cache/
+*cache*/
+.cargo
+.go
+.R
+.hidden
+*Brave*/
+
+.local/include
+.local/lib
+.local/opt
+.local/pipx
+.local/share
+.local/state
+
+debug/
+target/
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+.pybuilder/
+
+# PEP 582; used by e.g. github.com/David-OConnor/pyflow and github.com/pdm-project/pdm
+__pypackages__/
+
+# Pyre type checker
+.pyre/
+
+# pytype static type analyzer
+.pytype/
+
+# ruff
+.ruff_cache/
+
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# Snowpack dependency directory (https://snowpack.dev/)
+web_modules/
+
+# vuepress v2.x temp and cache directory
+.temp/
+
+# yarn v2
+.yarn/
+
+### Node Patch ###
+# Serverless Webpack directories
+.webpack/
+
+# SvelteKit build / generate output
+.svelte-kit
+
+.ansible
+.asdf
+.avm
+.aws
+.cache
+.cargo
+.cmake
+.degit
+.docker
+.dropbox
+.dropbox-dist
+.fltk
+.gnome
+.gnupg
+.keychain
+.librewolf
+.mongodb
+.mono
+.mozilla
+.n2
+.npm
+.password-store
+.pki
+.rustup
+.texlive
+.thunderbird
+.tmux
+.vagrant.d
+.vim
+.vscode-oss
+.yarn
+.zoom
