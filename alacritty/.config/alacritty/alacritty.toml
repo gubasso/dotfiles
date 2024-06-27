@@ -27,3 +27,7 @@ TERM = "xterm-256color"
 
 [font]
 size = 16
+
+[shell]
+program = "/bin/zsh"
+args = ["-l"]

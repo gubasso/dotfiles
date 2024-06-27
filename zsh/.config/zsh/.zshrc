@@ -1,3 +1,4 @@
+# echo "$ZDOTDIR/.zshrc"
 # [Profiling zsh setup with zprof](https://www.dotruby.com/tapas/profiling-zsh-setup-with-zprof)
 # [Profiling zsh startup time](https://stevenvanbael.com/profiling-zsh-startup)
 # cmd to profile:
@@ -17,7 +18,7 @@ zinit lucid wait light-mode for \
 zinit lucid wait for \
   OMZP::command-not-found
 
-zinit pack for ls_colors
+# zinit pack for ls_colors
 
 # completions should be the last [^1]
 zinit wait lucid light-mode for \

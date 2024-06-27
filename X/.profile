@@ -1,3 +1,4 @@
+# echo "$HOME/.profile"
 #!/bin/sh
 # archwiki: Used for executing user's commands at start, will be read when starting as a login shell
 # Typically used to:

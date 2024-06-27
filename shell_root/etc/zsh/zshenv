@@ -1,3 +1,4 @@
+# echo "/etc/zsh/zshenv"
 # must have just this line
 export ZDOTDIR="$HOME/.config/zsh"
 # end of zshenv

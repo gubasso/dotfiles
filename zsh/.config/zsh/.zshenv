@@ -1,3 +1,4 @@
+# echo "$ZDOTDIR/.zshenv"
 # $ZDOTDIR was loaded at /etc/zsh/zshenv
 # $HOME is available here
 

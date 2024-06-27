@@ -1,3 +1,4 @@
+# echo "/etc/ambarconfig/env.sh"
 # https://wiki.archlinux.org/title/Environment_variables#Globally
 # Export environment variables
 export XDG_CONFIG_HOME="$HOME/.config"
