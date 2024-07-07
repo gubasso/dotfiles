@@ -73,6 +73,7 @@ return {
           "yaml",
           "toml",
           "sql",
+          "latex",
         },
         sync_install = false,
         highlight = {

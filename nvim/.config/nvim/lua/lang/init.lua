@@ -14,7 +14,9 @@ vim.api.nvim_create_autocmd("FileType", {
   pattern = { "gitcommit", "markdown" },
   callback = function()
     vim.opt_local.wrap = true
-    vim.keymap.set( 'n', '<LocalLeader>s', ':set spell!<cr>',
+    vim.keymap.set( 'n', '<LocalLeader>s', ':set spell<cr>',
+      { desc =  'Spellcheck set on'})
+    vim.keymap.set( 'n', '<LocalLeader>t', ':set spell!<cr>',
       { desc =  'Spellcheck toggle'})
     vim.keymap.set( 'n', '<LocalLeader>p',
       function ()
@@ -26,11 +28,11 @@ vim.api.nvim_create_autocmd("FileType", {
         vim.opt_local.spelllang = { "en" }
       end,
       { desc =  'Spelllang en'})
-    vim.keymap.set(
-      'n',
-      '<LocalLeader>t',
-      '<cmd>wa<CR><cmd>call VimuxRunCommand("doctoc .")<cr>',
-      { desc =  'Add/Update TOC to all markdown'})
+    -- vim.keymap.set(
+    --   'n',
+    --   '<LocalLeader>t',
+    --   '<cmd>wa<CR><cmd>call VimuxRunCommand("doctoc .")<cr>',
+    --   { desc =  'Add/Update TOC to all markdown'})
     -- vim.opt_local.spell = true
   end,
 })

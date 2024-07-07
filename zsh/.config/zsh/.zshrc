@@ -14,7 +14,11 @@ source /usr/share/zinit/zinit.zsh
 # plugins
 zinit lucid wait light-mode for \
   Aloxaf/fzf-tab \
-  MichaelAquilina/zsh-you-should-use
+  MichaelAquilina/zsh-you-should-use \
+  MichaelAquilina/zsh-auto-notify
+# MichaelAquilina/zsh-auto-notify
+export AUTO_NOTIFY_WHITELIST=("paru" "pacman" "up" "npm install")
+
 zinit lucid wait for \
   OMZP::command-not-found
 
@@ -66,11 +70,14 @@ setopt hist_find_no_dups
 setopt appendhistory
 setopt sharehistory
 setopt hist_ignore_space
-
-# Keybindings
 ## History search just for the command already typed in shell
 bindkey '^p' history-search-backward
 bindkey '^n' history-search-forward
+
+# Opens command in $EDITOR [^2][^3]
+autoload -U edit-command-line; zle -N edit-command-line
+## ESC (normal mode) + v (opens vim)
+bindkey -M vicmd v edit-command-line
 
 # keychain
 eval $(keychain --nogui --quiet --noask --eval --agents ssh,gpg \
@@ -94,3 +101,5 @@ fi
 
 # References:
 # [^1]: https://github.com/zdharma-continuum/zinit?tab=readme-ov-file#calling-compinit-with-turbo-mode "Calling compinit With Turbo Mode"
+# [^2]: https://unix.stackexchange.com/questions/6620/how-to-edit-command-line-in-full-screen-editor-in-zsh "How to edit command line in full screen editor in ZSH?"
+# [^3]: https://apple.stackexchange.com/questions/88515/how-do-i-edit-current-shell-command-in-vi "How do I edit current shell command in VI"

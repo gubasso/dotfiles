@@ -72,6 +72,7 @@ return {
         'pylsp',
         'marksman',
         'yamlls',
+        'texlab',
       }
       local handlers = {
 
@@ -159,6 +160,8 @@ return {
           'editorconfig-checker',
           'doctoc',
           'prettier',
+          'tree-sitter-cli',
+          'texlab',
           -- 'sqlls',
         },
         auto_update = true,

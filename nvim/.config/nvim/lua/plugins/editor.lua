@@ -1,4 +1,16 @@
 return {
+  {
+    'okuuva/auto-save.nvim',
+    opts = {
+      write_all_buffers = true,
+      debounce_delay = 10000,
+      trigger_events = { -- See :h events
+        immediate_save = { "BufLeave", "FocusLost" }, -- vim events that trigger an immediate save
+        defer_save = { "InsertLeave", "TextChanged" }, -- vim events that trigger a deferred save (saves after `debounce_delay`)
+        cancel_defered_save = { "InsertEnter" }, -- vim events that cancel a pending deferred save
+      },
+    },
+  },
   { 'jiangmiao/auto-pairs' },
   {
     'stevearc/oil.nvim',
@@ -60,6 +72,7 @@ return {
   },
   {
     "iamcco/markdown-preview.nvim",
+    ft = { "markdown" },
     build = function() vim.fn["mkdp#util#install"]() end,
   },
   {
@@ -306,16 +319,16 @@ return {
         },
       })
 
-      local trouble = require("trouble.providers.telescope")
+      local trouble = require("trouble.sources.telescope")
       local telescope = require("telescope")
       telescope.setup {
         defaults = {
           mappings = {
             i = {
-              ["<c-t>"] = trouble.open_with_trouble,
+              ["<c-t>"] = trouble.open,
               ["<c-h>"] = "which_key",
             },
-            n = { ["<c-t>"] = trouble.open_with_trouble },
+            n = { ["<c-t>"] = trouble.open },
           },
         },
       }
