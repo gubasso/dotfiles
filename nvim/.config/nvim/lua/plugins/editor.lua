@@ -358,51 +358,40 @@ return {
       "nvim-tree/nvim-web-devicons",
       "folke/todo-comments.nvim",
     },
-    opts = {
-      use_diagnostic_signs = true
+    opts = {},
+    cmd = "Trouble",
+    keys = {
+      {
+        "<leader>xw",
+        "<cmd>Trouble diagnostics toggle<cr>",
+        desc = "Diagnostics (Trouble)",
+      },
+      {
+        "<leader>xd",
+        "<cmd>Trouble diagnostics toggle filter.buf=0<cr>",
+        desc = "Buffer Diagnostics (Trouble)",
+      },
+      {
+        "<leader>xcs",
+        "<cmd>Trouble symbols toggle focus=false<cr>",
+        desc = "Symbols (Trouble)",
+      },
+      {
+        "<leader>xcl",
+        "<cmd>Trouble lsp toggle focus=false win.position=right<cr>",
+        desc = "LSP Definitions / references / ... (Trouble)",
+      },
+      {
+        "<leader>xL",
+        "<cmd>Trouble loclist toggle<cr>",
+        desc = "Location List (Trouble)",
+      },
+      {
+        "<leader>xQ",
+        "<cmd>Trouble qflist toggle<cr>",
+        desc = "Quickfix List (Trouble)",
+      },
     },
-    config = function ()
-      local tr = require"trouble"
-      require("which-key").register({
-        ["[q"] = {
-          function()
-            if require("trouble").is_open() then
-              require("trouble").previous({ skip_groups = true, jump = true })
-            else
-              local ok, err = pcall(vim.cmd.cprev)
-              if not ok then
-                vim.notify(err, vim.log.levels.ERROR)
-              end
-            end
-          end,
-          "Previous trouble/quickfix item"
-        },
-        ["]q"] = {
-          function()
-            if require("trouble").is_open() then
-              require("trouble").next({ skip_groups = true, jump = true })
-            else
-              local ok, err = pcall(vim.cmd.cprev)
-              if not ok then
-                vim.notify(err, vim.log.levels.ERROR)
-              end
-            end
-          end,
-          "Next trouble/quickfix item"
-        },
-      })
-      require("which-key").register({
-        prefix = '<leader>x',
-        d = { function() tr.open("document_diagnostics") end, "document"},
-        w = { function() tr.open("workspace_diagnostics") end, "workspace"},
-        q = { function() tr.open("quickfix") end, "quickfix"},
-        l = { function() tr.open("loclist") end, "loclist"},
-        r = { function() tr.open("lsp_references") end, "lsp references"},
-        t = { "<cmd>TodoTrouble<cr>", "Todo" },
-        T = { "<cmd>TodoTrouble keywords=TODO,FIX,FIXME<cr>", "Todo/Fix/Fixme" },
-      })
-
-    end,
   },
   {
     "ThePrimeagen/harpoon",

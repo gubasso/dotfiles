@@ -34,3 +34,26 @@ autocmd BufNewFile,BufRead /dev/shm/gopass* setlocal noswapfile nobackup nowrite
 " Ansible [Steps to secure your editor](https://docs.ansible.com/ansible/latest/vault_guide/vault_encrypting_content.html#vault-securing-editor)
 autocmd BufNewFile,BufRead *vault*,~/.ansible/tmp* setlocal noswapfile nobackup nowritebackup noundofile shada=""
 ]])
+
+-- Define a custom command
+vim.api.nvim_create_user_command('RunYTMDLink', function()
+  -- Get the current line number and content
+  local line = vim.api.nvim_get_current_line()
+  -- Extract the URL from the line
+  local url = line:match('https?://%S+')
+  if url then
+    -- Run the external command and capture the output
+    local output = vim.fn.system('ytmdlink "' .. url .. '"')
+    -- Replace newlines with spaces to keep it on one line
+    output = output:gsub("\n", " ")
+    -- Replace the URL in the line with the command output
+    local new_line = line:gsub(vim.pesc(url), output)
+    -- Set the new line content
+    vim.api.nvim_set_current_line(new_line)
+  else
+    print("No URL found in the current line.")
+  end
+end, { nargs = 0 })
+
+-- Map the custom command to a keybinding
+vim.api.nvim_set_keymap('n', '<leader>rl', ':RunYTMDLink<CR>', { noremap = true, silent = true })

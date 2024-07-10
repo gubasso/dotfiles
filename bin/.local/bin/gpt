@@ -1,2 +1,2 @@
 #!/bin/sh
-chromium https://chat.openai.com/ https://phrasly.ai/ "--profile-directory=Profile 5"
+chromium https://www.perplexity.ai/ https://chat.openai.com/ https://phrasly.ai/ "--profile-directory=Profile 5"
