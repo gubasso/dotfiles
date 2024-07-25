@@ -14,6 +14,13 @@ vim.api.nvim_create_autocmd("FileType", {
   pattern = { "gitcommit", "markdown" },
   callback = function()
     vim.opt_local.wrap = true
+    -- Set spellcheck options
+    vim.opt.spell = true
+    vim.opt.spelllang = 'en_us'
+    -- Hide the colorcolumn 
+    vim.opt.colorcolumn = ''
+    -- Map the custom command to a keybinding
+    vim.api.nvim_set_keymap('n', '<leader>rl', ':RunYTMDLink<CR>', { noremap = true, silent = true })
     vim.keymap.set( 'n', '<LocalLeader>s', ':set spell<cr>',
       { desc =  'Spellcheck set on'})
     vim.keymap.set( 'n', '<LocalLeader>t', ':set spell!<cr>',

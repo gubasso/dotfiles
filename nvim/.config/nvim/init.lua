@@ -54,6 +54,3 @@ vim.api.nvim_create_user_command('RunYTMDLink', function()
     print("No URL found in the current line.")
   end
 end, { nargs = 0 })
-
--- Map the custom command to a keybinding
-vim.api.nvim_set_keymap('n', '<leader>rl', ':RunYTMDLink<CR>', { noremap = true, silent = true })
