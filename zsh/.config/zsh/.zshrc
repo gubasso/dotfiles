@@ -1,4 +1,4 @@
-# echo "$ZDOTDIR/.zshrc"
+echo "$ZDOTDIR/.zshrc"
 # [Profiling zsh setup with zprof](https://www.dotruby.com/tapas/profiling-zsh-setup-with-zprof)
 # [Profiling zsh startup time](https://stevenvanbael.com/profiling-zsh-startup)
 # cmd to profile:
