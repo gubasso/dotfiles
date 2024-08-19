@@ -59,7 +59,6 @@ return {
       require("mason-lspconfig").setup()
       local ensure_installed = {
         'bashls',
-        'pkgbuild_language_server',
         'lua_ls',
         'vimls',
         "rust_analyzer",
@@ -69,7 +68,10 @@ return {
         'tsserver',
         'cssls',
         'eslint',
-        'pylsp',
+        'pyright',
+        -- 'pylsp',
+        -- 'ruff',
+        -- 'ruff_lsp',
         'marksman',
         'yamlls',
         'texlab',

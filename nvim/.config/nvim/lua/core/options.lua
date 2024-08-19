@@ -31,6 +31,7 @@ opt.shiftround = true -- Round indent
 opt.shiftwidth = 2 -- Size of an indent
 opt.shortmess:append({ W = true, I = true, c = true })
 opt.showmode = false -- Dont show mode since we have a statusline
+opt.spell = true
 opt.spelllang = { "en" }
 opt.splitbelow = true -- Put new windows below current
 opt.splitright = true -- Put new windows right of current

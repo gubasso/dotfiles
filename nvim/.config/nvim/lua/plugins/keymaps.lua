@@ -35,7 +35,6 @@ return {
     config = function()
       require("which-key").register({
         ["g"] = { name = "+goto" },
-        ["<LocalLeader>r"] = { name = "+rust" },
         ["<leader>c"] = { name = "+code" },
         ["<leader>e"] = { name = "+explorer" },
         ["<leader>z"] = { name = "+zen/focus mode" },
