@@ -29,3 +29,4 @@ function src() {
 
 #################
 # Others config
+. "$HOME/.cargo/env"
