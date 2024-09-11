@@ -1,3 +1,0 @@
-#!/bin/sh
-# If signal number ir `5`, add `34` = `39`
-kill -"$(echo "${1}+34" | \bc)" "$(pidof dwmblocks)"

@@ -93,6 +93,15 @@ eval $(keychain --nogui --quiet --noask --eval --agents ssh,gpg \
   gubasso@eambar.net \
   gubasso@cwnt.io)
 
+# Alias
+. "$XDG_CONFIG_HOME/shell_alias"
+
+function src() {
+  source "$ZDOTDIR/.zshenv"
+  source "$ZDOTDIR/.zshrc"
+}
+
+
 # end of .zshrc
 # eval "$(oh-my-posh init zsh --config $XDG_CONFIG_HOME/ohmyposh/zen.toml)"
 eval "$(starship init zsh)"

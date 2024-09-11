@@ -1,5 +1,5 @@
-# echo "$HOME/.profile"
 #!/bin/sh
+# echo "$HOME/.profile"
 # Sample .profile for SUSE Linux
 # rewritten by Christian Steinruecken <cstein@suse.de>
 #
@@ -10,9 +10,3 @@
 test -z "$PROFILEREAD" && . /etc/profile || true
 
 # archwiki zsh: session-wide environment variables
-. "$XDG_CONFIG_HOME/shell_alias"
-. "$XDG_CONFIG_HOME/shell_env_vars"
-
-. "$HOME/.cargo/env"
-# . "$XDG_DATA_HOME/dfx/env"
-

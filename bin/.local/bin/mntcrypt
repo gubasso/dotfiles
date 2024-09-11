@@ -1,0 +1,34 @@
+#!/bin/sh
+
+# Check if exactly three arguments are provided
+if [ "$#" -ne 3 ]; then
+  echo "Error: Exactly three arguments are required."
+  echo "Usage: $0 ENCRYPTED_DIR DECRYPTED_DIR GOPASS_ENTRY"
+  exit 1
+fi
+
+# Assign the three arguments to variables
+ENCRYPTED_DIR="$1"
+DECRYPTED_DIR="$2"
+GOPASS_ENTRY="$3"
+
+if mountpoint -q "$DECRYPTED_DIR"; then
+  notify-send "gocryptfs" "$DECRYPTED_DIR is already mounted"
+  exit 0
+fi
+
+PASSWORD=$(gopass -o "$GOPASS_ENTRY")
+
+# Check if the password was retrieved successfully
+if [ -z "$PASSWORD" ]; then
+  echo "Failed to retrieve password from gopass. Exiting."
+  exit 1
+fi
+
+# Mount gocryptfs using the password fetched from gopass
+echo "$PASSWORD" | gocryptfs "$ENCRYPTED_DIR" "$DECRYPTED_DIR" 
+
+# Clear the password variable
+unset PASSWORD
+
+notify-send "gocryptfs" "Mounted $DECRYPTED_DIR"
