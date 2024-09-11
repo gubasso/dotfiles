@@ -73,6 +73,8 @@ export R_HOME_USER="$HOME/.R"
 export GOPATH="$HOME/.go"
 export GOBIN="$GOPATH/bin"
 
+export CLOUD_DIR="$HOME/Nextcloud"
+
 SOLANA_PATH="$XDG_DATA_HOME/solana/install/active_release/"
 
 export PATH="$PATH:$HOME/.local/bin:$HOME/.cargo/bin"
