@@ -77,4 +77,8 @@ export CLOUD_DIR="$HOME/Nextcloud"
 
 SOLANA_PATH="$XDG_DATA_HOME/solana/install/active_release/"
 
+export PATH="$PATH:$HOME/.local/bin:$HOME/.cargo/bin"
 export PATH="$PATH:$GOBIN:$SOLANA_PATH"
+
+export XDG_DATA_DIRS="$XDG_DATA_DIRS:/var/lib/flatpak/exports/share:$XDG_DATA_HOME/flatpak/exports/share"
+

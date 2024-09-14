@@ -1,3 +1,8 @@
+ZINIT_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}/zinit/zinit.git"
+[ ! -d $ZINIT_HOME ] && mkdir -p "$(dirname $ZINIT_HOME)"
+[ ! -d $ZINIT_HOME/.git ] && git clone https://github.com/zdharma-continuum/zinit.git "$ZINIT_HOME"
+source "${ZINIT_HOME}/zinit.zsh"
+
 # echo "$ZDOTDIR/.zshrc"
 # [Profiling zsh setup with zprof](https://www.dotruby.com/tapas/profiling-zsh-setup-with-zprof)
 # [Profiling zsh startup time](https://stevenvanbael.com/profiling-zsh-startup)
@@ -8,8 +13,6 @@
 if [[ -n "$ZSH_DEBUGRC" ]]; then
   zmodload zsh/zprof
 fi
-# -------------- zinit plygin manager (AUR) -----------------------------------
-source /usr/share/zinit/zinit.zsh
 
 # plugins
 zinit lucid wait light-mode for \
@@ -80,6 +83,7 @@ autoload -U edit-command-line; zle -N edit-command-line
 bindkey -M vicmd v edit-command-line
 
 # keychain
+export GPG_AGENT_INFO="~/.gnupg/S.gpg-agent:$(pgrep gpg-agent):1"
 eval $(keychain --nogui --quiet --noask --eval --agents ssh,gpg \
   cwntroot-ed25519 \
   gubasso-android-ed25519 \
@@ -88,6 +92,15 @@ eval $(keychain --nogui --quiet --noask --eval --agents ssh,gpg \
   sysking-eambar-ed25519 \
   gubasso@eambar.net \
   gubasso@cwnt.io)
+
+# Alias
+. "$XDG_CONFIG_HOME/shell_alias"
+
+function src() {
+  source "$ZDOTDIR/.zshenv"
+  source "$ZDOTDIR/.zshrc"
+}
+
 
 # end of .zshrc
 # eval "$(oh-my-posh init zsh --config $XDG_CONFIG_HOME/ohmyposh/zen.toml)"
@@ -103,3 +116,4 @@ fi
 # [^1]: https://github.com/zdharma-continuum/zinit?tab=readme-ov-file#calling-compinit-with-turbo-mode "Calling compinit With Turbo Mode"
 # [^2]: https://unix.stackexchange.com/questions/6620/how-to-edit-command-line-in-full-screen-editor-in-zsh "How to edit command line in full screen editor in ZSH?"
 # [^3]: https://apple.stackexchange.com/questions/88515/how-do-i-edit-current-shell-command-in-vi "How do I edit current shell command in VI"
+### End of Zinit's installer chunk

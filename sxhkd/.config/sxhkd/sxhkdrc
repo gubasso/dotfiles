@@ -128,31 +128,35 @@
 # Key bindings for sxhkd
 # reset and apply changes:
 # killall sxhkd; setsid sxhkd &
+# systemctl --user restart sxhkd.service
+
+super + p
+  rofi -show drun
+
+super + w
+  rofi -show window
+
+super + x
+  rofi -show run
 
 # gopass
-control + alt + k ; {k,n,l}
-    gopass ls --flat | dmenu -l 10 | xargs -I_ --no-run-if-empty gopass show -c _ {_,username,url} &>/dev/null
+control + alt + k ; c
+  gopass ls --flat | rofi -dmenu -p "Gopass get password (c):" | xargs -I_ --no-run-if-empty gopass show -c _ &>/dev/null
 
-#increase the volume by 5
-XF86AudioRaiseVolume
-    pamixer -i 5 && sb-sendsignal 5
+control + alt + k ; b
+  gopass ls --flat | rofi -dmenu -p "Gopass get username (b):" | xargs -I_ --no-run-if-empty gopass show -c _ username &>/dev/null
 
-#decrease the volume by 5
-XF86AudioLowerVolume
-    pamixer -d 5 && sb-sendsignal 5
+control + alt + k ; u
+  gopass ls --flat | rofi -dmenu -p "Gopass get URL (u):" | xargs -I_ --no-run-if-empty gopass show -c _ url &>/dev/null
 
-#toggle between mute and unmute
-XF86AudioMute
-    pamixer -t && sb-sendsignal 5
+control + alt + k ; t
+  gopass ls --flat | rofi -dmenu -p "Gopass get OTP (t):" | xargs -I_ --no-run-if-empty gopass otp -oc _ &>/dev/null
 
-control + alt + l
-    slock
+control + alt + k ;  k
+  gopass_rofi_select_key
 
-XF86MonBrightness{Up,Down}
-    brightnessctl --device=intel_backlight set {+1%,1%-}
 
-Print
-    flameshot gui
+# nmcli vpn
+control + alt + v ; {u,d}
+  nmcli_vpn_con {up,down}
 
-shift + Print
-    flameshot full

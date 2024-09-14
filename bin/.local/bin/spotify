@@ -1,2 +1,0 @@
-#!/bin/sh
-chromium open.spotify.com "--profile-directory=Profile 3"

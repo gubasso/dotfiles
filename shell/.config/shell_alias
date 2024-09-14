@@ -7,18 +7,22 @@
 # [^al3]: [Clear a terminal screen for real: KDE](https://stackoverflow.com/questions/5367068/clear-a-terminal-screen-for-real)
 # [^al4]: `cat file | xclip -selection clipboard` [How can I copy the output of a command directly into my clipboard?](https://stackoverflow.com/questions/5130968/how-can-i-copy-the-output-of-a-command-directly-into-my-clipboard#5130969)
 
-alias trust="tmuxp load rust"
-
 alias n="nvim"
 alias sp="paru -Ss"
 alias spi="paru -Q | rg"
 function up() {
-  dfxvm update
-  paru -Syu ${@} && sb-sendsignal 10
+  flatpak update
+  rustup update
+  pipx upgrade-all
+  sudo zypper refresh
+  sudo zypper up -y 
+  sudo zypper dup
+  sudo fwupdmgr refresh
+  sudo fwupdmgr update --assume-yes
 ;}
 alias rms="shred -n10 -uz"
-alias rm='rmtrash'
-alias rmdir='rmdirtrash'
+alias rmt="trash-put"
+alias rm='echo "This is not the command you are looking for."; false'
 alias ls='eza'
 alias ll='eza -la'
 alias tree='eza --tree --all --git-ignore --ignore-glob ".git"'
@@ -31,12 +35,14 @@ alias toxclip='xclip -selection clipboard' #[^al4]
 alias sudo="sudo "
 alias rs='rsync -vurzP'
 alias dot="cd $HOME/.dotfiles"
+alias md='mkdir -p'
 function now() {
   date "+%Y-%m-%d %H:%M:%S" | tr -d '\n' | tee >(toxclip)
 }
 function slug() {
   slugify --separator _ ${@} | tr -d '\n' | tee >(toxclip)
 }
+
 # work
 function taskslug() {
   slug_str=$(slugify --separator _ ${@})
@@ -63,6 +69,11 @@ function pomo() {
     tclock timer -d $1 -e "while true; do xcowsay Acabou o tempo!; paplay /home/gubasso/Sounds/bell_zen_01.wav; done"
   fi
 }
+
+# opensuse tumbleweed
+alias zin='sudo zypper in'
+alias zrm='sudo zypper rm'
+alias zsr='sudo zypper search'
 
 # asdf
 alias src_asdf='. /opt/asdf-vm/asdf.sh'

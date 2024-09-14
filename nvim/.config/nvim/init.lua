@@ -33,6 +33,8 @@ vim.cmd([[
 autocmd BufNewFile,BufRead /dev/shm/gopass* setlocal noswapfile nobackup nowritebackup noundofile shada=""
 " Ansible [Steps to secure your editor](https://docs.ansible.com/ansible/latest/vault_guide/vault_encrypting_content.html#vault-securing-editor)
 autocmd BufNewFile,BufRead *vault*,~/.ansible/tmp* setlocal noswapfile nobackup nowritebackup noundofile shada=""
+" Secure any directory or repository with 'secret' or 'secrets' in the name
+autocmd BufNewFile,BufRead */secret/*,*/secrets/* setlocal noswapfile nobackup nowritebackup noundofile shada=""
 ]])
 
 -- Define a custom command
