@@ -12,6 +12,9 @@ export ZCOMPDUMP_FILE="${XDG_CACHE_HOME}/zsh/zcompdump"
 export YSU_MESSAGE_POSITION="after"
 export YSU_MODE=ALL
 
+# work
+alias mise_activate='eval "$(mise activate zsh)"'
+
 # zsh config and env vars
 # 1) etc/zsh/zshenv: First zsh file to load
 # 2) $ZDOTDIR/.zshenv: Second zsh file to load
