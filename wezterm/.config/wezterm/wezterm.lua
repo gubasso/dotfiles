@@ -19,7 +19,11 @@ config.window_close_confirmation = "AlwaysPrompt"
 -- Appearance ------------------------------
 config.window_decorations = 'RESIZE'
 config.tab_max_width = 30
-config.color_scheme = 'Catppuccin Macchiato'
+-- config.color_scheme = 'Catppuccin Macchiato'
+-- config.color_scheme = 'Seafoam Pastel'
+-- config.color_scheme = 'Maia (Gogh)'
+config.color_scheme = 'Ryuuko'
+
 -- config.font = wezterm.font 'IBM Plex Mono'
 -- config.font_size = 14
 config.font = wezterm.font_with_fallback({

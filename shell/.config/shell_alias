@@ -17,8 +17,8 @@ function up() {
   sudo zypper refresh
   sudo zypper up -y 
   sudo zypper dup
-  sudo fwupdmgr refresh
-  sudo fwupdmgr update --assume-yes
+  # sudo fwupdmgr refresh
+  # sudo fwupdmgr update --assume-yes
 ;}
 alias rms="shred -n10 -uz"
 alias rmt="trash-put"

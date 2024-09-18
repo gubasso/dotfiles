@@ -4,7 +4,7 @@
 
 # My config
 ## XDG + PATH env vars
-. /etc/ambarconfig/env.sh
+. /etc/tumblesuse_config/env.sh
 . "$XDG_CONFIG_HOME/shell_env_vars"
 
 export ZCOMPDUMP_FILE="${XDG_CACHE_HOME}/zsh/zcompdump"

@@ -30,7 +30,7 @@ else
   vpns=$(nmcli -t -f NAME,TYPE,STATE con show --active | grep vpn | cut -d ':' -f 1)
 fi
 
-selected_vpn=$(echo "$vpns" | rofi -dmenu -p "Select VPN to $cmd")
+selected_vpn=$(echo "$vpns" | rofi_dmenu -p "Select VPN to $cmd")
 
 # Check if a VPN was selected
 if [ -z "$selected_vpn" ]; then

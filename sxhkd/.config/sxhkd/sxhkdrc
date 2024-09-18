@@ -130,7 +130,7 @@
 # killall sxhkd; setsid sxhkd &
 # systemctl --user restart sxhkd.service
 
-super + p
+super + r
   rofi -show drun
 
 super + w
@@ -141,22 +141,20 @@ super + x
 
 # gopass
 control + alt + k ; c
-  gopass ls --flat | rofi -dmenu -p "Gopass get password (c):" | xargs -I_ --no-run-if-empty gopass show -c _ &>/dev/null
+  gopass ls --flat | rofi_dmenu -p "Gopass get password (c):" | xargs -I_ --no-run-if-empty gopass show -c _ &>/dev/null
 
 control + alt + k ; b
-  gopass ls --flat | rofi -dmenu -p "Gopass get username (b):" | xargs -I_ --no-run-if-empty gopass show -c _ username &>/dev/null
+  gopass ls --flat | rofi_dmenu -p "Gopass get username (b):" | xargs -I_ --no-run-if-empty gopass show -c _ username &>/dev/null
 
 control + alt + k ; u
-  gopass ls --flat | rofi -dmenu -p "Gopass get URL (u):" | xargs -I_ --no-run-if-empty gopass show -c _ url &>/dev/null
+  gopass ls --flat | rofi_dmenu -p "Gopass get URL (u):" | xargs -I_ --no-run-if-empty gopass show -c _ url &>/dev/null
 
 control + alt + k ; t
-  gopass ls --flat | rofi -dmenu -p "Gopass get OTP (t):" | xargs -I_ --no-run-if-empty gopass otp -oc _ &>/dev/null
+  gopass ls --flat | rofi_dmenu -p "Gopass get OTP (t):" | xargs -I_ --no-run-if-empty gopass otp -oc _ &>/dev/null
 
 control + alt + k ;  k
-  gopass_rofi_select_key
-
+  gopass_rofi_select_field_from_entry
 
 # nmcli vpn
 control + alt + v ; {u,d}
   nmcli_vpn_con {up,down}
-

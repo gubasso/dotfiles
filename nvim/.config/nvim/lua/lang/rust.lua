@@ -5,17 +5,17 @@ vim.api.nvim_create_autocmd("FileType", {
   group = au.augroup("rustlang"),
   pattern = { "rust" },
   callback = function()
-    k(
-      {
-        prefix = "<LocalLeader>",
-        name = "Rust",
-        x = { '<cmd>wa<CR><cmd>call VimuxRunCommand("cl; cargo fix --allow-staged")<cr>', '(vmux) cargo fix --allow-staged' },
-        f = { '<cmd>wa<CR><cmd>call VimuxRunCommand("cl; cargo fmt --check; cargo fmt")<cr>', '(vmux) cargo fmt check & run' },
-      },
-      {
-        buffer = 0
-      }
-    )
+    -- k(
+    --   {
+    --     prefix = "<LocalLeader>",
+    --     name = "Rust",
+    --     x = { '<cmd>wa<CR><cmd>call VimuxRunCommand("cl; cargo fix --allow-staged")<cr>', '(vmux) cargo fix --allow-staged' },
+    --     f = { '<cmd>wa<CR><cmd>call VimuxRunCommand("cl; cargo fmt --check; cargo fmt")<cr>', '(vmux) cargo fmt check & run' },
+    --   },
+    --   {
+    --     buffer = 0
+    --   }
+    -- )
     -- local buf = vim.api.nvim_get_current_buf()
     -- k(
     -- 'n',
