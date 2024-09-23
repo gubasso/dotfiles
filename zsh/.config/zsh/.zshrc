@@ -93,13 +93,15 @@ eval $(keychain --nogui --quiet --noask --eval --agents ssh,gpg \
   gubasso@eambar.net \
   gubasso@cwnt.io)
 
-# Alias
+# Alias ---------------------------------------
 . "$XDG_CONFIG_HOME/shell_alias"
 
 function src() {
   source "$ZDOTDIR/.zshenv"
   source "$ZDOTDIR/.zshrc"
 }
+
+alias mise_activate='eval "$(mise activate zsh)"'
 
 
 # end of .zshrc

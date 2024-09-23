@@ -16,6 +16,9 @@ function up() {
   dfxvm update
   paru -Syu ${@} && sb-sendsignal 10
 ;}
+alias md="mkdir -p"
+alias '..'="cd .."
+alias 'cd..'="cd .."
 alias rms="shred -n10 -uz"
 alias rm='rmtrash'
 alias rmdir='rmdirtrash'
