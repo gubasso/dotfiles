@@ -151,11 +151,10 @@ config.leader = {
 
 config.keys = {
   -- Leader key
-  {
-    key = '[', mods = 'LEADER',
-    action = act.ActivateCopyMode
-  },
-  { key = "p", mods = "LEADER|CTRL",      action = act.ActivateCommandPalette },
+  { key = '[', mods = 'LEADER|CTRL', action = act.ActivateCopyMode },
+  { key = '[', mods = 'LEADER', action = act.ActivateCopyMode },
+  -- Command Pallete
+  { key = "p", mods = "LEADER|CTRL", action = act.ActivateCommandPalette },
   -- Splits
   {
     key = '-', mods = 'LEADER',
@@ -191,8 +190,8 @@ config.keys = {
   -- Tabs Keybindings
   -- { key = 'c', mods = 'LEADER|CTRL', action = act.SpawnTab 'DefaultDomain' },
   { key = 'c', mods = 'LEADER|CTRL', action = act.SpawnCommandInNewTab { cwd = wezterm.home_dir }  },
-  { key = 'n', mods = 'LEADER|CTRL', action = act.ActivateTabRelative(1) },
-  { key = 'p', mods = 'LEADER|CTRL', action = act.ActivateTabRelative(-1) },
+  { key = 'k', mods = 'LEADER|CTRL', action = act.ActivateTabRelative(1) },
+  { key = 'j', mods = 'LEADER|CTRL', action = act.ActivateTabRelative(-1) },
   { key = 'Space', mods = 'LEADER|CTRL', action = act.ActivateLastTab },
   {
     key = ",",
