@@ -18,6 +18,12 @@ vim.api.nvim_create_autocmd({"BufRead", "BufNewFile"}, {
   command = "set filetype=javascript",
 })
 
+-- mjml as html
+vim.api.nvim_create_autocmd({"BufRead", "BufNewFile"}, {
+  pattern = {"*.mjml"},
+  command = "set filetype=html",
+})
+
 -- close some filetypes with <q>
 vim.api.nvim_create_autocmd("FileType", {
   group = au.augroup("close_with_q"),
