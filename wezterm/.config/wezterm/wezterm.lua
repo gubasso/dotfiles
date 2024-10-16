@@ -89,7 +89,8 @@ wezterm.on(
     if pane.is_zoomed then
       zoom = ' '
     end
-    local title = zoom .. basename(pane.foreground_process_name) .. ' - ' .. cwd_tab
+    -- local title = zoom .. basename(pane.foreground_process_name) .. ' - ' .. cwd_tab
+    local title = zoom .. tostring(tab.index) .. cwd_tab
     return {
       { Text = ' ' .. title .. ' ' },
     }
