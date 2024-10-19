@@ -1,6 +1,7 @@
 #!/bin/sh
 # AWS CLI v2 Installation Script
 # https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html
+# uninstall: https://docs.aws.amazon.com/cli/latest/userguide/uninstall.html
 set -e
 
 installer_path="$HOME/Sources/awscli-v2"
@@ -42,7 +43,7 @@ echo "Changing directory to $installer_path..."
 cd "$installer_path"
 
 echo "Removing existing files in $installer_path..."
-rm -f ./*
+rm -rf ./*
 
 echo "Downloading AWS CLI v2 installer..."
 axel -n 10 "https://awscli.amazonaws.com/$aws_file"
@@ -60,6 +61,6 @@ echo "Unzipping the installer package..."
 unzip -u "$aws_file"
 
 echo "Running the AWS CLI v2 install script as sudo..."
-sudo ./aws/install
+sudo ./aws/install --update
 
 echo "AWS CLI v2 installation completed successfully."
