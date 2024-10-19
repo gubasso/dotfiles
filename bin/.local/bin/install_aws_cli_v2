@@ -1,4 +1,5 @@
 #!/bin/sh
+# AWS CLI v2 Installation Script
 # https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html
 set -e
 
@@ -34,12 +35,31 @@ BfWC9s/USgxchg==
 =ptgS
 -----END PGP PUBLIC KEY BLOCK-----"
 
+echo "Creating installer directory at $installer_path..."
 mkdir -p "$installer_path"
+
+echo "Changing directory to $installer_path..."
 cd "$installer_path"
-rm ./*
+
+echo "Removing existing files in $installer_path..."
+rm -f ./*
+
+echo "Downloading AWS CLI v2 installer..."
 axel -n 10 "https://awscli.amazonaws.com/$aws_file"
+
+echo "Downloading AWS CLI v2 signature file..."
 axel -n 10 "https://awscli.amazonaws.com/$aws_file.sig"
+
+echo "Importing AWS CLI PGP public key..."
 echo "$gpg_key" | gpg --import
+
+echo "Verifying the installer package signature..."
 gpg --verify "$aws_file.sig" "$aws_file"
+
+echo "Unzipping the installer package..."
 unzip -u "$aws_file"
+
+echo "Running the AWS CLI v2 install script as sudo..."
 sudo ./aws/install
+
+echo "AWS CLI v2 installation completed successfully."
