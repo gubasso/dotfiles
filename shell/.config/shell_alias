@@ -81,7 +81,9 @@ alias gacm='git add -A && git commit -m'
 function gacmp() { gacm "${@}" && git push ;}
 alias gauthor='printf "$(git config --local user.name) <$(git config --local user.email)>"'
 alias gp='git push'
+alias gpu='git push --set-upstream origin'
 alias gpl='git pull'
+alias gplu='git pull --set-upstream origin'
 alias gup='git add -A && git commit -m "up" && git push'
 
 # pre-commit + git
