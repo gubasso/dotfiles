@@ -11,11 +11,12 @@ alias n="nvim"
 alias sp="paru -Ss"
 alias spi="paru -Q | rg"
 function up() {
+  install_aws_cli_v2
   flatpak update
   rustup update
   pipx upgrade-all
   sudo zypper refresh
-  sudo zypper up -y 
+  sudo zypper up -y
   sudo zypper dup
   # sudo fwupdmgr refresh
   # sudo fwupdmgr update --assume-yes
@@ -31,7 +32,7 @@ alias rg='rg --hidden --smart-case'
 alias cl='clear'
 alias clrm='clear && echo -en "\e[3J"' #[^al3]
 alias ss='sudo systemctl'
-alias toxclip='xclip -selection clipboard' #[^al4]
+alias toxclip='tr -d "\n" | xclip -selection clipboard' #[^al4]
 alias sudo="sudo "
 alias rs='rsync -vurzP'
 alias dot="cd $HOME/.dotfiles"
