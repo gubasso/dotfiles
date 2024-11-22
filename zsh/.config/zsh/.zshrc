@@ -94,7 +94,11 @@ eval $(keychain --nogui --quiet --noask --eval --agents ssh,gpg \
   gubasso@cwnt.io)
 
 # Alias
+suse_alias="$XDG_CONFIG_HOME/shell_alias_suse"
 . "$XDG_CONFIG_HOME/shell_alias"
+if [ -f "$suse_alias" ]; then
+  . "$suse_alias"
+fi
 
 function src() {
   source "$ZDOTDIR/.zshenv"
