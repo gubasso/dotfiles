@@ -1,0 +1,10 @@
+[Unit]
+Description=Simple X Hotkey Daemon
+After=graphical.target
+
+[Service]
+ExecStart=/usr/bin/sxhkd -c /home/gubasso/.config/sxhkd/sxhkdrc
+Restart=on-failure
+
+[Install]
+WantedBy=default.target

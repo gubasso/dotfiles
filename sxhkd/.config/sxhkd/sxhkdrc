@@ -128,3 +128,29 @@
 # Key bindings for sxhkd
 # reset and apply changes:
 # killall sxhkd; setsid sxhkd &
+# systemctl --user restart sxhkd.service
+
+super + r
+  rofi -show drun
+
+super + w
+  rofi -show window
+
+super + x
+  rofi -show run
+
+# gopass
+control + alt + k ; c
+  gopass ls --flat | rofi_dmenu -p "Gopass get password (c):" | xargs -I_ --no-run-if-empty gopass show -c _ &>/dev/null
+
+control + alt + k ; b
+  gopass ls --flat | rofi_dmenu -p "Gopass get username (b):" | xargs -I_ --no-run-if-empty gopass show -c _ username &>/dev/null
+
+control + alt + k ; u
+  gopass ls --flat | rofi_dmenu -p "Gopass get URL (u):" | xargs -I_ --no-run-if-empty gopass show -c _ url &>/dev/null
+
+control + alt + k ; t
+  gopass ls --flat | rofi_dmenu -p "Gopass get OTP (t):" | xargs -I_ --no-run-if-empty gopass otp -oc _ &>/dev/null
+
+control + alt + k ;  k
+  gopass_rofi_select_field_from_entry

@@ -26,8 +26,8 @@ config.color_scheme = 'Breeze'
 -- config.font = wezterm.font 'IBM Plex Mono'
 -- config.font_size = 14
 config.font = wezterm.font_with_fallback({
-  { family = 'IBM Plex Mono', scale = scale },
   { family = 'Hack', scale = scale },
+  { family = 'IBM Plex Mono', scale = scale },
   { family = 'Source Code Pro', scale = scale },
 })
 
@@ -226,6 +226,12 @@ config.keys = {
     action = act.ShowLauncherArgs {
       flags = 'FUZZY|WORKSPACES'
     }
+  },
+  --
+  {
+    key = 'w',
+    mods = 'SUPER',
+    action = act.DisableDefaultAssignment,
   },
 }
 
