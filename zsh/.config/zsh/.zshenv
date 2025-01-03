@@ -4,8 +4,8 @@
 
 # My config
 ## XDG + PATH env vars
-. /etc/ambarconfig/env.sh
-. "$XDG_CONFIG_HOME/shell_env_vars"
+. /etc/shell/env.sh
+. "$XDG_CONFIG_HOME/shell/env_vars.sh"
 
 export ZCOMPDUMP_FILE="${XDG_CACHE_HOME}/zsh/zcompdump"
 
@@ -15,5 +15,4 @@ export YSU_MODE=ALL
 
 #################
 # Others config
-. "$HOME/.cargo/env"
 # . "$XDG_DATA_HOME/dfx/env"

@@ -7,30 +7,25 @@
 # [^al3]: [Clear a terminal screen for real: KDE](https://stackoverflow.com/questions/5367068/clear-a-terminal-screen-for-real)
 # [^al4]: `cat file | xclip -selection clipboard` [How can I copy the output of a command directly into my clipboard?](https://stackoverflow.com/questions/5130968/how-can-i-copy-the-output-of-a-command-directly-into-my-clipboard#5130969)
 
-alias trust="tmuxp load rust"
-
 alias n="nvim"
-alias sp="paru -Ss"
-alias spi="paru -Q | rg"
-function up() {
-  dfxvm update
-  paru -Syu ${@} && sb-sendsignal 10
-;}
 alias md="mkdir -p"
 alias '..'="cd .."
 alias 'cd..'="cd .."
 alias rms="shred -n10 -uz"
-alias rm='rmtrash'
-alias rmdir='rmdirtrash'
-alias ls='eza'
-alias ll='eza -la'
+# https://github.com/andreafrancia/trash-cli
+alias rm='echo "This is not the command you are looking for."; false'
+alias rmt='trash-put'
+# alias ls='eza'
+# alias ll='eza -la'
+alias ls='ls --color=auto'
+alias ll='ls -la'
 alias tree='eza --tree --all --git-ignore --ignore-glob ".git"'
 alias cat='bat'
 alias rg='rg --hidden --smart-case'
 alias cl='clear'
 alias clrm='clear && echo -en "\e[3J"' #[^al3]
 alias ss='sudo systemctl'
-alias toxclip='xclip -selection clipboard' #[^al4]
+# alias toxclip='xclip -selection clipboard' #[^al4]
 alias sudo="sudo "
 alias rs='rsync -vurzP'
 alias dot="cd $HOME/.dotfiles"
@@ -40,41 +35,12 @@ function now() {
 function slug() {
   slugify --separator _ ${@} | tr -d '\n' | tee >(toxclip)
 }
-# work
-function taskslug() {
-  slug_str=$(slugify --separator _ ${@})
-  date_iso=$(date "+%Y%m%d-%H%M")
-  task_name="${date_iso}-${slug_str}" $()
-  echo $task_name | tr -d '\n' | tee >(toxclip)
-}
-function mkdircb() {
-  dir_name=$(xclip -selection clipboard -o)
-  if [[ -z "$dir_name" ]]; then
-    echo "Clipboard is empty, no directory name provided."
-    return 1  # Exit with an error status
-  fi
-  mkdir -p "$dir_name"
-  echo "Directory created: $dir_name"
-}
-function lc() {
-  cargo new ${1} --lib && ripi issue create ${1} -a
-}
 
-function pomo() {
-  if [ -n "$1" ]; then
-    cowsay Work for $1
-    tclock timer -d $1 -e "while true; do xcowsay Acabou o tempo!; paplay /home/gubasso/Sounds/bell_zen_01.wav; done"
-  fi
-}
-
-# asdf
-alias src_asdf='. /opt/asdf-vm/asdf.sh'
-
-#docker
+# docker ----------------------------------------------------------------------
 alias d='docker'
 alias dc='docker compose'
 
-# git -------------------------------------------------------------------------------------
+# git -------------------------------------------------------------------------
 alias ga='git add -A'
 alias gac='git add -A && git commit'
 alias gacm='git add -A && git commit -m'
@@ -108,30 +74,5 @@ alias gops='gopass show'
 alias gopy='gopass sync'
 alias gope='gopass edit'
 
-# dvc
-alias dvc="poetry run dvc"
-
 # gitignore generator
 function gi() { curl -sL https://www.toptal.com/developers/gitignore/api/$@ ;}
-
-# bug issue tracker close issue
-alias b='bug'
-alias bc='bug create'
-alias bl='bug list'
-alias be='bug edit'
-alias bt='bug tag'
-alias bi='bug identifier'
-alias br='bug relabel'
-alias bs='bug status'
-alias bp='bug priority'
-alias bm='bug milestone'
-alias brm='bug roadmap'
-
-# jq json validation
-function jsonval() {
-    if jq empty ${@}; then
-      echo "JSON is valid"
-    else
-      echo "JSON is invalid"
-    fi
-}

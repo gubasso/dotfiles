@@ -320,7 +320,7 @@ return {
     config = function()
       local tlb = require'telescope.builtin'
       require("which-key").register({
-        ['<c-p>'] = { function() tlb.find_files() end, "files" },
+        ['<c-p>'] = { function() tlb.find_files() end, "Find Files" },
         gd = { function() tlb.lsp_definitions({ reuse_win = true }) end, "Goto Definition" },
         gD = { vim.lsp.buf.declaration , "Goto Declaration" },
         gr = { function() tlb.lsp_references() end, "References" },

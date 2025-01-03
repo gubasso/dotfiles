@@ -3,7 +3,7 @@ local config = {}
 -- Use config builder object if possible
 if wezterm.config_builder then config = wezterm.config_builder() end
 local act = wezterm.action
-local scale = 1.6
+local scale = 1.5
 local basename = function(s)
   local str = tostring(s)
   local base = str:match("([^/]+)/?$")
@@ -19,7 +19,10 @@ config.window_close_confirmation = "AlwaysPrompt"
 -- Appearance ------------------------------
 config.window_decorations = 'RESIZE'
 config.tab_max_width = 30
-config.color_scheme = 'Catppuccin Macchiato'
+
+config.color_scheme = 'Breeze'
+
+-- config.color_scheme = 'Catppuccin Macchiato'
 -- config.font = wezterm.font 'IBM Plex Mono'
 -- config.font_size = 14
 config.font = wezterm.font_with_fallback({

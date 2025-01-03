@@ -83,18 +83,18 @@ autoload -U edit-command-line; zle -N edit-command-line
 bindkey -M vicmd v edit-command-line
 
 # keychain
-export GPG_AGENT_INFO="~/.gnupg/S.gpg-agent:$(pgrep gpg-agent):1"
-eval $(keychain --nogui --quiet --noask --eval --agents ssh,gpg \
-  cwntroot-ed25519 \
-  gubasso-android-ed25519 \
-  gubasso-ed25519 \
-  id_rsa \
-  sysking-eambar-ed25519 \
-  gubasso@eambar.net \
-  gubasso@cwnt.io)
+# export GPG_AGENT_INFO="~/.gnupg/S.gpg-agent:$(pgrep gpg-agent):1"
+# eval $(keychain --nogui --quiet --noask --eval --agents ssh,gpg \
+#   cwntroot-ed25519 \
+#   gubasso-android-ed25519 \
+#   gubasso-ed25519 \
+#   id_rsa \
+#   sysking-eambar-ed25519 \
+#   gubasso@eambar.net \
+#   gubasso@cwnt.io)
 
 # Alias ---------------------------------------
-. "$XDG_CONFIG_HOME/shell_alias"
+. "$XDG_CONFIG_HOME/shell/aliases.sh"
 
 function src() {
   source "$ZDOTDIR/.zshenv"

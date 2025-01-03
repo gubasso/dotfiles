@@ -1,6 +1,3 @@
-# Get editor completions based on the config schema
-# "$schema" = 'https://starship.rs/config-schema.json'
-
 format = """
 $username\
 $hostname\
@@ -14,12 +11,12 @@ $python\
 $character"""
 
 [directory]
-style = "bright-purple"
+style = "blue"
 
 [character]
-success_symbol = "[❯](purple)"
+success_symbol = "[❯](bright-purple)"
 error_symbol = "[❯](red)"
-vicmd_symbol = "[❮](green)"
+vimcmd_symbol = "[❮](green)"
 
 [git_branch]
 format = "[$branch]($style)"
