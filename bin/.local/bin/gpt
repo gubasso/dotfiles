@@ -1,2 +1,0 @@
-#!/bin/sh
-chromium https://www.perplexity.ai/ https://chat.openai.com/ https://phrasly.ai/ "--profile-directory=Profile 5"

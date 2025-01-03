@@ -1,0 +1,44 @@
+#!/bin/sh
+
+if [ "$#" -ne 1 ] || { [ "$1" != "up" ] && [ "$1" != "down" ]; }; then
+  echo "Error: Exactly one argument is required, and it must be either 'up' or 'down'."
+  echo "Usage: $0 ['up' or 'down']"
+  exit 1
+fi
+
+cmd="$1"
+
+active_vpn=$(nmcli -t -f NAME,TYPE,STATE con show --active | grep vpn | cut -d ':' -f 1)
+
+# If the command is "up" and there is an active VPN, notify the user
+if [ "$cmd" = "up" ] && [ -n "$active_vpn" ]; then
+  notify-send "VPN Status" "There is already an active VPN connection: $active_vpn"
+  exit 0
+fi
+
+if [ "$cmd" = "down" ] && [ -z "$active_vpn" ]; then
+  notify-send "VPN Status" "There are no active VPN connections to disconnect."
+  exit 0
+fi
+
+# Determine the list of VPN connections based on the command
+if [ "$cmd" = "up" ]; then
+  # List all VPN connections
+  vpns=$(nmcli -t -f NAME,TYPE con show | grep vpn | cut -d ':' -f 1)
+else
+  # List only active VPN connections
+  vpns=$(nmcli -t -f NAME,TYPE,STATE con show --active | grep vpn | cut -d ':' -f 1)
+fi
+
+selected_vpn=$(echo "$vpns" | rofi_dmenu -p "Select VPN to $cmd")
+
+# Check if a VPN was selected
+if [ -z "$selected_vpn" ]; then
+  notify-send "nmcli_vpn_con" "No VPN selected."
+fi
+
+if ! output=$(nmcli con "$cmd" "$selected_vpn" 2>&1); then
+  # If there is an error, send a notification
+  notify-send "nmcli_vpn_con Error" "Failed to bring VPN '$selected_vpn' $cmd. Error: $output"
+  exit 1
+fi

@@ -1,3 +1,0 @@
-#!/bin/bash
-cupd=$(checkupdates+aur | wc -l)
-echo "📦 ${cupd}"

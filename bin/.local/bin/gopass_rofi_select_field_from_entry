@@ -1,0 +1,26 @@
+#!/bin/sh
+
+selected_entry=$(gopass ls --flat | rofi_dmenu -p "Gopass get custom key (k):")
+
+if [ -z "$selected_entry" ]; then
+  notify-send "gopass_rofi_select_key" "No entry selected. Exiting."
+  exit 1
+fi
+
+keys=$(gopass show "$selected_entry" | awk -F': ' '{print $1}')
+
+if [ -z "$keys" ]; then
+  notify-send "gopass_rofi_select_key" "There is no key available for this entry: $selected_entry. Exiting."
+  exit 1
+fi
+
+selected_key=$(echo "$keys" | rofi_dmenu -p "> Select key:")
+
+if [ -z "$selected_key" ]; then
+  notify-send "gopass_rofi_select_key" "No key selected. Exiting."
+  exit 1
+fi
+
+output=$(gopass show -c "$selected_entry" "$selected_key")
+
+notify-send "gopass_rofi_select_key" "$output"
