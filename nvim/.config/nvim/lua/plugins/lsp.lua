@@ -43,6 +43,17 @@ return {
   {
     "neovim/nvim-lspconfig",
   },
+  {
+    "stevanmilic/nvim-lspimport",
+    keys = {
+      {
+        "<leader>a",
+        function() require("lspimport").import() end,
+        noremap = true,
+        desc = "LSP import",
+      }
+    }
+  },
 
   {
     "williamboman/mason-lspconfig.nvim",
@@ -65,10 +76,11 @@ return {
         'svelte',
         'html',
         'emmet_language_server',
-        'tsserver',
+        'ts_ls',
         'cssls',
         'eslint',
         'pyright',
+        'ruff',
         'marksman',
         'yamlls',
         'texlab',
@@ -103,6 +115,23 @@ return {
                   allFeatures = true,
                   command = "clippy",
                   extraArgs = { "--no-deps" },
+                },
+              },
+            },
+          }
+        end,
+
+        -- https://docs.astral.sh/ruff/editors/setup/#neovim
+        ["pyright"] = function()
+          lspconfig.pyright.setup {
+            capabilities = capabilities,
+            settings = {
+              pyright = {
+                disableOrganizeImports = true,
+              },
+              python = {
+                analysis = {
+                  ignore = { "*" },
                 },
               },
             },
