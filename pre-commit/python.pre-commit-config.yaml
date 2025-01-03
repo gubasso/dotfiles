@@ -1,58 +1,149 @@
+default_install_hook_types: [pre-commit, commit-msg]
+
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0
     hooks:
+      # Check if Python files are syntactically valid
+      - id: check-ast
+      # Ensure literals are used over built-in functions like str(), dict(), etc.
+      - id: check-builtin-literals
+      # Check for files with names that would conflict on a case-insensitive filesystem
+      - id: check-case-conflict
+      # Ensure scripts with shebang are executable
+      - id: check-shebang-scripts-are-executable
+      # Check for merge conflict markers
+      - id: check-merge-conflict
+      # Check if YAML files are syntactically valid
       - id: check-yaml
+      # Check if JSON files are syntactically valid
       - id: check-json
+      # Check if TOML files are syntactically valid
       - id: check-toml
+      # Check if XML files are syntactically valid
       - id: check-xml
+      # Ensure symlinks are not broken
+      - id: destroyed-symlinks
+      # Prevent private keys from being committed
+      - id: detect-private-key
+      # Ensure files end with a newline
       - id: end-of-file-fixer
+      # Pretty format JSON files
+      - id: pretty-format-json
+        args: ["--autofix", "--no-ensure-ascii", "--no-sort-keys"]
+      # Remove trailing whitespace
       - id: trailing-whitespace
         args: [--markdown-linebreak-ext=md]
-      - id: check-merge-conflict
+      # Prevents large files from being committed
       - id: check-added-large-files
-      - id: detect-private-key
-      - id: check-docstring-first
+      # Verifies that test files are named correctly
       - id: name-tests-test
-      # - id: no-commit-to-branch
-      #   args: [--branch, staging, --branch, main, --branch, master]
+      - id: no-commit-to-branch
+        args: [--branch, staging, --branch, main, --branch, master]
 
-  # https://github.com/psf/black
-  # Using this mirror lets us use mypyc-compiled black, which is about 2x faster
-  - repo: https://github.com/psf/black-pre-commit-mirror
-    rev: 24.8.0
+  # Pre-commit hook for Ruff, a fast Python linter
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.0
     hooks:
-      - id: black
-        # It is recommended to specify the latest version of Python
-        # supported by your project here, or alternatively use
-        # pre-commit's default_language_version, see
-        # https://pre-commit.com/#top_level-default_language_version
-        language_version: python3.11
+      # linter and sort imports
+      - id: ruff
+        args: [--select, I, --fix]
+      - id:  ruff-format
+
+  # Pre-commit hook to check for spelling mistakes
+  - repo: https://github.com/crate-ci/typos
+    rev: v1.22.9
+    hooks:
+      - id: typos
+        args: ["--write-changes"]
+
+  # Pre-commit hook for autoflake, to remove unused imports and variables
+  - repo: https://github.com/myint/autoflake
+    rev: v2.3.1
+    hooks:
+      # Remove unused imports and variables
+      - id: autoflake
+        args: ["--remove-all-unused-imports", "--ignore-init-module-imports", "--remove-unused-variables", "--in-place", "--recursive"]
+
+  # Pre-commit hook to format code blocks in documentation using Black
+  - repo: https://github.com/adamchainz/blacken-docs
+    rev: 1.16.0
+    hooks:
+      - id: blacken-docs
+        additional_dependencies:
+          - "black==24.4.2"
+        args:
+          - "--line-length=79"
+
+  # Pre-commit hook for Bandit, a security linter for Python
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.9
+    hooks:
+      - id: bandit
+
   - repo: https://github.com/asottile/pyupgrade
     rev: v3.17.0
     hooks:
     - id: pyupgrade
 
-  - repo: https://github.com/PyCQA/isort
-    rev: 5.11.2
+  - repo: local
     hooks:
-      - id: isort
-        args: ["--profile", "black"]  # Ensures compatibility with Black
-
-  - repo: https://github.com/PyCQA/flake8
-    rev: 7.0.0
-    hooks:
-      - id: flake8
+      - id: mypy
+        name: mypy
+        entry: poetry run mypy
+        language: system
+        types: [python]
+        args:
+          - "--strict"
+          - "--warn-unused-ignores"
+          - "--disallow-untyped-calls"
 
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.8.0
     hooks:
       - id: mypy
-        args: ["--ignore-missing-imports"]  # Adjust as needed
+        args: ["--ignore-missing-imports"]
+        # args: ["--strict", "--warn-unused-ignores", "--disallow-untyped-calls"]
+        # additional_dependencies: ['types-PyYAML']
         # exclude: ^(docs/|example-plugin/)
 
-  - repo: https://github.com/PyCQA/bandit
-    rev: 1.7.5
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v4.0.0
     hooks:
-      - id: bandit
-        # args: ["-ll"]  # Set logging level to low
+      - id: commitizen
+      - id: commitizen-branch
+        stages:
+          - post-commit
+          - pre-push
+
+# unused ------------------------------------------
+  # Pre-commit hook for Interrogate, to check docstring coverage
+  #- repo: https://github.com/econchick/interrogate
+  #  rev: 1.7.0
+  #  hooks:
+  #    # Ensure code has sufficient docstring coverage
+  #    - id: interrogate
+  #      args: [src/, -v, -i, --fail-under=80]
+  #      pass_filenames: false
+
+  # Commented in favor of Ruff
+  # # https://github.com/psf/black
+  # # Using this mirror lets us use mypyc-compiled black, which is about 2x faster
+  # - repo: https://github.com/psf/black-pre-commit-mirror
+  #   rev: 24.8.0
+  #   hooks:
+  #     - id: black
+  #       # It is recommended to specify the latest version of Python
+  #       # supported by your project here, or alternatively use
+  #       # pre-commit's default_language_version, see
+  #       # https://pre-commit.com/#top_level-default_language_version
+  #       language_version: python3.11
+  # - repo: https://github.com/PyCQA/isort
+  #   rev: 5.11.2
+  #   hooks:
+  #     - id: isort
+  #       args: ["--profile", "black"]  # Ensures compatibility with Black
+  # - repo: https://github.com/PyCQA/flake8
+  #   rev: 7.0.0
+  #   hooks:
+  #     - id: flake8

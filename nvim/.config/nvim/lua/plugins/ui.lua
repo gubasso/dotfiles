@@ -1,33 +1,64 @@
 return {
   -- colorscheme
   {
-    "catppuccin/nvim",
-    name = "catppuccin",
+    "neanias/everforest-nvim",
+    version = false,
     lazy = false,
-    priority = 1000,
-    init = function()
-      vim.cmd("colorscheme catppuccin-frappe")
-    end
+    priority = 1000, -- make sure to load this before all the other start plugins
+    -- Optional; default configuration will be used if setup isn't called.
+    config = function()
+      require("everforest").setup({
+        -- Your config here
+        background = "soft",
+        vim.cmd([[colorscheme everforest]])
+      })
+    end,
   },
-  {
-    "folke/tokyonight.nvim",
-    lazy = false,
-    priority = 1000,
-    opts = {
-      style = "storm",
-    },
-    -- init = function()
-    --   vim.cmd("colorscheme tokyonight")
-    -- end
-  },
-  {
-    "shaunsingh/nord.nvim",
-    lazy = false,
-    priority = 1000,
-    -- init = function()
-    --   vim.cmd("colorscheme nord")
-    -- end
-  },
+  -- {
+  --   'olivercederborg/poimandres.nvim',
+  --   lazy = false,
+  --   priority = 1000,
+  --   config = function()
+  --     require('poimandres').setup {
+  --       -- leave this setup function empty for default config
+  --       -- or refer to the configuration section
+  --       -- for configuration options
+  --     }
+  --   end,
+  --
+  --   -- optionally set the colorscheme within lazy config
+  --   init = function()
+  --     vim.cmd("colorscheme poimandres")
+  --   end
+  -- },
+  -- {
+  --   "catppuccin/nvim",
+  --   name = "catppuccin",
+  --   lazy = false,
+  --   priority = 1000,
+  --   init = function()
+  --     vim.cmd("colorscheme catppuccin-frappe")
+  --   end
+  -- },
+  -- {
+  --   "folke/tokyonight.nvim",
+  --   lazy = false,
+  --   priority = 1000,
+  --   opts = {
+  --     style = "storm",
+  --   },
+  --   -- init = function()
+  --   --   vim.cmd("colorscheme tokyonight")
+  --   -- end
+  -- },
+  -- {
+  --   "shaunsingh/nord.nvim",
+  --   lazy = false,
+  --   priority = 1000,
+  --   -- init = function()
+  --   --   vim.cmd("colorscheme nord")
+  --   -- end
+  -- },
   {
     "rcarriga/nvim-notify",
     keys = {
@@ -131,7 +162,7 @@ return {
     config = function()
       require('lualine').setup {
         options = {
-          theme = 'catppuccin',
+          -- theme = 'catppuccin',
           section_separators = '',
           component_separators = '',
         }

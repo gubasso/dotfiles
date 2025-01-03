@@ -56,3 +56,9 @@ vim.api.nvim_create_user_command('RunYTMDLink', function()
     print("No URL found in the current line.")
   end
 end, { nargs = 0 })
+
+vim.api.nvim_create_user_command('CopyFilePath', function()
+  local file_path = vim.api.nvim_buf_get_name(0)
+  vim.fn.setreg('+', file_path)
+  print("File path copied to clipboard: " .. file_path)
+end, { nargs = 0 })

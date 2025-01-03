@@ -208,6 +208,10 @@ return {
     end,
   },
 
+  {
+    "echasnovski/mini.icons"
+  },
+
   -- Better text-objects
   {
     "echasnovski/mini.ai",
@@ -334,6 +338,7 @@ return {
   },
 
   { "tpope/vim-fugitive" },
+  -- in file diff view
   {'akinsho/git-conflict.nvim', version = "*", config = true},
 
   {
