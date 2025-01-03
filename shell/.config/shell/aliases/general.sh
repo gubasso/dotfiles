@@ -11,6 +11,7 @@ alias n="nvim"
 alias md="mkdir -p"
 alias '..'="cd .."
 alias 'cd..'="cd .."
+alias htop='btm'
 alias rms="shred -n10 -uz"
 # https://github.com/andreafrancia/trash-cli
 alias rm='echo "This is not the command you are looking for."; false'
