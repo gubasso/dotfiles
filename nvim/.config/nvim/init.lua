@@ -33,9 +33,8 @@ elseif hostname == "tumblesuse" then
   table.insert(specs, { import = "hosts.tumblesuse" })
 end
 
+require('core') -- needs to come first
 require"lazy".setup(specs, {
   -- other lazy.nvim opts
 })
-
-require('core')
 require('lang')
