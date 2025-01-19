@@ -1,4 +1,7 @@
 local wezterm = require 'wezterm'
+local hostname = wezterm.hostname()
+
+
 local config = {}
 -- Use config builder object if possible
 if wezterm.config_builder then config = wezterm.config_builder() end
@@ -20,18 +23,21 @@ config.window_close_confirmation = "AlwaysPrompt"
 config.window_decorations = 'RESIZE'
 config.tab_max_width = 30
 
-config.color_scheme = 'Breeze'
-
--- config.color_scheme = 'Catppuccin Macchiato'
--- config.font = wezterm.font 'IBM Plex Mono'
--- config.font_size = 14
-config.font = wezterm.font_with_fallback({
-  { family = 'Hack', scale = scale },
-  { family = 'IBM Plex Mono', scale = scale },
-  { family = 'Source Code Pro', scale = scale },
-})
-
--- config.window_background_opacity = 0.9
+if hostname == "valinor" then
+  config.color_scheme = 'Breeze'
+  config.font = wezterm.font_with_fallback({
+    { family = 'Hack', scale = scale },
+    { family = 'IBM Plex Mono', scale = scale },
+    { family = 'Source Code Pro', scale = scale },
+  })
+elseif hostname == "tumblesuse" then
+  config.color_scheme = 'Ryuuko'
+  config.font = wezterm.font_with_fallback({
+    { family = 'IBM Plex Mono', scale = scale },
+    { family = 'Hack', scale = scale },
+    { family = 'Source Code Pro', scale = scale },
+  })
+end
 
 config.inactive_pane_hsb = {
   saturation = 0.5,
