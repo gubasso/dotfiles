@@ -80,6 +80,7 @@ bindkey '^n' history-search-forward
 # Opens command in $EDITOR [^2][^3]
 autoload -U edit-command-line; zle -N edit-command-line
 ## ESC (normal mode) + v (opens vim)
+bindkey -v
 bindkey -M vicmd v edit-command-line
 
 # keychain
