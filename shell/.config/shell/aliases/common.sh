@@ -26,15 +26,14 @@ alias rg='rg --hidden --smart-case'
 alias cl='clear'
 alias clrm='clear && echo -en "\e[3J"' #[^al3]
 alias ss='sudo systemctl'
-# alias toxclip='xclip -selection clipboard' #[^al4]
 alias sudo="sudo "
 alias rs='rsync -vurzP'
-alias dot="cd $HOME/.dotfiles"
+alias dot='cd "$HOME"/.dotfiles'
 function now() {
-  date "+%Y-%m-%d %H:%M:%S" | tr -d '\n' | tee >(toxclip)
+  date "+%Y-%m-%d %H:%M:%S" | tr -d '\n' | tee >(clip)
 }
 function slug() {
-  slugify --separator _ ${@} | tr -d '\n' | tee >(toxclip)
+  slugify --separator _ "${@}" | tr -d '\n' | tee >(clip)
 }
 
 # docker ----------------------------------------------------------------------

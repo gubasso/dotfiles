@@ -1,15 +1,13 @@
-
 aliases_dir="$HOME/.config/shell/aliases"
-source "$aliases_dir"/general.sh
+source "$aliases_dir"/common.sh
 
-if [ -f /etc/os-release ]; then
-  . /etc/os-release
-  case "$ID" in
-    arch)
-      source "$aliases_dir"/arch.sh
-      ;;
-    opensuse)
-      source "$aliases_dir"/opensuse.sh
-      ;;
-  esac
-fi
+hostname=$(hostname)
+
+case "$hostname" in
+  valinor)
+    source "$aliases_dir"/valinor.sh
+    ;;
+  tumblesuse)
+    source "$aliases_dir"/tumblesuse.sh
+    ;;
+esac
