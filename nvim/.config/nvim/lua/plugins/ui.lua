@@ -1,30 +1,4 @@
 return {
-  -- colorscheme
-  {
-      "chrsm/paramount-ng.nvim",
-      dependencies = {
-        "rktjmp/lush.nvim"
-      },
-      lazy = false,
-      priority = 1000,
-      init = function()
-          vim.cmd.colorscheme("paramount-ng")
-      end,
-  },
-  -- {
-  --   "neanias/everforest-nvim",
-  --   version = false,
-  --   lazy = false,
-  --   priority = 1000, -- make sure to load this before all the other start plugins
-  --   -- Optional; default configuration will be used if setup isn't called.
-  --   config = function()
-  --     require("everforest").setup({
-  --       -- Your config here
-  --       background = "soft",
-  --       vim.cmd([[colorscheme everforest]])
-  --     })
-  --   end,
-  -- },
   {
     "rcarriga/nvim-notify",
     keys = {
@@ -128,7 +102,7 @@ return {
     config = function()
       require('lualine').setup {
         options = {
-          -- theme = 'catppuccin',
+          theme = 'tokyonight',
           section_separators = '',
           component_separators = '',
         }

@@ -5,6 +5,16 @@ function M.augroup(name)
 end
 
 vim.cmd([[
+" autocmd CursorHold * echo ''
+" secure editing gopass entries
+autocmd BufNewFile,BufRead /dev/shm/gopass* setlocal noswapfile nobackup nowritebackup noundofile shada=""
+" Ansible [Steps to secure your editor](https://docs.ansible.com/ansible/latest/vault_guide/vault_encrypting_content.html#vault-securing-editor)
+autocmd BufNewFile,BufRead *vault*,~/.ansible/tmp* setlocal noswapfile nobackup nowritebackup noundofile shada=""
+" Secure any directory or repository with 'secret' or 'secrets' in the name
+autocmd BufNewFile,BufRead */secret/*,*/secrets/* setlocal noswapfile nobackup nowritebackup noundofile shada=""
+]])
+
+vim.cmd([[
 " https://vi.stackexchange.com/questions/13692/prevent-focusgained-autocmd-running-in-command-line-editing-mode
 augroup auto_checktime
   autocmd!
