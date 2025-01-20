@@ -287,8 +287,7 @@ return {
       }
     },
   },
-
-  { 
+  {
     "tpope/vim-fugitive",
     keys = {
       { "gs", ":Git<CR>", desc = "Git Status" },
@@ -299,12 +298,5 @@ return {
   },
   -- in file diff view
   {'akinsho/git-conflict.nvim', version = "*", config = true},
-
-  {
-    "olrtg/nvim-emmet",
-    -- config = function()
-    --   vim.keymap.set({ "n", "v" }, '<leader>xe', require('nvim-emmet').wrap_with_abbreviation)
-    -- end,
-  },
-
+  { "olrtg/nvim-emmet" },
 }
