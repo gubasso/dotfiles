@@ -288,7 +288,15 @@ return {
     },
   },
 
-  { "tpope/vim-fugitive" },
+  { 
+    "tpope/vim-fugitive",
+    keys = {
+      { "gs", ":Git<CR>", desc = "Git Status" },
+      { "<leader>gs", ":Git<CR>", desc = "Git Status" },
+      { "<leader>gp", ":Git push<CR>", desc = "Git Push" },
+      { "<leader>gl", ":Git pull<CR>", desc = "Git Push" },
+    },
+  },
   -- in file diff view
   {'akinsho/git-conflict.nvim', version = "*", config = true},
 

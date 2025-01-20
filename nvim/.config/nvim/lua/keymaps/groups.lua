@@ -8,4 +8,5 @@ return {
   { "<leader>u", group = "Toggle" },
   { "<leader>x", group = "Trouble" },
   { "<leader>z", group = "Zen" },
+  { "<leader>g", group = "Git" },
 }
