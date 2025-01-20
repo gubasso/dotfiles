@@ -22,21 +22,30 @@ return {
       end,
     },
     init = function()
-      local ls = require"luasnip"
-      require("which-key").register({
-        mode = "i",
-        ["<c-K>"] = { function() ls.expand() end, "" },
-      })
-      require("which-key").register({
-        mode = { "i", "s" },
-        ["<c-L>"] = { function() ls.jump(1) end, "" },
-        ["<c-J>"] = { function() ls.jump(-1) end, "" },
-        ["<c-E>"] = {
-          function()
-            if ls.choice_active() then
-              ls.change_choice(1)
-            end
-          end, ""
+      local ls = require("luasnip")
+      local wk = require("which-key")
+
+      wk.add({
+        -- 1) Insert mode mapping (expand snippet)
+        {
+          mode = "i",
+          { "<c-K>", ls.expand, desc = "Expand snippet" },
+        },
+
+        -- 2) Insert + Select mode mappings
+        {
+          mode = { "i", "s" },
+          { "<c-L>", function() ls.jump(1) end,  desc = "Jump snippet forward" },
+          { "<c-J>", function() ls.jump(-1) end, desc = "Jump snippet backward" },
+          {
+            "<c-E>",
+            function()
+              if ls.choice_active() then
+                ls.change_choice(1)
+              end
+            end,
+            desc = "Change snippet choice",
+          },
         },
       })
     end,
@@ -199,13 +208,14 @@ return {
     "folke/todo-comments.nvim",
     dependencies = { "nvim-lua/plenary.nvim" },
     event = { "BufReadPost", "BufNewFile" },
-    config = function ()
+    config = function()
       local td = require("todo-comments")
-      require("which-key").register({
-        ["]t"] = { function() td.jump_next() end, "Next todo comment" },
-        ["[t"] = { function() td.jump_prev() end, "Previous todo comment" },
+
+      require("which-key").add({
+        { "]t", td.jump_next, desc = "Next todo comment" },
+        { "[t", td.jump_prev, desc = "Previous todo comment" },
       })
-    end,
+    end
   },
 
   {
@@ -214,91 +224,32 @@ return {
 
   -- Better text-objects
   {
-    "echasnovski/mini.ai",
-    -- keys = {
-    --   { "a", mode = { "x", "o" } },
-    --   { "i", mode = { "x", "o" } },
-    -- },
-    event = "VeryLazy",
-    dependencies = { "nvim-treesitter-textobjects" },
-    opts = function()
-      local ai = require("mini.ai")
-      return {
-        n_lines = 500,
-        custom_textobjects = {
-          o = ai.gen_spec.treesitter({
-            a = { "@block.outer", "@conditional.outer", "@loop.outer" },
-            i = { "@block.inner", "@conditional.inner", "@loop.inner" },
-          }, {}),
-          f = ai.gen_spec.treesitter({ a = "@function.outer", i = "@function.inner" }, {}),
-          c = ai.gen_spec.treesitter({ a = "@class.outer", i = "@class.inner" }, {}),
-          t = { "<([%p%w]-)%f[^<%w][^<>]->.-</%1>", "^<.->().*()</[^/]->$" },
-        },
-      }
-    end,
-    config = function(_, opts)
-      require("mini.ai").setup(opts)
-      -- register all text objects with which-key
-      require("core.utils").on_load("which-key.nvim", function()
-        ---@type table<string, string|table>
-        local i = {
-          [" "] = "Whitespace",
-          ['"'] = 'Balanced "',
-          ["'"] = "Balanced '",
-          ["`"] = "Balanced `",
-          ["("] = "Balanced (",
-          [")"] = "Balanced ) including white-space",
-          [">"] = "Balanced > including white-space",
-          ["<lt>"] = "Balanced <",
-          ["]"] = "Balanced ] including white-space",
-          ["["] = "Balanced [",
-          ["}"] = "Balanced } including white-space",
-          ["{"] = "Balanced {",
-          ["?"] = "User Prompt",
-          _ = "Underscore",
-          a = "Argument",
-          b = "Balanced ), ], }",
-          c = "Class",
-          f = "Function",
-          o = "Block, conditional, loop",
-          q = "Quote `, \", '",
-          t = "Tag",
-        }
-        local a = vim.deepcopy(i)
-        for k, v in pairs(a) do
-          a[k] = v:gsub(" including.*", "")
-        end
-
-        local ic = vim.deepcopy(i)
-        local ac = vim.deepcopy(a)
-        for key, name in pairs({ n = "Next", l = "Last" }) do
-          i[key] = vim.tbl_extend("force", { name = "Inside " .. name .. " textobject" }, ic)
-          a[key] = vim.tbl_extend("force", { name = "Around " .. name .. " textobject" }, ac)
-        end
-        require("which-key").register({
-          mode = { "o", "x" },
-          i = i,
-          a = a,
-        })
-      end)
-    end,
+    'echasnovski/mini.ai',
+    version = '*',
+    opts = {},
   },
 
   {
     "smjonas/inc-rename.nvim",
     config = function()
-      require("which-key").register({
-        prefix = '<leader>c',
-        r = {
+      local ic = require("inc_rename")
+      local wk = require("which-key")
+
+      wk.add({
+        {
+          "<leader>cR", ":IncRename ", desc = "Rename <new_name>`",
+        },
+        {
+          "<leader>cr",
           function()
-            -- return ":IncRename " .. vim.fn.expand("<cword>")
-            return ":" .. require("inc_rename").config.cmd_name .. " " .. vim.fn.expand("<cword>")
+            return ":IncRename " .. vim.fn.expand("<cword>")
           end,
-          expr = true,
-          "Rename"
-        }
+          desc = "Rename `curr_name`+<increment>",
+          expr = true
+        },
       })
-      require("inc_rename").setup {
+
+      ic.setup {
         input_buffer_type = "dressing"
       }
     end,

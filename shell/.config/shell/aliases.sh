@@ -1,7 +1,7 @@
 aliases_dir="$HOME/.config/shell/aliases"
 source "$aliases_dir"/common.sh
 
-hostname=$(hostname)
+hostname=$(uname -n)
 
 case "$hostname" in
   valinor)

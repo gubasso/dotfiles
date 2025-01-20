@@ -226,13 +226,10 @@ return {
   {
     "mhanberg/output-panel.nvim",
     event = "VeryLazy",
-    config = function()
-      require("which-key").register({
-        prefix = '<leader>',
-        l = { ':OutputPanel', "Lsp OutputPanel" },
-      })
-      require("output_panel").setup()
-    end
+    opts = {},
+    keys = {
+      { "<leader>l", ":OutputPanel", desc = "Lsp OutputPanel" }
+    },
   },
 
 }

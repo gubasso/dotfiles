@@ -62,23 +62,14 @@ return {
     },
     config = function(_, opts)
       local no = require"noice"
-      require("which-key").register({
-        prefix = '<leader>',
-        ['sn'] = {
-          name = "+noice" ,
-          l = { function() no.cmd("last") end, "Noice Last Message" },
-          h = { function() no.cmd("history") end, "Noice History" },
-          a = { function() no.cmd("all") end, "Noice All" },
-          d = { function() no.cmd("dismiss") end, "Dismiss All" },
-        },
-      })
-
-      require("which-key").register({
-        mode = 'c',
-        ['<S-Enter>'] = {
-          function() no.redirect(vim.fn.getcmdline()) end,
-          "Redirect Cmdline",
-        },
+      require("which-key").add({
+        -- Normal mode Noice commands
+        { "<leader>snl", function() no.cmd("last") end,    desc = "Noice Last Message" },
+        { "<leader>snh", function() no.cmd("history") end, desc = "Noice History" },
+        { "<leader>sna", function() no.cmd("all") end,     desc = "Noice All" },
+        { "<leader>snd", function() no.cmd("dismiss") end, desc = "Dismiss All" },
+        -- Command mode keybinding
+        { "<S-Enter>", function() no.redirect(vim.fn.getcmdline()) end, mode = "c", desc = "Redirect Cmdline" },
       })
       no.setup(opts)
     end,

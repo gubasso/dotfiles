@@ -7,8 +7,8 @@ return {
     dependencies = { "nvim-tree/nvim-web-devicons" },
     config = function ()
       local oil = require("oil")
-      require("which-key").register({
-        ["-"] = { oil.open, "Open parent directory" },
+      require("which-key").add({
+        { "-", oil.open, desc = "Open parent directory" },
       })
       oil.setup()
     end
@@ -67,38 +67,40 @@ return {
   },
   {
     "folke/twilight.nvim",
-    config = function()
-      require("which-key").register({
-        prefix = '<leader>z',
-        t = { ":Twilight<CR>", "Twilight" },
-      })
-    end,
+    keys = {
+      "<leader>zt", ":Twilight<CR>", desc = "Twilight"
+    },
   },
   {
     "Pocco81/true-zen.nvim",
     config = function()
-      local truezen = require'true-zen'
-      require("which-key").register({
-        prefix = '<leader>z',
-        n = { function ()
-          local first = 0
-          local last = vim.api.nvim_buf_line_count(0)
-          truezen.narrow(first, last)
-        end, "TZNarrow N"  },
-        f = { truezen.focus, "TZFocus" },
-        m = { truezen.minimalist,"TZMinimalist" },
-        a = { truezen.ataraxis,"TZAtaraxis" },
+      local tz = require("true-zen")
+
+      require("which-key").add({
+        {
+          "<leader>zn",
+          function()
+            local first = 0
+            local last = vim.api.nvim_buf_line_count(0)
+            tz.narrow(first, last)
+          end,
+          desc = "TZNarrow N",
+        },
+        { "<leader>zf", tz.focus,       desc = "TZFocus" },
+        { "<leader>zm", tz.minimalist,  desc = "TZMinimalist" },
+        { "<leader>za", tz.ataraxis,    desc = "TZAtaraxis" },
+        {
+          "<leader>zn",
+          mode = "v",
+          function()
+            local first = vim.fn.line("v")
+            local last = vim.fn.line(".")
+            tz.narrow(first, last)
+          end,
+          desc = "TZNarrow V",
+        },
       })
-      require("which-key").register({
-        prefix = '<leader>z',
-        mode = 'v',
-        n = { function ()
-          local first = vim.fn.line('v')
-          local last = vim.fn.line('.')
-          truezen.narrow(first, last)
-        end, "TZNarrow V"  },
-      })
-      require("true-zen").setup {}
+      tz.setup {}
     end,
   },
   -- explorer
@@ -111,53 +113,70 @@ return {
       "MunifTanjim/nui.nvim",
     },
     config = function()
-      require("which-key").register({
-        prefix = '<leader>e',
-        e = {
+      local wk = require("which-key")
+      local ntcmd = require("neo-tree.command")
+
+      wk.add({
+        -- Files (Neotree)
+        {
+          "<leader>ee",
           function()
-            require("neo-tree.command").execute({
+            ntcmd.execute({
               toggle = true,
               source = "filesystem",
               position = "left",
             })
-          end, "Files (Neotree)"
+          end,
+          desc = "Files (Neotree)",
         },
-        ["."] = {
+        -- Files (netrw style)
+        {
+          "<leader>e.",
           function()
-            require("neo-tree.command").execute({
+            ntcmd.execute({
               toggle = true,
               source = "filesystem",
               position = "current",
             })
-          end, "Files (netrw style)"
+          end,
+          desc = "Files (netrw style)",
         },
-        f = {
+        -- Current File (Neotree)
+        {
+          "<leader>ef",
           function()
-            require("neo-tree.command").execute({
+            ntcmd.execute({
               toggle = true,
               source = "filesystem",
               position = "left",
               reveal = true,
             })
-          end, "Curr File (Neotree)"
+          end,
+          desc = "Curr File (Neotree)",
         },
-        b = {
+        -- Buffers
+        {
+          "<leader>eb",
           function()
-            require("neo-tree.command").execute({
+            ntcmd.execute({
               toggle = true,
               source = "buffers",
               position = "left",
             })
-          end, "Buffers"
+          end,
+          desc = "Buffers",
         },
-        g = {
+        -- Git status
+        {
+          "<leader>eg",
           function()
-            require("neo-tree.command").execute({
+            ntcmd.execute({
               toggle = true,
               source = "git_status",
               position = "left",
             })
-          end, "Git Status"
+          end,
+          desc = "Git Status",
         },
       })
       local opts = {
@@ -279,29 +298,45 @@ return {
       'nvim-telescope/telescope-fzf-native.nvim',
     },
     config = function()
-      local tlb = require'telescope.builtin'
-      require("which-key").register({
-        ['<c-p>'] = { function() tlb.find_files() end, "Find Files" },
-        gd = { function() tlb.lsp_definitions({ reuse_win = true }) end, "Goto Definition" },
-        gD = { vim.lsp.buf.declaration , "Goto Declaration" },
-        gr = { function() tlb.lsp_references() end, "References" },
-        gI = { function() tlb.lsp_implementations({ reuse_win = true }) end, "Goto Implementation" },
-        gy = { function() tlb.lsp_type_definitions({ reuse_win = true }) end, "Goto T[y]pe Definition" },
-      })
-      require("which-key").register({
-        prefix = '<leader>',
-        ['/'] = { function() tlb.live_grep() end, "grep" },
-        [':'] = { function() tlb.command_history() end, "command history" },
-        f = {
-          name = 'search',
-          ['<cr>'] = { function() tlb.grep_string() end, "grep under cursor" },
-          a = { ":Telescope<cr>", "All Telescope" },
-          b = { function() tlb.buffers() end, "buffers" },
-          h = { function() tlb.help_tags() end, "help_tags" },
-          m = { function() tlb.keymaps() end, "keymaps" },
-          c = { function() tlb.commands() end, "commands available" },
-          t = { "<cmd>TodoTelescope<cr>", desc = "Todo" },
-          T = { "<cmd>TodoTelescope keywords=TODO,FIX,FIXME<cr>", desc = "Todo/Fix/Fixme" },
+      local tlb = require("telescope.builtin")
+
+      require("which-key").add({
+        -- General Telescope bindings
+        { "<c-p>", tlb.find_files, desc = "Find Files" },
+        {
+          "gd",
+          function() tlb.lsp_definitions({ reuse_win = true }) end,
+          desc = "Goto Definition",
+        },
+        { "gD", vim.lsp.buf.declaration, desc = "Goto Declaration" },
+        { "gr", tlb.lsp_references, desc = "References" },
+        {
+          "gI",
+          function() tlb.lsp_implementations({ reuse_win = true }) end,
+          desc = "Goto Implementation",
+        },
+        {
+          "gy",
+          function() tlb.lsp_type_definitions({ reuse_win = true }) end,
+          desc = "Goto T[y]pe Definition",
+        },
+
+        -- Leader-key Telescope bindings
+        { "<leader>/", tlb.live_grep, desc = "Grep" },
+        { "<leader>:", tlb.command_history, desc = "Command History" },
+
+        -- Search category
+        { "<leader>f<CR>", tlb.grep_string, desc = "Grep under cursor" },
+        { "<leader>fa", ":Telescope<CR>", desc = "All Telescope" },
+        { "<leader>fb", tlb.buffers, desc = "Buffers" },
+        { "<leader>fh", tlb.help_tags, desc = "Help Tags" },
+        { "<leader>fm", tlb.keymaps, desc = "Keymaps" },
+        { "<leader>fc", tlb.commands, desc = "Available Commands" },
+        { "<leader>ft", "<cmd>TodoTelescope<CR>", desc = "Todo" },
+        {
+          "<leader>fT",
+          "<cmd>TodoTelescope keywords=TODO,FIX,FIXME<CR>",
+          desc = "Todo/Fix/Fixme",
         },
       })
 
@@ -324,17 +359,15 @@ return {
   -- buffer remove
   {
     "echasnovski/mini.bufremove",
-    config = function ()
-      require("which-key").register({
-        prefix = '<leader>',
-        ['bd'] = {
-          function()
-            require("mini.bufremove").delete(0, false)
-          end,
-          "Buffer Delete"
+    config = function()
+      require("which-key").add({
+        {
+          "<leader>bd",
+          function() require("mini.bufremove").delete(0, false) end,
+          desc = "Buffer Delete",
         },
       })
-    end
+    end,
   },
 
   -- better diagnostics list and others
