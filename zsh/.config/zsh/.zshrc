@@ -102,6 +102,7 @@ function src() {
   source "$ZDOTDIR/.zshrc"
 }
 
+## zsh specific aliases
 alias mise_activate='eval "$(mise activate zsh)"'
 
 
