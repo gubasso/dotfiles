@@ -104,6 +104,10 @@ function src() {
 
 ## zsh specific aliases
 alias mise_activate='eval "$(mise activate zsh)"'
+function py_dev_activate() {
+  eval "$(mise activate zsh)"
+  eval "$(poetry env activate)"
+}
 
 
 # end of .zshrc
