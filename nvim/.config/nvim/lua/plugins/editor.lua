@@ -67,8 +67,9 @@ return {
   },
   {
     "folke/twilight.nvim",
+    opts = {},
     keys = {
-      "<leader>zt", ":Twilight<CR>", desc = "Twilight"
+      { "<leader>zt", "<cmd>Twilight<CR>", desc = "Twilight" },
     },
   },
   {
