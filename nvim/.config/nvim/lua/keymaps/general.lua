@@ -36,6 +36,8 @@ return {
   -- Normal mode clipboard mappings
   {
     { "<leader>yy", '"+yy',  desc = "clipboard yy" },
+    { "<leader>yw", '"+yiw',  desc = "clipboard yiw" },
+    { "<leader>yl", '"+yiW',  desc = "clipboard yiW" },
     { "<leader>Y",  '"+yg_', desc = "clipboard Y"  },
     { "<leader>D",  '"+D',   desc = "clipboard D"  },
     { "<leader>dd", '"+dd',  desc = "clipboard dd" },
