@@ -52,9 +52,11 @@ alias gpl='git pull'
 alias gplu='git pull --set-upstream origin'
 alias gup='git add -A && git commit -m "up" && git push'
 alias gs='git switch'
-## git new branch
-alias gnb='git switch -c'
-function gnbu() {
+## git branch
+alias gb='git --no-pager branch'
+alias gbd='git branch -d'
+alias gbn='git switch -c'
+function gbnu() {
   if [ -z "$1" ]; then
     echo "Usage: gnbu <new-branch-name>"
     return 1
