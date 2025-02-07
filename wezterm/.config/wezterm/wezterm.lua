@@ -249,31 +249,34 @@ for i = 1, 9 do
   })
 end
 
-config.key_tables = {
-  -- Resize table at config.keys
-  -- { key = 'r', mods = 'LEADER',
-  --   action = act.ActivateKeyTable { name = 'resize_pane', one_shot = false }
-  -- },
-  -- Resize table
-  -- resize_pane = {
-  --   { key = 'h', action = act.AdjustPaneSize { 'Left', 1 } },
-  --   { key = 'j', action = act.AdjustPaneSize { 'Down', 1 } },
-  --   { key = 'k', action = act.AdjustPaneSize { 'Up', 1 } },
-  --   { key = 'l', action = act.AdjustPaneSize { 'Right', 1 } },
-  --   { key = 'Escape', action = 'PopKeyTable' },
-  --   { key = 'Enter', action = 'PopKeyTable' },
-  -- },
-  -- Move tab
-  move_tab = {
-    { key = 'h', action = act.MoveTabRelative(-1) },
-    { key = 'j', action = act.MoveTabRelative(-1) },
-    { key = 'k', action = act.MoveTabRelative(1) },
-    { key = 'l', action = act.MoveTabRelative(1) },
-    { key = 'Escape', action = 'PopKeyTable' },
-    { key = 'Enter', action = 'PopKeyTable' },
-  }
+local move_tab = {
+  { key = 'h', action = act.MoveTabRelative(-1) },
+  { key = 'j', action = act.MoveTabRelative(-1) },
+  { key = 'k', action = act.MoveTabRelative(1) },
+  { key = 'l', action = act.MoveTabRelative(1) },
+  { key = 'Escape', action = 'PopKeyTable' },
+  { key = 'Enter', action = 'PopKeyTable' },
 }
 
--- print("ok")
+
+local copy_mode = {}
+
+if wezterm.gui then
+  local default_copy_mode = wezterm.gui.default_key_tables().copy_mode
+  for _, binding in ipairs(default_copy_mode) do
+    table.insert(copy_mode, binding)
+  end
+end
+
+table.insert(copy_mode, {
+  key = '/',
+  mods = 'NONE',
+  action = act.Search { CaseInSensitiveString = '' },
+})
+
+config.key_tables = {
+  move_tab = move_tab,
+  copy_mode = copy_mode,
+}
 
 return config
