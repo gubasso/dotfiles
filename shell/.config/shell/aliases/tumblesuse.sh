@@ -1,4 +1,5 @@
 alias clip='xclip -selection clipboard'
+
 function up() {
   install_aws_cli_v2
   flatpak update
@@ -10,4 +11,8 @@ function up() {
   sudo zypper dup
   # sudo fwupdmgr refresh
   # sudo fwupdmgr update --assume-yes
-;}
+}
+
+alias zref="sudo zypper refresh"
+alias zin="sudo zypper refresh && sudo zypper in"
+alias zsr="zypper search"
