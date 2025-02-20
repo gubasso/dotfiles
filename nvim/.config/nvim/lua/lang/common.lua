@@ -15,6 +15,18 @@ vim.api.nvim_create_autocmd({"BufRead", "BufNewFile"}, {
   command = "set filetype=javascript",
 })
 
+-- Create a new augroup (clears any existing group with the same name)
+local jinja2_python = vim.api.nvim_create_augroup("Jinja2Python", { clear = true })
+-- Create an autocommand for new or read files matching *.py.jinja2
+vim.api.nvim_create_autocmd({ "BufNewFile", "BufRead" }, {
+  group = jinja2_python,
+  pattern = "*.py.j2",
+  callback = function()
+    -- Set the filetype to chain Python with Jinja2 syntax highlighting
+    vim.bo.filetype = "python.jinja2"
+  end,
+})
+
 -- close some filetypes with <q>
 vim.api.nvim_create_autocmd("FileType", {
   group = au.augroup("close_with_q"),

@@ -1,4 +1,5 @@
 return {
+  { "Glench/Vim-Jinja2-Syntax" },
   -- linter
   {
     "mfussenegger/nvim-lint",
