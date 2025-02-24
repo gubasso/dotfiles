@@ -7,7 +7,6 @@ function up() {
   cargo install-update -a
   pipx upgrade-all
   sudo zypper refresh
-  sudo zypper up -y
   sudo zypper dup
   # sudo fwupdmgr refresh
   # sudo fwupdmgr update --assume-yes
