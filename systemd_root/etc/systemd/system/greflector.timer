@@ -1,0 +1,12 @@
+[Unit]
+Description=Timer to update the pacman mirrorlist using reflector on boot and every week
+
+[Timer]
+# Start 10 seconds after boot (adjust if necessary)
+OnBootSec=10
+# Run the service every week after the last activation
+OnUnitActiveSec=1w
+Persistent=true
+
+[Install]
+WantedBy=timers.target

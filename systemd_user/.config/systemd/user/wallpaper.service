@@ -1,9 +1,0 @@
-[Unit]
-Description=Set wallpaper for user
-
-[Service]
-Type=oneshot
-ExecStart=%h/.local/bin/set_wallpaper
-
-[Install]
-WantedBy=default.target
