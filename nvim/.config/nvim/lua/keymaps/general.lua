@@ -52,5 +52,11 @@ return {
     { "<leader>d",  '"+d',   desc = "clipboard d"  },
   },
 
+  -- Command-line mode
+  -- Allow saving of files as sudo when I forgot to start vim using sudo
+  {
+    mode = { "c" },
+    { "w!!",  "w !sudo tee > /dev/null %",   desc = "Save of files as sudo"  },
+  },
 
 }
