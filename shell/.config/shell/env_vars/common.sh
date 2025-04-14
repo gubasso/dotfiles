@@ -52,6 +52,7 @@ _fzf_compgen_dir() {
 export DOTFILESDIR="${HOME}/.dotfiles"
 export VISUAL=nvim
 export EDITOR=nvim
+export SUDO_EDITOR="$EDITOR"
 export TERMINAL=wezterm
 
 export R_PROFILE_USER="$XDG_CONFIG_HOME/R"
