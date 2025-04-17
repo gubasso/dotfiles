@@ -89,18 +89,18 @@ wezterm.on(
   'format-tab-title',
   function(tab, _, _, _, _, _)
     local pane = tab.active_pane
-    local zoom = ''
     local tab_number = tab.tab_index + 1 .. ': '
-    local cwd_tab = basename(pane.current_working_dir)
+
+    -- Prefer the user-set title if it exists, otherwise fall back to cwd
+    local cwd = basename(pane.current_working_dir)
+    local display = (tab.tab_title ~= "" and tab.tab_title) or cwd
+
+    local zoom = ''
     if pane.is_zoomed then
       zoom = ' '
     end
-    -- local title = zoom .. basename(pane.foreground_process_name) .. ' - ' .. cwd_tab
-    -- local title = zoom .. tostring(tab.index) .. cwd_tab
-    local title = zoom .. tab_number .. cwd_tab
-    return {
-      { Text = ' ' .. title .. ' ' },
-    }
+    local title = zoom .. tab_number .. display
+    return { { Text = ' ' .. title .. ' ' } }
 end)
 
 
@@ -208,6 +208,8 @@ config.keys = {
       description = wezterm.format {
         { Attribute = { Intensity = "Bold" } },
         { Foreground = { AnsiColor = "Fuchsia" } },
+        -- Rename tab title
+        -- user-set title
         { Text = "Renaming Tab Title...:" },
       },
       -- function(window, pane, line)
