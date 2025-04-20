@@ -6,4 +6,4 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/reflector --latest 50 --protocol https -c Brazil -c "United States" --sort rate --save /etc/pacman.d/mirrorlist
+ExecStart=/usr/local/bin/greflector
