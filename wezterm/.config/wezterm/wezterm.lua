@@ -1,85 +1,68 @@
 local wezterm = require 'wezterm'
 local hostname = wezterm.hostname()
 
+-- import our host-specific table
+local hosts = require 'hosts'
+local host_config = hosts.get(hostname)
 
-local config = {}
+-- import helpers
+local helpers = require 'helpers'
+local keymaps = require 'keymaps'
+local basename = helpers.basename
+
 -- Use config builder object if possible
-if wezterm.config_builder then config = wezterm.config_builder() end
-local act = wezterm.action
-local scale = 1.5
-local basename = function(s)
-  local str = tostring(s)
-  local base = str:match("([^/]+)/?$")
-  return base
-end
+local config = wezterm.config_builder and wezterm.config_builder() or {}
 
--- Settings
-config.default_cwd = 'home'
-config.default_workspace = "home"
-config.scrollback_lines = 5000
+-- Core defaults
+config.default_cwd            = wezterm.home_dir
+config.default_workspace      = wezterm.home_dir
+config.scrollback_lines       = 5000
 config.window_close_confirmation = "AlwaysPrompt"
 
--- Appearance ------------------------------
-config.window_decorations = 'RESIZE'
-config.tab_max_width = 30
-
-if hostname == "valinor" then
-  config.color_scheme = 'Breeze'
-  config.font = wezterm.font_with_fallback({
-    { family = 'Hack', scale = scale },
-    { family = 'IBM Plex Mono', scale = scale },
-    { family = 'Source Code Pro', scale = scale },
-  })
-elseif hostname == "tumblesuse" then
-  config.color_scheme = 'Ryuuko'
-  config.font = wezterm.font_with_fallback({
-    { family = 'IBM Plex Mono', scale = scale },
-    { family = 'Hack', scale = scale },
-    { family = 'Source Code Pro', scale = scale },
-  })
-end
-
-config.inactive_pane_hsb = {
-  saturation = 0.5,
-  brightness = 0.7,
-}
-
-config.use_fancy_tab_bar = false
+-- Appearance
+config.window_decorations     = 'RESIZE'
+config.tab_max_width          = 30
+config.inactive_pane_hsb      = { saturation = 0.5, brightness = 0.7 }
 config.status_update_interval = 1000
 
--- todo: zoom
--- get PaneInformation and zoom info: https://github.com/wez/wezterm/issues/3404
--- get all panes with info https://wezfurlong.org/wezterm/config/lua/MuxTab/index.html
--- loop, if any zoomed, appear zoom icon (left window status)
+-- Apply host-specific color scheme & font
+config.color_scheme = host_config.scheme
+config.font         = host_config.font
+
+-- Fetch built-in schemes and sync tab-bar colors
+local schemes = wezterm.color.get_builtin_schemes()
+config.colors = config.colors or {}
+config.colors.tab_bar = schemes[config.color_scheme].tab_bar
+config.use_fancy_tab_bar = false
+
+
 wezterm.on('update-status', function(window, pane)
     -- Workspace name
-  local stat = '󰰯 ' .. window:active_workspace()
-  -- local stat_color = "#f7768e"
-  -- wezterm.log_info(window:active_pane())
+  local stat = ""
 
   -- file://ambar/home/gubasso/.dotfiles/wezterm/.config/wezterm/
   local cwd = " " .. basename(pane:get_current_working_dir())
   local cmd = " " .. basename(pane:get_foreground_process_name())
 
   if window:active_key_table() then
-    stat = '󰬔 ' .. window:active_key_table()
-    -- stat_color = "#7dcfff"
+    stat = '󰬔 ' .. window:active_key_table() .. ' |'
   end
 
   if window:leader_is_active() then
-    stat = ''
-    -- stat_color = "#bb9af7"
+    stat = ' '
   end
 
+  -- pick a single gray for all:
+  local gray = "#a5a5a5"
+
   window:set_right_status(wezterm.format({
+    { Foreground = { Color = gray } },
     { Text = stat },
-    { Text = " | " },
+    { Text = " " },
     { Text = cwd },
     { Text = " | " },
-    { Foreground = { Color = "FFB86C" } },
     { Text = cmd },
     "ResetAttributes",
-    { Text = " | " },
   }))
 end)
 
@@ -103,53 +86,7 @@ wezterm.on(
     return { { Text = ' ' .. title .. ' ' } }
 end)
 
-
-
-------------------------------------------------------------------------------
--- https://github.com/mrjones2014/smart-splits.nvim --------------------------
-------------------------------------------------------------------------------
-
--- if you are *NOT* lazy-loading smart-splits.nvim (recommended)
-local function is_vim(pane)
-  -- this is set by the plugin, and unset on ExitPre in Neovim
-  return pane:get_user_vars().IS_NVIM == 'true'
-end
-
-local direction_keys = {
-  h = 'Left',
-  j = 'Down',
-  k = 'Up',
-  l = 'Right',
-}
-
-local function split_nav(resize_or_move, key)
-  return {
-    key = key,
-    mods = resize_or_move == 'resize' and 'META' or 'CTRL',
-    action = wezterm.action_callback(function(win, pane)
-      if is_vim(pane) then
-        -- pass the keys through to vim/nvim
-        win:perform_action({
-          SendKey = { key = key, mods = resize_or_move == 'resize' and 'META' or 'CTRL' },
-        }, pane)
-      else
-        if resize_or_move == 'resize' then
-          win:perform_action({ AdjustPaneSize = { direction_keys[key], 3 } }, pane)
-        else
-          win:perform_action({ ActivatePaneDirection = direction_keys[key] }, pane)
-        end
-      end
-    end),
-  }
-end
-
--- local split_nav_keys = {
--- },
-
-
-------------------------------------------------------------------------------
--- Keys ----------------------------------------------------------------------
-------------------------------------------------------------------------------
+-- Keys ----------------------------------------------------------
 
 config.leader = {
   key = 'Space',
@@ -157,128 +94,7 @@ config.leader = {
   timeout_milliseconds = 1000,
 }
 
-config.keys = {
-  -- Leader key
-  { key = '[', mods = 'LEADER|CTRL', action = act.ActivateCopyMode },
-  { key = '[', mods = 'LEADER', action = act.ActivateCopyMode },
-  -- Command Pallete
-  { key = "p", mods = "LEADER|CTRL", action = act.ActivateCommandPalette },
-  -- Splits
-  {
-    key = '-', mods = 'LEADER',
-    action = act.SplitVertical { domain = 'CurrentPaneDomain' }
-  },
-  {
-    key = '|', mods = 'LEADER|SHIFT',
-    action = act.SplitHorizontal { domain = 'CurrentPaneDomain' }
-  },
-  -- Move through panes
-  --
-  -- { key = 'h', mods = 'LEADER|CTRL', action = act.ActivatePaneDirection("Left") },
-  -- { key = 'j', mods = 'LEADER|CTRL', action = act.ActivatePaneDirection("Down") },
-  -- { key = 'k', mods = 'LEADER|CTRL', action = act.ActivatePaneDirection("Up") },
-  -- { key = 'l', mods = 'LEADER|CTRL', action = act.ActivatePaneDirection("Right") },
-  -- move between split panes
-  split_nav('move', 'h'),
-  split_nav('move', 'j'),
-  split_nav('move', 'k'),
-  split_nav('move', 'l'),
-  -- resize panes
-  split_nav('resize', 'h'),
-  split_nav('resize', 'j'),
-  split_nav('resize', 'k'),
-  split_nav('resize', 'l'),
-  -- Close pane
-  {
-    key = 'x', mods = 'LEADER',
-    action = act.CloseCurrentPane { confirm = true }
-  },
-  -- Zoom
-  { key = 'z', mods = 'LEADER|CTRL', action = act.TogglePaneZoomState },
-  -- Tabs Keybindings
-  -- { key = 'c', mods = 'LEADER|CTRL', action = act.SpawnTab 'DefaultDomain' },
-  { key = 'c', mods = 'LEADER|CTRL', action = act.SpawnCommandInNewTab { cwd = wezterm.home_dir }  },
-  { key = 'k', mods = 'LEADER|CTRL', action = act.ActivateTabRelative(1) },
-  { key = 'j', mods = 'LEADER|CTRL', action = act.ActivateTabRelative(-1) },
-  { key = 'Space', mods = 'LEADER|CTRL', action = act.ActivateLastTab },
-  {
-    key = ",",
-    mods = "LEADER",
-    action = act.PromptInputLine {
-      description = wezterm.format {
-        { Attribute = { Intensity = "Bold" } },
-        { Foreground = { AnsiColor = "Fuchsia" } },
-        -- Rename tab title
-        -- user-set title
-        { Text = "Renaming Tab Title...:" },
-      },
-      -- function(window, pane, line)
-      action = wezterm.action_callback(function(window, _, line)
-        if line then
-          window:active_tab():set_title(line)
-        end
-      end)
-    }
-  },
-  -- { key = 't', mods = 'LEADER|CTRL', action = act.ShowTabNavigator },
-  { key = 't', mods = 'LEADER|CTRL',
-    action = act.ShowLauncherArgs {
-      flags = 'FUZZY|TABS'
-    }
-  },
-  { key = 'm', mods = 'LEADER',
-    action = act.ActivateKeyTable { name = 'move_tab', one_shot = false }
-  },
-  -- Workspaces Keybindings
-  { key = 'w', mods = 'LEADER',
-    action = act.ShowLauncherArgs {
-      flags = 'FUZZY|WORKSPACES'
-    }
-  },
-  --
-  {
-    key = 'w',
-    mods = 'SUPER',
-    action = act.DisableDefaultAssignment,
-  },
-}
-
-for i = 1, 9 do
-  table.insert(config.keys, {
-    key = tostring(i),
-    mods = 'LEADER',
-    action = act.ActivateTab(i - 1)
-  })
-end
-
-local move_tab = {
-  { key = 'h', action = act.MoveTabRelative(-1) },
-  { key = 'j', action = act.MoveTabRelative(-1) },
-  { key = 'k', action = act.MoveTabRelative(1) },
-  { key = 'l', action = act.MoveTabRelative(1) },
-  { key = 'Escape', action = 'PopKeyTable' },
-  { key = 'Enter', action = 'PopKeyTable' },
-}
-
-
-local copy_mode = {}
-
-if wezterm.gui then
-  local default_copy_mode = wezterm.gui.default_key_tables().copy_mode
-  for _, binding in ipairs(default_copy_mode) do
-    table.insert(copy_mode, binding)
-  end
-end
-
-table.insert(copy_mode, {
-  key = '/',
-  mods = 'NONE',
-  action = act.Search { CaseInSensitiveString = '' },
-})
-
-config.key_tables = {
-  move_tab = move_tab,
-  copy_mode = copy_mode,
-}
+config.keys = keymaps.get_keys()
+config.key_tables = keymaps.get_key_tables()
 
 return config
