@@ -47,7 +47,6 @@ local function build_keymaps()
     mk_binding('c', 'Tab', act.ActivateLastTab),
     mk_binding('c', 'w', act.CloseCurrentTab { confirm = false }),
 
-
     -- Rename tab
     mk_binding('l', ',', act.PromptInputLine {
       description = wezterm.format {
@@ -64,13 +63,14 @@ local function build_keymaps()
     mk_binding('lc', 't', act.ShowLauncherArgs { flags = 'FUZZY|TABS' }),
     mk_binding('l',  'm', act.ActivateKeyTable { name = 'move_tab', one_shot = false }),
 
-    -- Workspaces
+    -- Workspaces ----------------------------------------------------------
     mk_binding('l', 'w', act.ShowLauncherArgs { flags = 'FUZZY|WORKSPACES' }),
 
     -- Disable default SUPER+w
     mk_binding('s', 'w', act.DisableDefaultAssignment),
   }
 
+  -- Tabs --------------------------------------------------------------------
   -- Number‑to‑tab mappings (1–9)
   for i = 1, 9 do
     table.insert(keys, mk_binding('c', tostring(i), act.ActivateTab(i - 1)))
