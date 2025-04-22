@@ -62,6 +62,7 @@ wezterm.on('update-status', function(window, pane)
     { Text = cwd },
     { Text = " | " },
     { Text = cmd },
+    { Text = " " },
     "ResetAttributes",
   }))
 end)
