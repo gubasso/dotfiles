@@ -8,10 +8,9 @@ return {
     -- Optional; default configuration will be used if setup isn't called.
     config = function()
       require("everforest").setup({
-        -- Options are "soft", "medium" (default) or "hard".
-        background = "hard",
+        background = "hard",  -- "soft", "medium" (default) or "hard".
       })
-      vim.cmd([[colorscheme everforest]])
+      vim.cmd.colorscheme("everforest")
     end,
   },
 }
