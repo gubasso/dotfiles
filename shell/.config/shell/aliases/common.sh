@@ -8,6 +8,7 @@
 # [^al4]: `cat file | xclip -selection clipboard` [How can I copy the output of a command directly into my clipboard?](https://stackoverflow.com/questions/5130968/how-can-i-copy-the-output-of-a-command-directly-into-my-clipboard#5130969)
 
 alias n="nvim"
+alias sn="sudoedit"
 alias md="mkdir -p"
 alias '..'="cd .."
 alias 'cd..'="cd .."
