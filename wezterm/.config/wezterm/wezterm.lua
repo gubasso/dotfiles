@@ -28,6 +28,7 @@ config.status_update_interval = 1000
 -- Apply host-specific color scheme & font
 config.color_scheme = host_config.scheme
 config.font         = host_config.font
+config.window_background_opacity = 0.8
 
 -- Fetch built-in schemes and sync tab-bar colors
 local schemes = wezterm.color.get_builtin_schemes()
