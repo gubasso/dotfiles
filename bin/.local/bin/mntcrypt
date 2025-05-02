@@ -1,27 +1,44 @@
 #!/bin/sh
+set -euo pipefail
+
+cleanup() {
+  unset PASSWORD
+}
+trap cleanup EXIT
 
 # Check if exactly three arguments are provided
 if [ "$#" -ne 3 ]; then
-  echo "Error: Exactly three arguments are required."
-  echo "Usage: $0 ENCRYPTED_DIR DECRYPTED_DIR GOPASS_ENTRY"
+  notify-send -u critical "gocryptfs Usage" \
+    "Usage: $0 ENCRYPTED_DIR DECRYPTED_DIR GOPASS_ENTRY"
   exit 1
 fi
-
-# Assign the three arguments to variables
 ENCRYPTED_DIR="$1"
 DECRYPTED_DIR="$2"
 GOPASS_ENTRY="$3"
 
+# Path checks
+if [ ! -d "$ENCRYPTED_DIR" ]; then
+  notify-send -u critical "gocryptfs Error" "$ENCRYPTED_DIR does not exist"
+  exit 1
+fi
+if [ ! -d "$DECRYPTED_DIR" ]; then
+  notify-send -u critical "gocryptfs Error" "$DECRYPTED_DIR does not exist"
+  exit 1
+fi
+
+# Already mounted?
 if mountpoint -q "$DECRYPTED_DIR"; then
   notify-send "gocryptfs" "$DECRYPTED_DIR is already mounted"
   exit 0
 fi
 
-PASSWORD=$(gopass -o "$GOPASS_ENTRY")
 
+# Get password
+PASSWORD=$(gopass -o "$GOPASS_ENTRY")
 # Check if the password was retrieved successfully
 if [ -z "$PASSWORD" ]; then
-  echo "Failed to retrieve password from gopass. Exiting."
+  notify-send -u critical "gocryptfs Error" \
+    "Failed to retrieve password from gopass"
   exit 1
 fi
 
