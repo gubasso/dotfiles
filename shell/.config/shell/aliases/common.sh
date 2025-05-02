@@ -29,8 +29,41 @@ alias clrm='clear && echo -en "\e[3J"' #[^al3]
 alias ss='sudo systemctl'
 alias sudo="sudo "
 alias rs='rsync -vurzP'
-alias dot='cd "$HOME"/.dotfiles; nvim .'
-alias docs='cd "$HOME"/Projects/gubasso.g/docs-n-notes; nvim .'
+
+# wezvim: cd into $1, tell WezTerm about it, then open nvim
+wezvim() {
+  if (( $# == 0 )); then
+    echo "Usage: wezvim <directory> [-- <nvim-args>]" >&2
+    return 1
+  fi
+
+  local dir=$1
+  shift
+
+  # 1) change into the target directory
+  if [[ -d $dir ]]; then
+    cd -- "$dir" || return
+  else
+    echo "⛔ Directory not found: $dir" >&2
+    return 1
+  fi
+
+  # 2) notify WezTerm of the new cwd (so e.g. cmd-click in the title bar works)
+  if command -v wezterm &>/dev/null; then
+    wezterm set-working-directory "$PWD"
+  else
+    # fallback to raw OSC-7 if wezterm CLI isn't available
+    printf '\033]7;file://%s%s\033\\' "$(hostname)" "$PWD"
+  fi
+
+  # 3) replace the shell with nvim in this dir
+  #    pass along any extra args after "--"
+  nvim .
+}
+
+alias dot='wezvim "$HOME"/.dotfiles'
+alias docs='wezvim "$HOME"/Projects/gubasso.g/docs-n-notes'
+
 function now() {
   date "+%Y-%m-%d %H:%M:%S" | tr -d '\n' | tee >(clip)
 }
