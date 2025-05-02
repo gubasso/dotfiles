@@ -29,7 +29,8 @@ alias clrm='clear && echo -en "\e[3J"' #[^al3]
 alias ss='sudo systemctl'
 alias sudo="sudo "
 alias rs='rsync -vurzP'
-alias dot='cd "$HOME"/.dotfiles'
+alias dot='cd "$HOME"/.dotfiles; nvim .'
+alias docs='cd "$HOME"/Projects/gubasso.g/docs-n-notes; nvim .'
 function now() {
   date "+%Y-%m-%d %H:%M:%S" | tr -d '\n' | tee >(clip)
 }
