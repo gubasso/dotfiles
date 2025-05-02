@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 set -euo pipefail
 
 cleanup() {
@@ -6,46 +6,41 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# Check if exactly three arguments are provided
+# Args
 if [ "$#" -ne 3 ]; then
-  notify-send -u critical "gocryptfs Usage" \
+  notify-send -u normal -i help-about "gocryptfs Usage" \
     "Usage: $0 ENCRYPTED_DIR DECRYPTED_DIR GOPASS_ENTRY"
   exit 1
 fi
-ENCRYPTED_DIR="$1"
-DECRYPTED_DIR="$2"
-GOPASS_ENTRY="$3"
+ENCRYPTED_DIR="$1"; DECRYPTED_DIR="$2"; GOPASS_ENTRY="$3"
 
 # Path checks
-if [ ! -d "$ENCRYPTED_DIR" ]; then
-  notify-send -u critical "gocryptfs Error" "$ENCRYPTED_DIR does not exist"
-  exit 1
-fi
-if [ ! -d "$DECRYPTED_DIR" ]; then
-  notify-send -u critical "gocryptfs Error" "$DECRYPTED_DIR does not exist"
-  exit 1
-fi
+for dir in "$ENCRYPTED_DIR" "$DECRYPTED_DIR"; do
+  [ -d "$dir" ] || {
+    notify-send -u critical -i dialog-error "gocryptfs Error" \
+      "$dir does not exist"
+    exit 1
+  }
+done
 
 # Already mounted?
 if mountpoint -q "$DECRYPTED_DIR"; then
-  notify-send "gocryptfs" "$DECRYPTED_DIR is already mounted"
+  notify-send -u low -i dialog-information "gocryptfs" \
+    "$DECRYPTED_DIR is already mounted"
   exit 0
 fi
 
-
-# Get password
-PASSWORD=$(gopass -o "$GOPASS_ENTRY")
-# Check if the password was retrieved successfully
+# Fetch & validate password
+PASSWORD=$(gopass -o "$GOPASS_ENTRY" 2>/dev/null || echo "")
 if [ -z "$PASSWORD" ]; then
-  notify-send -u critical "gocryptfs Error" \
-    "Failed to retrieve password from gopass"
+  notify-send -u critical -i dialog-error "gocryptfs Error" \
+    "Failed to retrieve password from gopass: $GOPASS_ENTRY"
   exit 1
 fi
 
-# Mount gocryptfs using the password fetched from gopass
-echo "$PASSWORD" | gocryptfs "$ENCRYPTED_DIR" "$DECRYPTED_DIR" 
+# Mount
+echo "$PASSWORD" | gocryptfs -o allow_other \
+  "$ENCRYPTED_DIR" "$DECRYPTED_DIR"
 
-# Clear the password variable
-unset PASSWORD
-
-notify-send "gocryptfs" "Mounted $DECRYPTED_DIR"
+notify-send -u normal -i gocryptfs "gocryptfs" \
+  "Mounted $DECRYPTED_DIR"
