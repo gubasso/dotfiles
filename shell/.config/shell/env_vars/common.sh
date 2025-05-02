@@ -58,12 +58,18 @@ export TERMINAL=wezterm
 export R_PROFILE_USER="$XDG_CONFIG_HOME/R"
 export R_HOME_USER="$HOME/.R"
 
-export GOPATH="$HOME/.go"
-export GOBIN="$GOPATH/bin"
-
 export CLOUD_DIR="$HOME/Nextcloud"
 
+
+# PATH / BIN -----------------------------------------------------------------
+export GOPATH="$HOME/.go"
+export GOBIN="$GOPATH/bin"
 SOLANA_PATH="$XDG_DATA_HOME/solana/install/active_release/"
 
-export PATH="$PATH:$GOBIN:$SOLANA_PATH"
-export PATH="$PATH:$HOME/.local/bin:$HOME/.cargo/bin"
+PATH="$SOLANA_PATH:$PATH"
+PATH="$GOBIN:$PATH"
+PATH="$HOME/.cargo/bin:$PATH"
+PATH="$HOME/.local/bin:$PATH"
+PATH="$HOME/.npm-global/bin:$PATH"
+export PATH
+
