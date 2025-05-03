@@ -39,8 +39,7 @@ if [ -z "$PASSWORD" ]; then
 fi
 
 # Mount
-echo "$PASSWORD" | gocryptfs -o allow_other \
-  "$ENCRYPTED_DIR" "$DECRYPTED_DIR"
+echo "$PASSWORD" | gocryptfs "$ENCRYPTED_DIR" "$DECRYPTED_DIR"
 
 notify-send -u normal -i gocryptfs "gocryptfs" \
   "Mounted $DECRYPTED_DIR"
