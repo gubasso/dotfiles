@@ -62,7 +62,9 @@ wezvim() {
 }
 
 alias dot='wezvim "$HOME"/.dotfiles'
-alias docs='wezvim "$HOME"/Projects/gubasso.g/docs-n-notes'
+alias docs='wezvim "$HOME"/DocsNNotes'
+alias todo='wezvim "$HOME"/Todo'
+alias notes='wezvim "$HOME"/Notes'
 
 function now() {
   date "+%Y-%m-%d %H:%M:%S" | tr -d '\n' | tee >(clip)
