@@ -17,5 +17,5 @@ if [ -e "$filename" ]; then
   exit 0
 fi
 
-echo "# ${title}" > "${filename}"
+printf "# %s\n\n\n" "$title" > "${filename}"
 echo "Created ${filename}"
