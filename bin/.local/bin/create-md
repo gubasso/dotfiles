@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [ $# -lt 1 ]; then
+  echo "Usage: $0 \"Some Title Here\""
+  exit 1
+fi
+
+title="$*"
+
+slug=$(slugify "$title")
+
+filename="${slug}.md"
+
+if [ -e "$filename" ]; then
+  echo "⚠️  File '$filename' already exists. Nothing to do."
+  exit 0
+fi
+
+echo "# ${title}" > "${filename}"
+echo "Created ${filename}"
