@@ -101,7 +101,11 @@ local function buld_key_tables()
   table.insert(copy_mode, {
     key = '/',
     mods = 'NONE',
-    action = act.Search { CaseInSensitiveString = '' },
+    -- action = act.Search { CaseInSensitiveString = ' ' },
+    action = act.Multiple({
+      act.CopyMode("ClearPattern"),
+      act.Search({ CaseInSensitiveString = "" }),
+    })
   })
 
   -- search_mode table
