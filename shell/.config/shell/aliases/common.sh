@@ -32,39 +32,43 @@ alias rs='rsync -vurzP'
 
 # wezvim: cd into $1, tell WezTerm about it, then open nvim
 wezvim() {
-  if (( $# == 0 )); then
-    echo "Usage: wezvim <directory> [-- <nvim-args>]" >&2
-    return 1
+  local open_nvim=false
+  local dir
+
+  if [[ $1 == -e || $1 == --edit ]]; then
+    open_nvim=true
+    shift
   fi
 
-  local dir=$1
-  shift
+  if [[ -z $1 ]]; then
+    echo "Usage: wezvim [-e|--edit] <directory>" >&2
+    return 1
+  fi
+  dir=$1
 
-  # 1) change into the target directory
-  if [[ -d $dir ]]; then
-    cd -- "$dir" || return
-  else
+  if [[ ! -d $dir ]]; then
     echo "⛔ Directory not found: $dir" >&2
     return 1
   fi
 
-  # 2) notify WezTerm of the new cwd (so e.g. cmd-click in the title bar works)
-  if command -v wezterm &>/dev/null; then
-    wezterm set-working-directory "$PWD"
-  else
-    # fallback to raw OSC-7 if wezterm CLI isn't available
-    printf '\033]7;file://%s%s\033\\' "$(hostname)" "$PWD"
-  fi
+  cd -- "$dir" || return
 
-  # 3) replace the shell with nvim in this dir
-  #    pass along any extra args after "--"
-  nvim .
+  if $open_nvim; then
+    # notify WezTerm of the new cwd (so e.g. cmd-click in the title bar works)
+    if command -v wezterm &>/dev/null; then
+      wezterm set-working-directory "$PWD"
+    else
+      # fallback to raw OSC-7 if wezterm CLI isn't available
+      printf '\033]7;file://%s%s\033\\' "$(hostname)" "$PWD"
+    fi
+    nvim
+  fi
 }
 
+alias docs='wezvim -e "$HOME"/DocsNNotes'
+alias todo='wezvim -e "$HOME"/Todo'
+alias notes='wezvim -e "$HOME"/Notes'
 alias dot='wezvim "$HOME"/.dotfiles'
-alias docs='wezvim "$HOME"/DocsNNotes'
-alias todo='wezvim "$HOME"/Todo'
-alias notes='wezvim "$HOME"/Notes'
 
 function now() {
   date "+%Y-%m-%d %H:%M:%S" | tr -d '\n' | tee >(clip)
