@@ -1,5 +1,7 @@
 return {
+
   { "Glench/Vim-Jinja2-Syntax" },
+
   -- linter
   {
     "mfussenegger/nvim-lint",
@@ -9,17 +11,25 @@ return {
       }
     end
   },
+
   -- align / tabular
   { "junegunn/vim-easy-align" },
+
   { "godlygeek/tabular" },
+
   { "gpanders/editorconfig.nvim" },
+
   {
     "L3MON4D3/LuaSnip",
     build = "make install_jsregexp",
+    event = "InsertEnter",
     dependencies = {
       "rafamadriz/friendly-snippets",
       config = function()
         require("luasnip.loaders.from_vscode").lazy_load()
+        require("luasnip.loaders.from_lua").lazy_load({
+          paths = { vim.fn.stdpath("config") .. "/lua/snippets" },
+        })
       end,
     },
     init = function()
@@ -36,8 +46,8 @@ return {
         -- 2) Insert + Select mode mappings
         {
           mode = { "i", "s" },
-          { "<c-L>", function() ls.jump(1) end,  desc = "Jump snippet forward" },
-          { "<c-J>", function() ls.jump(-1) end, desc = "Jump snippet backward" },
+          { "<c-N>", function() ls.jump(1) end,  desc = "Jump snippet forward" },
+          { "<c-P>", function() ls.jump(-1) end, desc = "Jump snippet backward" },
           {
             "<c-E>",
             function()
@@ -49,6 +59,7 @@ return {
           },
         },
       })
+
     end,
   },
 
