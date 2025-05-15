@@ -17,6 +17,19 @@ if not vim.loop.fs_stat(lazypath) then
 end
 vim.opt.rtp:prepend(lazypath)
 
+-- Solving:   Warn notify.warn position_encoding param is required in vim.lsp.util.make_position_params. Defaulting to position encoding of the first client.
+-- Monkey‐patch make_position_params to default to the first client’s encoding
+do
+  local orig = vim.lsp.util.make_position_params
+  vim.lsp.util.make_position_params = function(win_id, position_encoding)
+    -- figure out the encoding: explicit param > first client > utf-16
+    local enc = position_encoding
+      or (vim.lsp.get_active_clients({ bufnr = 0 })[1] and vim.lsp.get_active_clients({ bufnr = 0 })[1].offset_encoding)
+      or "utf-16"
+    return orig(win_id, enc)
+  end
+end
+
 -- organization model:
 -- https://dev.to/voyeg3r/my-lazy-neovim-config-3h6o
 
