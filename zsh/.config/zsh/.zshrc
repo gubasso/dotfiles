@@ -55,7 +55,12 @@ zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
 zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
 zstyle ':completion:*' menu no
 zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls --color $realpath'
-#
+
+# Opens command in $EDITOR [^2][^3]
+autoload -U edit-command-line; zle -N edit-command-line
+## ESC (normal mode) + v (opens vim)
+bindkey -v
+bindkey -M vicmd v edit-command-line
 
 # fzf
 ## Set up fzf key bindings and fuzzy completion
@@ -76,12 +81,6 @@ setopt hist_ignore_space
 ## History search just for the command already typed in shell
 bindkey '^p' history-search-backward
 bindkey '^n' history-search-forward
-
-# Opens command in $EDITOR [^2][^3]
-autoload -U edit-command-line; zle -N edit-command-line
-## ESC (normal mode) + v (opens vim)
-bindkey -v
-bindkey -M vicmd v edit-command-line
 
 # keychain
 # export GPG_AGENT_INFO="~/.gnupg/S.gpg-agent:$(pgrep gpg-agent):1"
