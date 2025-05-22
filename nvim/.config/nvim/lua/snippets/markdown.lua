@@ -18,4 +18,5 @@ end
 ls.add_snippets("markdown", {
   make_md_fence("py"),
   make_md_fence("sh"),
+  make_md_fence("json"),
 })
