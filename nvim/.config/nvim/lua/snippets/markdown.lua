@@ -1,17 +1,21 @@
 local ls         = require("luasnip")
 local s, i, fmt  = ls.snippet, ls.insert_node, require("luasnip.extras.fmt").fmt
 
-local code_block_snippet = s(
-  "py",        -- trigger
-  fmt([[
-```py
+local function make_md_fence(lang)
+  return s(
+    lang,  -- trigger
+    fmt(
+      string.format([[
+```%s
 {}
-```
-]],
-  {
-    i(1, "code"),  -- first tab-stop for your code
-  },
-  { delimiters = "{}", description = "Markdown Python code fence" }
-))
+```]], lang),
+      { i(1, "code") }
+    ),
+    { delimiters = "{}", description = "Markdown " .. lang .. " code fence" }
+  )
+end
 
-ls.add_snippets("markdown", { code_block_snippet })
+ls.add_snippets("markdown", {
+  make_md_fence("py"),
+  make_md_fence("sh"),
+})
