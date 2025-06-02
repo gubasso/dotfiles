@@ -1,0 +1,134 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+required_cmds=(rg gocryptfs)
+missing=()
+
+for cmd in "${required_cmds[@]}"; do
+  if ! command -v "$cmd" &>/dev/null; then
+    missing+=("$cmd")
+  fi
+done
+
+if (( ${#missing[@]} > 0 )); then
+  echo "❌ ERROR: the following required commands are missing: ${missing[*]}. Please install them."
+  exit 1
+fi
+
+usage() {
+  cat <<EOF
+Usage: $0 "<gpg_id>" "<output_path>"
+
+  <gpg_id>      : GPG identifier (e.g. email, name, or full fingerprint)
+  <output_path> : Directory that must be a mounted gocryptfs vault
+
+Example:
+  ./backup-gpg.sh "alice@example.com" "/home/alice/secure_vault"
+EOF
+  exit 1
+}
+
+if [[ $# -ne 2 ]]; then
+  echo "❌ Invalid number of arguments."
+  usage
+fi
+
+gpg_id="$1"
+output_path="$2"
+
+if [[ ! -d "$output_path" ]]; then
+  echo "❌ ERROR: Output path '$output_path' does not exist or is not a directory."
+  exit 2
+fi
+
+# Use findmnt to get the filesystem type; tolerate either "fuse.gocryptfs" or "gocryptfs"
+fstype="$(findmnt -n -o FSTYPE --target "$output_path" 2>/dev/null || echo "")"
+
+if [[ -z "$fstype" ]]; then
+  echo "❌ ERROR: '$output_path' is not mounted (findmnt returned nothing)."
+  exit 3
+elif ! rg -q "gocryptfs" <<< "$fstype"; then
+  echo "❌ ERROR: '$output_path' is mounted as '$fstype', not a gocryptfs vault."
+  exit 4
+fi
+
+if ! gpg --list-keys "$gpg_id" &>/dev/null; then
+  echo "❌ ERROR: No public key found for '$gpg_id'."
+  echo "    Make sure you have imported the key or spelled the identifier correctly."
+  exit 5
+fi
+
+echo "✅ Using GPG ID     : $gpg_id"
+echo "✅ Output directory : $output_path"
+echo "✅ Filesystem type  : $fstype"
+echo
+
+# a. Export public key
+pubfile="$output_path/${gpg_id}.pub.asc"
+echo "• Exporting public key to $pubfile ..."
+gpg --armor --export "$gpg_id" > "$pubfile"
+echo "  → Done."
+
+# b. Export secret (primary) key
+privfile="$output_path/${gpg_id}.priv.asc"
+echo "• Exporting secret key to $privfile ..."
+gpg --armor --export-secret-keys "$gpg_id" > "$privfile"
+echo "  → Done."
+
+# Secure the secret key file
+chmod 600 "$privfile"
+echo "  → Set permissions 600 on $privfile"
+
+# c. Export secret subkeys only
+subprivfile="$output_path/${gpg_id}.sub_priv.asc"
+echo "• Exporting secret subkeys to $subprivfile ..."
+gpg --armor --export-secret-subkeys "$gpg_id" > "$subprivfile"
+echo "  → Done."
+
+# Secure the subkey file
+chmod 600 "$subprivfile"
+echo "  → Set permissions 600 on $subprivfile"
+
+# d. Generate Revocation certificate
+revokefile="$output_path/${gpg_id}.revoke.asc"
+echo "• Generating revocation certificate to $revokefile ..."
+gpg --output "$revokefile" --gen-revoke "$gpg_id"
+echo "  → Done."
+
+# e. Export ownertrust
+trustfile="$output_path/ownertrust.txt"
+echo "• Exporting ownertrust database to $trustfile ..."
+gpg --export-ownertrust > "$trustfile"
+echo "  → Done."
+
+echo
+echo "🔎 Verifying exported files with 'gpg --list-packets' ..."
+
+echo "  • Checking public key file..."
+gpg --list-packets "$pubfile" >/dev/null
+
+echo "  • Checking secret key file..."
+gpg --list-packets "$privfile" >/dev/null
+
+echo "  • Checking secret subkeys file..."
+gpg --list-packets "$subprivfile" >/dev/null
+
+echo
+echo "🎉 All exports seem structurally valid."
+
+cat <<EOF
+
+Backup completed successfully. Files in '$output_path':
+
+  • Public key         : $(basename "$pubfile")
+  • Secret key         : $(basename "$privfile")    (mode 600)
+  • Secret subkeys     : $(basename "$subprivfile") (mode 600)
+  • Revocation cert    : $(basename "$revokefile")
+  • Ownertrust         : $(basename "$trustfile")
+
+⚠️  REMINDER: Keep the PRIVATE files (secret key, subkeys, revoke certificate, and ownertrust)
+    in encrypted or highly secure storage. Do NOT leave them world-readable.
+
+EOF
+
+exit 0
