@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+set -euo pipefail
+# shellcheck disable=SC1091
+source "$HOME/.local/bin/helpers.sh"
+
+require_cmds rg gocryptfs gpg findmnt
+
+usage() {
+  cat <<EOF
+Usage: $0 "<gpg_id>" "<vault_path>"
+
+  <gpg_id>     : GPG identifier (e-mail, name, or fingerprint)
+  <vault_path> : Directory that *must* be a mounted gocryptfs vault
+EOF
+  exit 1
+}
+
+[[ $# -eq 2 ]] || { echo "❌ Invalid number of arguments."; usage; }
+
+gpg_id="$1"
+vault_path="$2"
+
+[[ -d $vault_path ]] ||
+  { echo "❌ ERROR: Output path '$vault_path' does not exist or is not a directory."; exit 2; }
+
+
+# Use findmnt to get the filesystem type; tolerate either "fuse.gocryptfs" or "gocryptfs"
+fstype="$(findmnt -n -o FSTYPE --target "$vault_path" 2>/dev/null || echo "")"
+
+[[ -n "$fstype" ]] || { echo "❌ ERROR: '$vault_path' is not mounted."; exit 3; }
+
+rg -q "gocryptfs" <<<"$fstype" ||
+  { echo "❌ ERROR: '$vault_path' is mounted as '$fstype', not gocryptfs."; exit 4; }
+
+# Locate files -------------------------------------------------
+pubfile="$vault_path/${gpg_id}.pub.asc"
+privfile="$vault_path/${gpg_id}.priv.asc"
+subprivfile="$vault_path/${gpg_id}.sub_priv.asc"
+trustfile="$vault_path/ownertrust.txt"
+revokefile="$vault_path/${gpg_id}.revoke.asc"   # *not* auto-imported
+
+expected=("$pubfile" "$privfile" "$subprivfile" "$trustfile")
+missing=()
+for f in "${expected[@]}"; do [[ -f $f ]] || missing+=("$(basename "$f")"); done
+
+if ((${#missing[@]})); then
+  echo "⚠️  WARNING: The following expected files are missing in '$vault_path': ${missing[*]}"
+  echo "    You can still continue, but only the present files will be imported."
+fi
+
+# Perform the imports -----------------------------------------
+echo "🔑 Importing GPG material for '$gpg_id' from '$vault_path' …"
+
+[[ -f $pubfile ]]      && { echo "• Public key …";       gpg --import "$pubfile"; }
+[[ -f $privfile ]]     && { echo "• Secret key …";       gpg --import "$privfile"; }
+[[ -f $subprivfile ]]  && { echo "• Secret sub-keys …";  gpg --import "$subprivfile"; }
+[[ -f $trustfile ]]    && { echo "• Owner-trust db …";   gpg --import-ownertrust "$trustfile"; }
+
+#  (Optional) Revocation certificate not automatically imported.
+if [[ -f $revokefile ]]; then
+  echo
+  cat <<EOF
+⚠️  A revocation certificate (${gpg_id}.revoke.asc) was found.
+   **It is normally kept offline** and *only* imported when you truly wish to revoke
+   the key.  If you really want to import it now, run:
+
+       gpg --import "$revokefile"
+
+EOF
+fi
+
+# Post-import report ------------------------------------------
+echo
+echo "✅ Import finished.  Current status:"
+gpg --list-keys "$gpg_id"
+echo
+gpg --list-secret-keys "$gpg_id"
+
+echo
+echo "🎉 Done."
