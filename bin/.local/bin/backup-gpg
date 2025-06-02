@@ -19,12 +19,8 @@ EOF
 }
 
 [[ $# -eq 2 ]] || { echo "❌ Invalid number of arguments."; usage; }
-
 gpg_id="$1"
-vault_path="$2"
-
-[[ -d $vault_path ]] ||
-  { echo "❌ ERROR: Output path '$vault_path' does not exist or is not a directory."; exit 2; }
+vault_path=$(get_dir "$2")
 
 # Use findmnt to get the filesystem type; tolerate either "fuse.gocryptfs" or "gocryptfs"
 fstype="$(findmnt -n -o FSTYPE --target "$vault_path" 2>/dev/null || echo "")"

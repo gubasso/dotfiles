@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# shellcheck disable=SC1091
+source "$HOME/.local/bin/helpers.sh"
+
+require_cmds backup-gpg
+
+usage() {
+  cat <<EOF
+Usage: $0 "<output_path>"
+
+  <output_path> : A mounted gocryptfs directory that will hold the backups.
+                  One sub-directory per key e-mail address is created.
+
+This script finds every secret key in your local GPG key-ring and calls
+'backup-gpg' once per e-mail.
+
+Example:
+  ./backup-gpg-all-private.sh "/home/alice/secure_vault"
+EOF
+  exit 1
+}
+
+[[ $# -ne 1 ]] && usage
+vault_path=$(get_dir "$1")
+
+# ---------- gather all secret-key UID e-mails --------------------------------
+# 1. 'gpg --list-secret-keys --with-colons' emits lines beginning with 'uid'.
+# 2. Field 10 contains the raw UID string ("Alice Example <alice@example.com>").
+# 3. Use a regex to pull the address inside <…> and deduplicate.
+mapfile -t emails < <(
+  gpg --batch --list-secret-keys --with-colons \
+  | awk -F: '$1=="uid" { if (match($10, /<([^>]+)>/, m)) print m[1] }' \
+  | sort -u
+)
+
+[[ ${#emails[@]} -eq 0 ]] &&
+  { echo "❌ ERROR: no secret-key user IDs with e-mail addresses found." >&2; exit 4; }
+
+# ---------- iterate and back up ---------------------------------------------
+for email in "${emails[@]}"; do
+  # Replace potential slashes in email (rare) just in case.
+  safe_email=${email//\//_}
+  key_dir="${vault_path}/${safe_email}"
+  mkdir -p "$key_dir"
+  echo "📦  Backing up secret key ($email) → $key_dir"
+  backup-gpg "$email" "$key_dir" || echo "⚠️  backup-gpg for '$email' failed, skipping to next."
+done
+
+echo "✅  All secret keys have been backed up."

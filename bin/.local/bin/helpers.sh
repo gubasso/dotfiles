@@ -12,3 +12,12 @@ require_cmds() {
     exit 1
   fi
 }
+
+get_dir() {
+  local dir="$1"
+
+  [[ -d $dir ]] ||
+    { echo "❌ ERROR: Path '$dir' does not exist or is not a directory."; exit 1; }
+
+    echo "$dir"
+}
