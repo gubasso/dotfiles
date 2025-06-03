@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat <<'EOF'
+close  –  move one or more completed tasks from the todo tree to zz-done
+
+USAGE
+  close [OPTIONS] <task> [<task> …]
+
+ARGUMENTS
+  <task>           File or directory *inside* $CLOUD_DIR/00-todo to be closed.
+                   You can list as many tasks as you like.
+
+OPTIONS
+  -h, --help       Show this help text and exit.
+
+EXAMPLES
+  # Close a single markdown file
+  close task.md
+
+  # Close several items at once
+  close notes/2025-06-01-review.md bugs/123 todo.txt
+EOF
+  exit 1
+}
+
+[[ $# -eq 0 ]] && usage
+
+declare -a tasks=()
+for arg in "$@"; do
+  case "$arg" in
+    -h|--help) usage ;;           # help flag
+    *)         tasks+=("$arg") ;; # collect tasks
+  esac
+done
+
+[[ ${#tasks[@]} -eq 0 ]] && usage
+
+todo_dir="${CLOUD_DIR:?}/00-todo"
+done_dir="${CLOUD_DIR:?}/zz-done"
+
+todo_abs=$(realpath "$todo_dir")
+done_abs=$(realpath "$done_dir")
+
+for task in "${tasks[@]}"; do
+  task_abs=$(realpath "$task")
+
+  # Ensure the task lives inside the todo tree
+  [[ "$task_abs" == "$todo_abs"* ]] || {
+    echo "❌ '$task' is not in the todo tree ($todo_abs)" >&2
+    continue
+  }
+
+  # Strip the todo prefix to re-create the same path under zz-done.
+  task_rel="${task_abs#"${todo_abs}/"}"
+
+  task_done="$done_abs/$task_rel"
+  mkdir -p "$(dirname "$task_done")"
+  mv "$task_abs" "$task_done"
+
+  echo "✅ closed $task_rel"
+  echo "→ $(realpath --relative-to="$HOME" "$task_done")"
+done
