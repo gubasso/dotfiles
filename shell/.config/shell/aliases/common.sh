@@ -7,6 +7,7 @@
 # [^al3]: [Clear a terminal screen for real: KDE](https://stackoverflow.com/questions/5367068/clear-a-terminal-screen-for-real)
 # [^al4]: `cat file | xclip -selection clipboard` [How can I copy the output of a command directly into my clipboard?](https://stackoverflow.com/questions/5130968/how-can-i-copy-the-output-of-a-command-directly-into-my-clipboard#5130969)
 
+
 alias n="nvim"
 alias sn="sudoedit"
 alias md="mkdir -p"
@@ -30,52 +31,11 @@ alias ss='sudo systemctl'
 alias sudo="sudo "
 alias rs='rsync -vurzP'
 
-# wezvim: cd into $1, tell WezTerm about it, then open nvim
-wezvim() {
-  local open_nvim=false
-  local dir
-
-  if [[ $1 == -e || $1 == --edit ]]; then
-    open_nvim=true
-    shift
-  fi
-
-  if [[ -z $1 ]]; then
-    echo "Usage: wezvim [-e|--edit] <directory>" >&2
-    return 1
-  fi
-  dir=$1
-
-  if [[ ! -d $dir ]]; then
-    echo "⛔ Directory not found: $dir" >&2
-    return 1
-  fi
-
-  cd -- "$dir" || return
-
-  if $open_nvim; then
-    # notify WezTerm of the new cwd (so e.g. cmd-click in the title bar works)
-    if command -v wezterm &>/dev/null; then
-      wezterm set-working-directory "$PWD"
-    else
-      # fallback to raw OSC-7 if wezterm CLI isn't available
-      printf '\033]7;file://%s%s\033\\' "$(hostname)" "$PWD"
-    fi
-    nvim
-  fi
-}
-
 alias docs='wezvim -e "$HOME"/DocsNNotes'
 alias todo='wezvim -e "$HOME"/Todo'
 alias notes='wezvim -e "$HOME"/Notes'
 alias dot='wezvim "$HOME"/.dotfiles'
 
-function now() {
-  date "+%Y-%m-%d %H:%M:%S" | tr -d '\n' | tee >(clip)
-}
-function slug() {
-  slugify --separator _ "${@}" | tr -d '\n' | tee >(clip)
-}
 
 # docker ----------------------------------------------------------------------
 alias d='docker'
@@ -110,9 +70,6 @@ function gbnu() {
 
 # pre-commit + git
 alias pre='git add -A && pre-commit run'
-
-# gitignore generator
-function gi() { curl -sL https://www.toptal.com/developers/gitignore/api/$@ ;}
 
 # dev
 alias poetry_activate='eval "$(poetry env activate)"'
