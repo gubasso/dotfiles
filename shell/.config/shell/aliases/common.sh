@@ -111,12 +111,6 @@ function gbnu() {
 # pre-commit + git
 alias pre='git add -A && pre-commit run'
 
-#gopass
-alias gop='gopass'
-alias gops='gopass show'
-alias gopy='gopass sync'
-alias gope='gopass edit'
-
 # gitignore generator
 function gi() { curl -sL https://www.toptal.com/developers/gitignore/api/$@ ;}
 
