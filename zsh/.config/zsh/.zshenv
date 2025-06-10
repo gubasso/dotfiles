@@ -6,6 +6,7 @@
 ## XDG + PATH env vars
 . /etc/shell/env.sh
 . "$XDG_CONFIG_HOME/shell/env_vars.sh"
+. "$XDG_CONFIG_HOME/shell-private/env_vars.sh"
 
 export ZCOMPDUMP_FILE="${XDG_CACHE_HOME}/zsh/zcompdump"
 

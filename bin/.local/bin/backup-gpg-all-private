@@ -1,9 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# shellcheck disable=SC1091
-source "$HOME/.local/bin/helpers.sh"
-
 require_cmds backup-gpg
 
 usage() {
