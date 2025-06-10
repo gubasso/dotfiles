@@ -29,11 +29,11 @@ rg -q "gocryptfs" <<<"$fstype" ||
   { echo "❌ ERROR: '$vault_path' is mounted as '$fstype', not gocryptfs."; exit 4; }
 
 # Locate files -------------------------------------------------
-pubfile="$vault_path/${gpg_id}.pub.asc"
-privfile="$vault_path/${gpg_id}.priv.asc"
-subprivfile="$vault_path/${gpg_id}.sub_priv.asc"
-trustfile="$vault_path/ownertrust.txt"
-revokefile="$vault_path/${gpg_id}.revoke.asc"   # *not* auto-imported
+pubfile="$vault_path/${gpg_id}/${gpg_id}.pub.asc"
+privfile="$vault_path/${gpg_id}/${gpg_id}.priv.asc"
+subprivfile="$vault_path/${gpg_id}/${gpg_id}.sub_priv.asc"
+trustfile="$vault_path/${gpg_id}/ownertrust.txt"
+revokefile="$vault_path/${gpg_id}/${gpg_id}.revoke.asc"   # *not* auto-imported
 
 expected=("$pubfile" "$privfile" "$subprivfile" "$trustfile")
 missing=()
