@@ -93,9 +93,8 @@ bindkey '^n' history-search-forward
 #   gubasso@eambar.net \
 #   gubasso@cwnt.io)
 
-# Alias ---------------------------------------
-. "$XDG_CONFIG_HOME/shell/aliases.sh"
-. "$XDG_CONFIG_HOME/shell-private/aliases.sh"
+# Aliases ---------------------------------------
+. "$XDG_CONFIG_HOME/aliases.d/main.sh"
 
 function src() {
   source "$ZDOTDIR/.zshenv"
