@@ -1,7 +1,3 @@
-#########################
-# Environment Variables #
-#########################
-
 # fzf
 ## vars
 skip=".git,node_modules,target"
@@ -58,6 +54,9 @@ export TERMINAL=wezterm
 export R_PROFILE_USER="$XDG_CONFIG_HOME/R"
 export R_HOME_USER="$HOME/.R"
 
+export ALIASES_DIR="$XDG_CONFIG_HOME/aliases.d"
+export UTILS_DIR="$XDG_CONFIG_HOME/utils.d"
+
 # PATH / BIN -----------------------------------------------------------------
 export GOPATH="$HOME/.go"
 export GOBIN="$GOPATH/bin"
@@ -67,4 +66,3 @@ PATH="$HOME/.cargo/bin:$PATH"
 PATH="$HOME/.local/bin:$PATH"
 PATH="$HOME/.npm-global/bin:$PATH"
 export PATH
-
