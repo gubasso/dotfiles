@@ -14,4 +14,5 @@ function up() {
 
 alias zref="sudo zypper refresh"
 alias zin="sudo zypper refresh && sudo zypper in"
+alias zrm="sudo zypper rm"
 alias zsr="zypper search"

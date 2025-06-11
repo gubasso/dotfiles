@@ -1,12 +1,4 @@
-###########
-# Aliases #
-###########
-# References:
-# [^al1]: https://www.homeonrails.com/2016/05/truecolor-in-gnome-terminal-tmux-and-neovim/
-# [^al2]: My notes, Dotfiles
-# [^al3]: [Clear a terminal screen for real: KDE](https://stackoverflow.com/questions/5367068/clear-a-terminal-screen-for-real)
-# [^al4]: `cat file | xclip -selection clipboard` [How can I copy the output of a command directly into my clipboard?](https://stackoverflow.com/questions/5130968/how-can-i-copy-the-output-of-a-command-directly-into-my-clipboard#5130969)
-
+source "$UTILS_DIR/helpers.sh"
 
 alias n="nvim"
 alias sn="sudoedit"
@@ -26,7 +18,7 @@ alias tree='eza --tree --all --git-ignore --ignore-glob ".git"'
 alias cat='bat'
 alias rg='rg --hidden --smart-case'
 alias cl='clear'
-alias clrm='clear && echo -en "\e[3J"' #[^al3]
+alias clrm='clear && echo -en "\e[3J"' #[^1]
 alias ss='sudo systemctl'
 alias sudo="sudo "
 alias rs='rsync -vurzP'
@@ -36,12 +28,11 @@ alias todo='wezvim -e "$HOME"/Todo'
 alias notes='wezvim -e "$HOME"/Notes'
 alias dot='wezvim "$HOME"/.dotfiles'
 
-
-# docker ----------------------------------------------------------------------
+# docker ---------------------------------------------------------------
 alias d='docker'
 alias dc='docker compose'
 
-# git -------------------------------------------------------------------------
+# git ------------------------------------------------------------------
 alias ga='git add -A'
 alias gac='git add -A && git commit'
 alias gacm='git add -A && git commit -m'
@@ -67,9 +58,28 @@ function gbnu() {
   git pull --set-upstream origin "$new_branch_name"  || return 1
   git push --set-upstream origin "$new_branch_name"
 }
-
-# pre-commit + git
+## gitignore generator
+gi() {
+  if [[ -z $1 ]]; then
+    echo "Usage: gi <language>" >&2
+    return 1
+  fi
+  curl -sL "https://www.toptal.com/developers/gitignore/api/${1}"
+}
+## pre-commit + git
 alias pre='git add -A && pre-commit run'
 
-# dev
+# dev ---------------------------------------------------------
 alias poetry_activate='eval "$(poetry env activate)"'
+
+# tools ---------------------------------------------------------
+function now() {
+  date "+%Y-%m-%d %H:%M:%S" | tr -d '\n' | tee >(clip)
+}
+
+function slug() {
+  slugify --separator _ "${@}" | tr -d '\n' | tee >(clip)
+}
+
+# References --------------------------------------------
+# [^1]: [Clear a terminal screen for real: KDE](https://stackoverflow.com/questions/5367068/clear-a-terminal-screen-for-real)
