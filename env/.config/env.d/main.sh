@@ -3,6 +3,8 @@
 #########################
 
 export ENV_DIR="$XDG_CONFIG_HOME/env.d"
+export XDG_CONFIG_HOME_PRIVATE="$XDG_CONFIG_HOME/private"
+export ENV_DIR_PRIVATE="$XDG_CONFIG_HOME_PRIVATE/env.d"
 
 source "$ENV_DIR/general.sh"
 
@@ -16,4 +18,4 @@ case "$hostname" in
     ;;
 esac
 
-source "$ENV_DIR/private/main.sh"
+source "$ENV_DIR_PRIVATE/main.sh"

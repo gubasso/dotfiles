@@ -45,19 +45,23 @@ _fzf_compgen_dir() {
   fd --hidden --follow --color=always --type d . "$1"
 }
 
-export DOTFILESDIR="${HOME}/.dotfiles"
 export VISUAL=nvim
 export EDITOR=nvim
 export SUDO_EDITOR="$EDITOR"
 export TERMINAL=wezterm
 
+# R
 export R_PROFILE_USER="$XDG_CONFIG_HOME/R"
 export R_HOME_USER="$HOME/.R"
 
 export ALIASES_DIR="$XDG_CONFIG_HOME/aliases.d"
+export ALIASES_DIR_PRIVATE="$XDG_CONFIG_HOME_PRIVATE/aliases.d"
+
+export BIN_PRIVATE="$HOME/.local/private/bin"
+
 export UTILS_DIR="$XDG_CONFIG_HOME/utils.d"
 
-# PATH / BIN -----------------------------------------------------------------
+# PATH / BIN ----------------------------------------------------------
 export GOPATH="$HOME/.go"
 export GOBIN="$GOPATH/bin"
 
@@ -65,4 +69,5 @@ PATH="$GOBIN:$PATH"
 PATH="$HOME/.cargo/bin:$PATH"
 PATH="$HOME/.local/bin:$PATH"
 PATH="$HOME/.npm-global/bin:$PATH"
+PATH="$BIN_PRIVATE:$PATH"
 export PATH
