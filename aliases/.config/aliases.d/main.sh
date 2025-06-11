@@ -14,4 +14,4 @@ case "$hostname" in
     ;;
 esac
 
-source "$ALIASES_DIR/private/main.sh"
+source "$ALIASES_DIR_PRIVATE/main.sh"
