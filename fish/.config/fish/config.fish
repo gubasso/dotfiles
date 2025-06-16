@@ -4,10 +4,12 @@
 # │╹  ╹┗━┛╹ ╹   ┗━╸┗━┛╹ ╹╹  ╹┗━┛│
 # └─────────────────────────────┘
 
+# --- Header --------------------------------------------
 set -g fish_key_bindings fish_vi_key_bindings
 set -g host (string split -m1 '.' (uname -n))
 set -g cfg_d "$HOME/.config/fish"
 
+# --- Main --------------------------------------------
 for f in \
     # ENV
     "$cfg_d/env/public/common.fish" \
@@ -25,5 +27,6 @@ end
 
 # --- Footer --------------------------------------------
 __source_starship
+zoxide init fish | source
 
 # --- EOF -----------------------------------------------

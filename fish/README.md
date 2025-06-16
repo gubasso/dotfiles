@@ -1,5 +1,17 @@
 # dotfiles: fish
 
+## Vendor completions
+
+E.g. Poetry
+
+```sh
+# system/vendor:
+# at: ~/.local/share/fish/vendor_completions.d/poetry.fish
+poetry completions fish > ~/.local/share/fish/vendor_completions.d/poetry.fish
+```
+
+## Config structure
+
 ```
 ~/.config/fish/
 ├── config.fish
