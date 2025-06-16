@@ -9,8 +9,6 @@ local function build_keymaps()
   local keys = {
     -- Unbind Alt+Enter (default toggles fullscreen)
     mk_binding('a', 'Enter', act.DisableDefaultAssignment),
-    -- Ctrl+Enter -> Alt+Enter (new line in Fish shell)
-    mk_binding('c', 'Enter', act.SendKey{ key="Enter", mods="ALT" }),
 
     -- Copy Mode
     mk_binding('lc', '[', act.ActivateCopyMode),
