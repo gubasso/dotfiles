@@ -2,6 +2,14 @@
 
 My personal dotfiles, managed with [GNU Stow](https://www.gnu.org/software/stow/).
 
+## General Info
+
+Config file headers with text ASCII art (e.g. Fish config):
+
+```sh
+toilet -f future -F border "Fish config"
+```
+
 ---
 
 ## Overview
