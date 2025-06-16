@@ -52,6 +52,7 @@ local mods_tbl = {
   s  = "SUPER",
   c = "CTRL",
   n = "NONE",
+  a = "ALT",
 }
 
 function M.mk_binding(mods, key, action)
