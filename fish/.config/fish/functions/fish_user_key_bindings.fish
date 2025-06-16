@@ -10,6 +10,7 @@ function fish_user_key_bindings
   bind -M insert \cp up-or-search
   # Ctrl-N  → next history match (down-or-search)
   bind -M insert \cn down-or-search
-  # Ctrl-F  → accept autosuggestion
+  # Ctrl-f or Ctrl-o  → accept autosuggestion
   bind -M insert \cf accept-autosuggestion
+  bind -M insert \co accept-autosuggestion
 end
