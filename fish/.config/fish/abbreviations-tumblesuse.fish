@@ -1,5 +1,3 @@
-__required_cmds xclip install_aws_cli_v2 flatpak rustup cargo pipx
-
 abbr -a clip 'xclip -selection clipboard'
 abbr -a zref 'sudo zypper refresh'
 abbr -a zin 'sudo zypper refresh; and sudo zypper in'
@@ -18,3 +16,4 @@ function up
   # sudo fwupdmgr refresh
   # sudo fwupdmgr update --assume-yes
 end
+

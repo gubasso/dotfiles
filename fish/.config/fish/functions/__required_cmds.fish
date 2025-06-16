@@ -8,7 +8,7 @@ function __required_cmds
 
   if test (count $missing) -gt 0
     echo ""
-    echo "\033[1;31mError:\033[0m Missing dependencies: $(string join ', ' $missing)"
+    echo "Error: Missing dependencies: $(string join ', ' $missing)"
     echo "Please install: $missing"
     # return 1  # uncomment if you want to stop loading the rest of config.fish
     echo ""

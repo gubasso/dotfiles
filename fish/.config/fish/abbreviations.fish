@@ -1,7 +1,8 @@
-abbr -a docs     "cd $HOME/DocsNNotes; nvim"
-abbr -a todo     "cd $HOME/Todo; nvim"
-abbr -a notes    "cd $HOME/Notes; nvim"
-abbr -a dot      "cd $HOME/.dotfiles"
+abbr -a cd       z
+abbr -a docs     "z $HOME/DocsNNotes; nvim"
+abbr -a todo     "z $HOME/Todo; nvim"
+abbr -a notes    "z $HOME/Notes; nvim"
+abbr -a dot      "z $HOME/.dotfiles"
 abbr -a n        nvim
 abbr -a sn       sudoedit
 abbr -a md       "mkdir -p"

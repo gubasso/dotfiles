@@ -1,4 +1,9 @@
 function fish_user_key_bindings
+  # fzf
+  bind -M insert alt-t fzf-file-widget
+  bind -M insert alt-r fzf-history-widget
+  bind -M insert  \cr history-pager
+  bind -M default \cr history-pager
   # bind Space+y in visual mode:
   #  \x20 is “space”
   #  --mode visual      → only active in visual mode
