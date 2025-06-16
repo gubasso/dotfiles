@@ -49,7 +49,18 @@ format = "[$virtualenv]($style) "
 style = "bright-black"
 
 [aws]
-symbol = "  "
+symbol = ' '
+format = '\[[$symbol($profile)(\($region\))(\[$duration\])]($style)\]'
+
+[azure]
+disabled = false
+format = '\[[$symbol($username)]($style)\]'
+symbol = "󰠅 "
+style = "blue bold"
+
+[gcloud]
+symbol = " "
+format = '\[[$symbol$account(@$domain)(\($region\))]($style)\]'
 
 [buf]
 symbol = " "
@@ -93,8 +104,6 @@ symbol = " "
 [fossil_branch]
 symbol = " "
 
-[gcloud]
-symbol = "  "
 
 [git_commit]
 tag_symbol = '  '
