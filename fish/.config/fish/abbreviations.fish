@@ -20,9 +20,9 @@ abbr -a ss       "sudo systemctl"
 abbr -a sudo     "sudo "
 abbr -a rs       "rsync -vurzP"
 abbr -a pre      "pre-commit run"
-abbr -a pa       "eval (poetry env activate)"
 abbr -a ma       "mise activate fish | source"
-abbr -a py_dev   "eval (poetry env activate); and mise activate fish | source"
+abbr -a pa       "eval (poetry env activate)"
+abbr -a py_dev   "mise activate fish | source; and eval (poetry env activate)"
 # docker
 abbr -a d        docker
 abbr -a dc       'docker compose'
