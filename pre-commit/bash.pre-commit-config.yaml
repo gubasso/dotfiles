@@ -1,6 +1,7 @@
 # Bash‑centric pre‑commit configuration
 
-default_stages: [commit]        # run on `git commit` unless hook overrides
+default_install_hook_types: [pre-commit, commit-msg]
+
 repos:
   # Generic housekeeping hooks
   - repo: https://github.com/pre-commit/pre-commit-hooks
