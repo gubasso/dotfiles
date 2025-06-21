@@ -6,8 +6,11 @@ $git_branch\
 $git_state\
 $git_status\
 $cmd_duration\
-$line_break\
 $python\
+$aws\
+$gcloud\
+$azure\
+$line_break\
 $character"""
 
 [directory]
@@ -39,6 +42,9 @@ stashed = "≡"
 format = '\([$state( $progress_current/$progress_total)]($style)\) '
 style = "bright-black"
 
+[git_commit]
+tag_symbol = '  '
+
 [cmd_duration]
 format = "[$duration]($style) "
 style = "yellow"
@@ -50,90 +56,25 @@ style = "bright-black"
 
 [aws]
 symbol = ' '
-format = '\[[$symbol($profile)(\($region\))(\[$duration\])]($style)\]'
+format = '[$symbol]($style)'
 
 [azure]
 disabled = false
-format = '\[[$symbol($username)]($style)\]'
+format = '[$symbol]($style)'
 symbol = "󰠅 "
-style = "blue bold"
 
 [gcloud]
 symbol = " "
-format = '\[[$symbol$account(@$domain)(\($region\))]($style)\]'
-
-[buf]
-symbol = " "
-
-[bun]
-symbol = " "
-
-[c]
-symbol = " "
-
-[cpp]
-symbol = " "
-
-[cmake]
-symbol = " "
-
-[conda]
-symbol = " "
-
-[crystal]
-symbol = " "
-
-[dart]
-symbol = " "
-
-[deno]
-symbol = " "
+format = '[$symbol]($style)'
 
 [docker_context]
 symbol = " "
 
-[elixir]
-symbol = " "
-
-[elm]
-symbol = " "
-
-[fennel]
-symbol = " "
-
-[fossil_branch]
-symbol = " "
-
-
-[git_commit]
-tag_symbol = '  '
-
 [golang]
 symbol = " "
 
-[guix_shell]
-symbol = " "
-
-[haskell]
-symbol = " "
-
-[haxe]
-symbol = " "
-
-[hg_branch]
-symbol = " "
-
 [hostname]
 ssh_symbol = " "
-
-[java]
-symbol = " "
-
-[julia]
-symbol = " "
-
-[kotlin]
-symbol = " "
 
 [lua]
 symbol = " "
@@ -141,20 +82,8 @@ symbol = " "
 [memory_usage]
 symbol = "󰍛 "
 
-[meson]
-symbol = "󰔷 "
-
-[nim]
-symbol = "󰆥 "
-
-[nix_shell]
-symbol = " "
-
 [nodejs]
 symbol = " "
-
-[ocaml]
-symbol = " "
 
 [os.symbols]
 Alpaquita = " "
@@ -206,18 +135,6 @@ Windows = "󰍲 "
 [package]
 symbol = "󰏗 "
 
-[perl]
-symbol = " "
-
-[php]
-symbol = " "
-
-[pijul_channel]
-symbol = " "
-
-[pixi]
-symbol = "󰏗 "
-
 [rlang]
 symbol = "󰟔 "
 
@@ -227,14 +144,5 @@ symbol = " "
 [rust]
 symbol = "󱘗 "
 
-[scala]
-symbol = " "
-
-[swift]
-symbol = " "
-
 [zig]
 symbol = " "
-
-[gradle]
-symbol = " "
