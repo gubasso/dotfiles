@@ -1,5 +1,3 @@
-__required_cmds git
-
 function gacmp
   if test (count $argv) -eq 0
     echo "Usage: gacmp <commit message>"

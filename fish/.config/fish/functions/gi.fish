@@ -1,5 +1,3 @@
-__required_cmds curl
-
 function gi
   if test (count $argv) -ne 1
     echo "Usage: gi <language>"

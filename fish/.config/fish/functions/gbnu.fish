@@ -1,5 +1,3 @@
-__required_cmds git slugify
-
 function gbnu
   if test (count $argv) -eq 0
     echo "Usage: gbnu <new branch name>"
