@@ -64,8 +64,15 @@ format = '[$symbol]($style)'
 symbol = "󰠅 "
 
 [gcloud]
+disabled = true
 symbol = " "
 format = '[$symbol]($style)'
+
+[custom.gcloud]
+command = 'echo " "'
+when    = 'gcloud auth print-access-token --quiet >/dev/null 2>&1'
+style   = 'bold blue'
+format  = '[$output]($style)'
 
 [docker_context]
 symbol = " "
