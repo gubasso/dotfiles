@@ -35,10 +35,30 @@ local schemes = wezterm.color.get_builtin_schemes()
 config.colors = config.colors or {}
 config.colors.tab_bar = schemes[config.color_scheme].tab_bar
 config.use_fancy_tab_bar = false
+config.colors.tab_bar = config.colors.tab_bar or {}
+config.colors.tab_bar.background = 'none'
+local scheme = schemes[config.color_scheme]
 
+config.colors.tab_bar.active_tab = {
+  bg_color = scheme.background,
+  fg_color = scheme.cursor_bg,
+}
+local inactive_style = {
+  bg_color = 'none',
+  fg_color = scheme.brights[1],
+}
+local inactive_hover_style = {
+  bg_color = '#3b3052',
+  fg_color = '#909090',
+  italic   = true,
+}
+config.colors.tab_bar.inactive_tab = inactive_style
+config.colors.tab_bar.inactive_tab_hover = inactive_hover_style
+config.colors.tab_bar.new_tab = inactive_style
+config.colors.tab_bar.new_tab_hover = inactive_hover_style
 
 wezterm.on('update-status', function(window, pane)
-    -- Workspace name
+  -- Workspace name
   local stat = ""
 
   -- file://ambar/home/gubasso/.dotfiles/wezterm/.config/wezterm/
@@ -53,11 +73,8 @@ wezterm.on('update-status', function(window, pane)
     stat = ' '
   end
 
-  -- pick a single gray for all:
-  local gray = "#a5a5a5"
-
   window:set_right_status(wezterm.format({
-    { Foreground = { Color = gray } },
+    { Foreground = { Color = scheme.brights[1] } },
     { Text = stat },
     { Text = " " },
     { Text = cwd },
