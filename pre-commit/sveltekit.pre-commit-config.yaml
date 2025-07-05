@@ -75,13 +75,14 @@ repos:
           - prettier-plugin-tailwindcss
 
   # Stylelint for CSS/Tailwind in <style> blocks
-  - repo: https://github.com/pre-commit/mirrors-stylelint
-    rev: '*'
+  - repo: https://github.com/thibaudcolas/pre-commit-stylelint
+    rev: v16.6.1     # change to the desired Stylelint version
     hooks:
       - id: stylelint
-        args: [--fix]
+        args: [--fix]      # automatically apply fixes
+        files: '\.(css|scss|svelte)$'
         additional_dependencies:
-          - stylelint
+          - stylelint@16.6.1   # must match the rev tag
           - stylelint-config-prettier
           - stylelint-config-tailwindcss
 
