@@ -6,9 +6,14 @@ function gbnu
   git fetch origin; or return 1
 
   set -l new_branch (slugify $argv)
-  echo "$new_branch"
 
-  git switch -c $new_branch --track origin/$new_branch; or return 1
-  git pull; or return 1
+  # just check if remote branch exists
+  if not git rev-parse --verify --quiet "origin/$new_branch" >/dev/null
+    echo "Remote branch origin/$new_branch not found"
+    return 1
+  end
+
+  git switch -c $new_branch; or return 1
+  git pull --set-upstream origin $new_branch; or return 1
   git push --set-upstream origin $new_branch; or return 1
 end
