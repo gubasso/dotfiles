@@ -1,0 +1,9 @@
+[Unit]
+Description=Hide mouse cursor while typing (xbanish)
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/xbanish
+
+[Install]
+WantedBy=xdg-desktop-autostart.target
