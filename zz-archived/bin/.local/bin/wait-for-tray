@@ -1,0 +1,16 @@
+#!/bin/sh
+# wait-for-tray <command> [args...]
+# while ! busctl --user --list --no-pager --no-legend | grep -q '^org\.kde\.StatusNotifierWatcher'; do
+#     sleep 0.2        # ~5 × per second
+# done
+
+while ! busctl --user --quiet get-property \
+  org.kde.StatusNotifierWatcher \
+  /StatusNotifierWatcher \
+  org.kde.StatusNotifierWatcher \
+  IsStatusNotifierHostRegistered \
+        | grep -q true; do
+    sleep 0.1   # 10× per second
+done
+
+exec "$@"
