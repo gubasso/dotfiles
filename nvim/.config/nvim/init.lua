@@ -24,7 +24,7 @@ do
   vim.lsp.util.make_position_params = function(win_id, position_encoding)
     -- figure out the encoding: explicit param > first client > utf-16
     local enc = position_encoding
-      or (vim.lsp.get_active_clients({ bufnr = 0 })[1] and vim.lsp.get_active_clients({ bufnr = 0 })[1].offset_encoding)
+      or (vim.lsp.get_clients({ bufnr = 0 })[1] and vim.lsp.get_clients({ bufnr = 0 })[1].offset_encoding)
       or "utf-16"
     return orig(win_id, enc)
   end
@@ -40,8 +40,8 @@ local specs = {
 }
 
 
-if hostname == "valinor" then
-  table.insert(specs, { import = "hosts.valinor" })
+if hostname == "void" then
+  table.insert(specs, { import = "hosts.void" })
 elseif hostname == "tumblesuse" then
   table.insert(specs, { import = "hosts.tumblesuse" })
 end
