@@ -19,10 +19,6 @@ abbr -a clrm     'clear && echo -en "\e[3J"'
 abbr -a ss       "sudo systemctl"
 abbr -a sudo     "sudo "
 abbr -a rs       "rsync -vurzP"
-abbr -a pre      "pre-commit run"
-abbr -a ma       "mise activate fish | source"
-abbr -a pa       "eval (poetry env activate)"
-abbr -a py_dev   "mise activate fish | source; and eval (poetry env activate)"
 # docker
 abbr -a d        docker
 abbr -a dc       'docker compose'
@@ -40,3 +36,8 @@ abbr -a gs       'git switch'
 abbr -a gb       'git --no-pager branch'
 abbr -a gbd      'git branch -d'
 abbr -a gbn      'git switch -c'
+# development
+abbr -a pre         "pre-commit run"
+abbr -a dev-mise    "mise activate fish | source"
+abbr -a dev-poetry  "eval (poetry env activate)"
+abbr -a dev-py      "mise activate fish | source && eval (poetry env activate)"
