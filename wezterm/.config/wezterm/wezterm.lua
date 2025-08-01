@@ -43,19 +43,6 @@ config.colors.tab_bar.active_tab = {
   bg_color = scheme.background,
   fg_color = scheme.cursor_bg,
 }
-local inactive_style = {
-  bg_color = 'none',
-  fg_color = scheme.brights[1],
-}
-local inactive_hover_style = {
-  bg_color = '#3b3052',
-  fg_color = '#909090',
-  italic   = true,
-}
-config.colors.tab_bar.inactive_tab = inactive_style
-config.colors.tab_bar.inactive_tab_hover = inactive_hover_style
-config.colors.tab_bar.new_tab = inactive_style
-config.colors.tab_bar.new_tab_hover = inactive_hover_style
 
 wezterm.on('update-status', function(window, pane)
   -- Workspace name
