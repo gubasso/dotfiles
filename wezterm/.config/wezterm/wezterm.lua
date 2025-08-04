@@ -36,7 +36,6 @@ config.colors = config.colors or {}
 config.colors.tab_bar = schemes[config.color_scheme].tab_bar
 config.use_fancy_tab_bar = false
 config.colors.tab_bar = config.colors.tab_bar or {}
-config.colors.tab_bar.background = 'none'
 local scheme = schemes[config.color_scheme]
 
 config.colors.tab_bar.active_tab = {
