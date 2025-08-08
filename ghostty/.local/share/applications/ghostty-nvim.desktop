@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=Ghostty Nvim
+Exec=ghostty --title=term-history -e nvim %f
+Terminal=false
+Type=Application
+MimeType=text/plain;text/markdown;text/x-markdown;
