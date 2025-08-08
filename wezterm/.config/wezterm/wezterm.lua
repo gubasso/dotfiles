@@ -28,7 +28,7 @@ config.status_update_interval = 1000
 -- Apply host-specific color scheme & font
 config.color_scheme = host_config.scheme
 config.font         = host_config.font
-config.window_background_opacity = 0.8
+config.window_background_opacity = 0.98
 
 -- Fetch built-in schemes and sync tab-bar colors
 local schemes = wezterm.color.get_builtin_schemes()
@@ -36,26 +36,12 @@ config.colors = config.colors or {}
 config.colors.tab_bar = schemes[config.color_scheme].tab_bar
 config.use_fancy_tab_bar = false
 config.colors.tab_bar = config.colors.tab_bar or {}
-config.colors.tab_bar.background = 'none'
 local scheme = schemes[config.color_scheme]
 
 config.colors.tab_bar.active_tab = {
   bg_color = scheme.background,
   fg_color = scheme.cursor_bg,
 }
-local inactive_style = {
-  bg_color = 'none',
-  fg_color = scheme.brights[1],
-}
-local inactive_hover_style = {
-  bg_color = '#3b3052',
-  fg_color = '#909090',
-  italic   = true,
-}
-config.colors.tab_bar.inactive_tab = inactive_style
-config.colors.tab_bar.inactive_tab_hover = inactive_hover_style
-config.colors.tab_bar.new_tab = inactive_style
-config.colors.tab_bar.new_tab_hover = inactive_hover_style
 
 wezterm.on('update-status', function(window, pane)
   -- Workspace name
