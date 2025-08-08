@@ -1,3 +1,4 @@
+abbr -a !!       --position anywhere --function last_history_item
 abbr -a cd       z
 abbr -a docs     "z $HOME/DocsNNotes; nvim"
 abbr -a todo     "z $HOME/Todo; nvim"
@@ -17,7 +18,6 @@ abbr -a rg       "rg --hidden --smart-case"
 abbr -a cl       clear
 abbr -a clrm     'clear && echo -en "\e[3J"'
 abbr -a ss       "sudo systemctl"
-abbr -a sudo     "sudo "
 abbr -a rs       "rsync -vurzP"
 abbr -a pre      "pre-commit run"
 abbr -a ma       "mise activate fish | source"
