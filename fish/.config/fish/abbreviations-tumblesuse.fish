@@ -7,13 +7,14 @@ abbr -a zsr 'zypper search'
 
 # --- functions -----------------------------------------
 function up
+  sudo zypper refresh
+  sudo zypper dup
   install_aws_cli_v2
   flatpak update
   rustup update
   cargo install-update -a
   pipx upgrade-all
-  sudo zypper refresh
-  sudo zypper dup
+  npm update -g
   # sudo fwupdmgr refresh
   # sudo fwupdmgr update --assume-yes
 end
