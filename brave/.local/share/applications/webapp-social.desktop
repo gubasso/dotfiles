@@ -1,0 +1,26 @@
+[Desktop Entry]
+Version=1.0
+Name=Webapp Social
+# Only KDE 4 seems to use GenericName, so we reuse the KDE strings.
+GenericName=Webapp Social
+# Gnome and KDE 3 uses Comment.
+Comment=Webapp Social
+StartupNotify=true
+StartupWMClass=brave-browser
+TryExec=brave-launcher
+Exec=brave-launcher "--window-name=WebApp Social" "--profile-directory=Profile 3" %U
+Terminal=false
+Icon=brave-desktop
+Type=Application
+Categories=Network;WebBrowser;
+MimeType=application/pdf;application/rdf+xml;application/rss+xml;application/xhtml+xml;application/xhtml_xml;application/xml;image/gif;image/jpeg;image/png;image/webp;text/html;text/xml;x-scheme-handler/http;x-scheme-handler/https;x-scheme-handler/ipfs;x-scheme-handler/ipns;
+Actions=new-window;new-private-window;
+
+[Desktop Action new-window]
+Name=New Window (Webapp Social)
+Exec=brave-launcher "--window-name=WebApp Social" "--profile-directory=Profile 3"
+
+[Desktop Action new-private-window]
+Name=New Incognito Window (Webapp Social)
+Exec=brave-launcher "--window-name=WebApp Social" "--profile-directory=Profile 3" --incognito
+MimeType=x-scheme-handler/unknown;x-scheme-handler/about;text/html;text/xml;application/xhtml_xml;image/webp;x-scheme-handler/http;x-scheme-handler/https;
