@@ -40,8 +40,8 @@ local specs = {
 }
 
 
-if hostname == "void" then
-  table.insert(specs, { import = "hosts.void" })
+if hostname == "nova" then
+  table.insert(specs, { import = "hosts.nova" })
 elseif hostname == "tumblesuse" then
   table.insert(specs, { import = "hosts.tumblesuse" })
 end
