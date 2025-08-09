@@ -1,0 +1,13 @@
+[Unit]
+Description=KeePassXC
+After=graphical-session.target waybar.service
+Requires=waybar.service
+Wants=dbus.service
+
+[Service]
+ExecStartPre=%h/.local/bin/wait-for-tray
+ExecStart=/usr/bin/keepassxc --minimized
+Restart=on-failure
+
+[Install]
+WantedBy=graphical-session.target
