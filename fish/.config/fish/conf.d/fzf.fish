@@ -1,7 +1,6 @@
 # fzf
 set -l tree_cmd 'eza --tree --all --git-ignore --ignore-glob ".git" --color=always'
 
-
 set -x FZF_DEFAULT_COMMAND "fd --hidden --follow --color=always"
 set -x FZF_DEFAULT_OPTS "
   --select-1 --exit-0

@@ -10,6 +10,11 @@ set -g cfg_d "$HOME/.config/fish"
 
 # --- Main ----------------------------------------------
 
+# Loading aliases...
+for f in "$cfg_d"/aliases{,-$hostname}{,.priv}.fish
+    test -f "$f" && source "$f"
+end
+
 # Loading abbreviations...
 for f in "$cfg_d"/abbreviations{,-$hostname}{,.priv}.fish
     test -f "$f" && source "$f"
