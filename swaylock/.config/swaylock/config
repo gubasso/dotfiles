@@ -1,0 +1,22 @@
+color=000000
+
+
+# --- Fill -----------------------------
+# dark purple
+ring-color=120426
+inside-color=120426
+bs-hl-color=120426
+# foreground
+key-hl-color=b628ca
+line-color=b628ca
+separator-color=b628ca
+
+# --- Clear ---------------------------
+text-clear-color=120426
+inside-clear-color=000000
+ring-clear-color=4f0f72
+
+# --- Verify ---------------------------
+ring-ver-color=b628ca
+inside-ver-color=000000
+text-ver-color=b628ca
