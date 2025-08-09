@@ -61,10 +61,12 @@ keybind = ctrl+space>j=write_scrollback_file:open
 # splits and panes
 keybind = ctrl+space>minus=new_split:down
 keybind = ctrl+space>backslash=new_split:right
-keybind = ctrl+h=goto_split:left
-keybind = ctrl+j=goto_split:down
-keybind = ctrl+k=goto_split:up
-keybind = ctrl+l=goto_split:right
+
+keybind = ctrl+shift+h=goto_split:left
+keybind = ctrl+shift+j=goto_split:down
+keybind = ctrl+shift+k=goto_split:up
+keybind = ctrl+shift+l=goto_split:right
+
 keybind = alt+h=resize_split:left,40
 keybind = alt+j=resize_split:down,40
 keybind = alt+k=resize_split:up,40
