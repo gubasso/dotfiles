@@ -3,7 +3,6 @@ set -euo pipefail
 
 XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
 USER_FLAGS_FILE="$XDG_CONFIG_HOME/brave-flags.conf"
-SYS_FLAGS_FILE="/etc/brave-flags.conf"        # optional
 
 collect_flags () {
   local file=$1
@@ -14,17 +13,6 @@ collect_flags () {
 }
 
 USER_FLAGS=$(collect_flags "$USER_FLAGS_FILE")
-SYS_FLAGS=$(collect_flags "$SYS_FLAGS_FILE")
 
-# ---------------------------------------------------------
-# Disable the sandbox if user namespaces are missing
-# ---------------------------------------------------------
-if ! { grep -q "CONFIG_USER_NS=y" /proc/config.* 2>/dev/null \
-       || [[ $(sysctl -n kernel.unprivileged_userns_clone 2>/dev/null) == 1 ]]; }; then
-  SANDBOX_FLAG="--no-sandbox"
-  printf 'Brave-launcher: user namespaces unavailable; running without sandbox.\n' >&2
-fi
-
-BRAVE_BIN="/usr/bin/brave"   # community & brave-bin use the same path
-exec "$BRAVE_BIN" "$SANDBOX_FLAG" "$SYS_FLAGS" "$USER_FLAGS" "$@"
-
+BRAVE_BIN="/usr/bin/brave"
+exec "$BRAVE_BIN" $USER_FLAGS "$@"

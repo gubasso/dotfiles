@@ -1,0 +1,30 @@
+#!/usr/bin/dash
+
+confirm() {
+  prompt="$1"
+  confirmation=$(printf "Yes\nNo" | fuzzel --dmenu \
+    --prompt="$prompt " \
+    --lines=2 \
+    --select="Yes")
+  if [ "$confirmation" = "No" ]; then
+    exit 0
+  fi
+}
+
+entries="  Suspend\n⎋  Logout\n  Reboot\n  Poweroff"
+choice="$(echo "$entries" | fuzzel --dmenu \
+                                     --prompt="󰐥  " \
+                                     --width=30 \
+                                     --lines=4 \
+                                     --no-run-if-empty \
+                                     --font='Nerd Font:style=Bold:size=14')"
+
+case "$choice" in
+  *Suspend*)  cmd=suspend  ;;
+  *Logout*)   confirm "$choice?"; niri msg action quit --skip-confirmation ;;
+  *Reboot*)   confirm "$choice?"; cmd=reboot   ;;
+  *Poweroff*) confirm "$choice?"; cmd=poweroff ;;
+  *) exit 0 ;;
+esac
+
+systemctl "$cmd"
