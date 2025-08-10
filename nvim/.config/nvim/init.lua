@@ -32,9 +32,6 @@ do
   end
 end
 
--- organization model:
--- https://dev.to/voyeg3r/my-lazy-neovim-config-3h6o
-
 local hostname = vim.loop.os_gethostname()
 
 local specs = {
@@ -45,5 +42,3 @@ local specs = {
 require"lazy".setup(specs, {
   -- other lazy.nvim opts
 })
-
-require("ft_autocmds")
