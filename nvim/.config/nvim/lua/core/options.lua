@@ -1,10 +1,12 @@
+local opt = vim.opt
+
 vim.g.mapleader = ' '
 vim.g.maplocalleader = ','
-local opt = vim.opt
-vim.o.title = true
-vim.o.titlestring = "Neovim - %f"
+vim.g.markdown_recommended_style = 0 -- Fix markdown indentation settings
+
+opt.title = true
+opt.titlestring = "Neovim - %f"
 opt.autowrite = true -- Enable auto write
--- vim.opt.clipboard = 'unnamedplus'
 opt.completeopt = "menu,menuone,noselect"
 opt.confirm = true -- Confirm to save changes before exiting modified buffer
 opt.cursorline = true -- Enable highlighting of the current line
@@ -45,17 +47,8 @@ opt.undolevels = 10000
 opt.updatetime = 200 -- Save swap file and trigger CursorHold
 opt.wildmode = "longest:full,full" -- Command-line completion mode
 opt.winminwidth = 5 -- Minimum window width
--- opt.wrap = false -- Disable line wrap
-
-if vim.fn.has("nvim-0.9.0") == 1 then
-  opt.splitkeep = "screen"
-  opt.shortmess:append({ C = true })
-end
-
--- Fix markdown indentation settings
-vim.g.markdown_recommended_style = 0
-
-vim.cmd('filetype plugin indent on')
+opt.splitkeep = "screen"
+opt.shortmess:append({ C = true })
 opt.fileencoding = 'utf-8'
 opt.colorcolumn = '80'
 opt.backup = false
@@ -64,5 +57,3 @@ opt.swapfile = false
 opt.autoread = true
 opt.hlsearch = false
 opt.incsearch = true
-
-
