@@ -1,5 +1,3 @@
-
--- Define a custom command
 vim.api.nvim_create_user_command('RunYTMDLink', function()
   -- Get the current line number and content
   local line = vim.api.nvim_get_current_line()
