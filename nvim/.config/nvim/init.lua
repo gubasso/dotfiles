@@ -17,6 +17,8 @@ if not vim.loop.fs_stat(lazypath) then
 end
 vim.opt.rtp:prepend(lazypath)
 
+require('core') -- needs to come first
+
 -- Solving:   Warn notify.warn position_encoding param is required in vim.lsp.util.make_position_params. Defaulting to position encoding of the first client.
 -- Monkey‐patch make_position_params to default to the first client’s encoding
 do
@@ -37,17 +39,11 @@ local hostname = vim.loop.os_gethostname()
 
 local specs = {
   { import = "plugins" },
+  { import = "plugins/hosts." .. hostname },
 }
 
-
-if hostname == "nova" then
-  table.insert(specs, { import = "hosts.nova" })
-elseif hostname == "tumblesuse" then
-  table.insert(specs, { import = "hosts.tumblesuse" })
-end
-
-require('core') -- needs to come first
 require"lazy".setup(specs, {
   -- other lazy.nvim opts
 })
-require('lang')
+
+require("ft_autocmds")
