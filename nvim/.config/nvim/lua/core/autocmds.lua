@@ -173,9 +173,23 @@ vim.api.nvim_create_autocmd({ "BufWritePost" }, {
 	end,
 })
 
--- ============================================================================
+-- =============================================================
 -- Filetype mappings / small filetype fixes
--- ============================================================================
+-- =============================================================
+
+
+-- Ghostty "screen.txt" and "history.txt" files: Jump to end-of-file
+vim.api.nvim_create_autocmd({ "BufWinEnter", "BufNewFile" }, {
+  group = M.augroup("GhosttyTxtEOF"),
+  pattern = { "screen.txt", "history.txt" },
+  callback = function(args)
+    vim.schedule(function()  -- wait until the window is ready
+      if vim.api.nvim_get_current_buf() ~= args.buf then return end
+      vim.cmd.normal({ 'G', bang = true })
+    end)
+  end,
+})
+
 
 -- Google Apps Script (.gs) treated as javascript
 vim.api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {
