@@ -1,7 +1,7 @@
 local opt = vim.opt
 
-vim.g.mapleader = ' '
-vim.g.maplocalleader = ','
+vim.g.mapleader = " "
+vim.g.maplocalleader = ","
 vim.g.markdown_recommended_style = 0 -- Fix markdown indentation settings
 
 opt.title = true
@@ -23,7 +23,7 @@ opt.list = true -- Show some invisible characters (tabs...
 opt.mouse = "a" -- Enable mouse mode
 opt.number = true -- Print line number
 opt.relativenumber = true -- Relative line numbers
-opt.signcolumn = 'number'
+opt.signcolumn = "number"
 opt.pumblend = 10 -- Popup blend
 opt.pumheight = 10 -- Maximum number of entries in a popup
 opt.scrolloff = 4 -- Lines of context
@@ -49,8 +49,8 @@ opt.wildmode = "longest:full,full" -- Command-line completion mode
 opt.winminwidth = 5 -- Minimum window width
 opt.splitkeep = "screen"
 opt.shortmess:append({ C = true })
-opt.fileencoding = 'utf-8'
-opt.colorcolumn = '80'
+opt.fileencoding = "utf-8"
+opt.colorcolumn = "80"
 opt.backup = false
 opt.writebackup = false
 opt.swapfile = false
