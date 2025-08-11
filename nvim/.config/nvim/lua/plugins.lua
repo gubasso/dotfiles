@@ -1302,6 +1302,8 @@ return {
 
 	{ "sindrets/diffview.nvim", opts = { view = { merge_tool = { layout = "diff4_mixed" } } } },
 
+  { "lewis6991/gitsigns.nvim" },
+
 	{
 		"tpope/vim-fugitive",
 		keys = {
