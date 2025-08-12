@@ -53,7 +53,6 @@ gtk-titlebar = false
 gtk-adwaita = false
 
 keybind = ctrl+shift+r=reload_config
-keybind = ctrl+l=ignore
 
 # open history with xdg-open
 keybind = ctrl+space>f=write_screen_file:open

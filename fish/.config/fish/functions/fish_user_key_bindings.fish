@@ -1,4 +1,5 @@
 function fish_user_key_bindings
+  bind \cl '' # Override Ctrl+L with no action
   # fzf
   bind -M insert alt-t fzf-file-widget
   bind -M insert alt-r fzf-history-widget
