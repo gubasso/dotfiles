@@ -11,5 +11,5 @@ apiurl=https://api.opensuse.org
 # pass=
 # credentials_mgr_class=osc.credentials...
 user=gbasso
-trusted_prj=openSUSE:Tumbleweed Cloud:Tools devel:libraries:c_c++ SUSE:SLE-15-SP3:Update SUSE:SLE-15:GA SUSE:SLE-15:Update SUSE:SLE-15-SP3:GA SUSE:SLE-15-SP2:GA SUSE:SLE-15-SP1:Update SUSE:SLE-15-SP2:Update SUSE:SLE-15-SP1:GA devel:languages:python:backports
+trusted_prj=openSUSE:Tumbleweed Cloud:Tools devel:libraries:c_c++ SUSE:SLE-15-SP3:Update SUSE:SLE-15:GA SUSE:SLE-15:Update SUSE:SLE-15-SP3:GA SUSE:SLE-15-SP2:GA SUSE:SLE-15-SP1:Update SUSE:SLE-15-SP2:Update SUSE:SLE-15-SP1:GA devel:languages:python:backports SUSE:SLE-15-SP4:Update SUSE:SLE-15-SP6:Update SUSE:SLE-15-SP4:GA SUSE:SLE-15-SP6:GA SUSE:SLE-15-SP5:Update SUSE:SLE-15-SP5:GA openSUSE:Leap:15.6 openSUSE:Leap:15.5 openSUSE:Leap:15.4 openSUSE:Backports:SLE-15-SP4:Checks
 credentials_mgr_class=osc.credentials.KeyringCredentialsManager:keyring.backends.SecretService.Keyring

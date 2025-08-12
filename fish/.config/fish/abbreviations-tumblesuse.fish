@@ -10,6 +10,9 @@ function up
   sudo zypper refresh
   sudo zypper dup
   install_aws_cli_v2
+  brew update
+  brew upgrade
+  brew cleanup
   flatpak update
   rustup update
   cargo install-update -a
