@@ -859,15 +859,29 @@ return {
 				{ "<leader>ft", "<cmd>TodoTelescope<CR>", desc = "Todo" },
 				{ "<leader>fT", "<cmd>TodoTelescope keywords=TODO,FIX,FIXME<CR>", desc = "Todo/Fix/Fixme" },
 			})
+
 			local trouble = require("trouble.sources.telescope")
 			local telescope = require("telescope")
+      local telescopeConfig = require('telescope.config')
+      local vimgrep_arguments = { unpack(telescopeConfig.values.vimgrep_arguments) }
+      table.insert(vimgrep_arguments, '--hidden')
+      table.insert(vimgrep_arguments, '--follow')
+      table.insert(vimgrep_arguments, "--glob")
+      table.insert(vimgrep_arguments, "!**/.git/*")
 			telescope.setup({
 				defaults = {
+          vimgrep_arguments = vimgrep_arguments,
 					mappings = {
 						i = { ["<c-t>"] = trouble.open, ["<c-h>"] = "which_key" },
 						n = { ["<c-t>"] = trouble.open },
 					},
 				},
+        pickers = {
+          find_files = {
+            hidden = true,
+            follow = true,
+          },
+        },
 			})
 			require("telescope").load_extension("fzf")
 		end,
