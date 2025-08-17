@@ -1,0 +1,17 @@
+# Global: fall back to 5s if apps don’t set a timeout
+default-timeout=5000
+# tells mako to ignore whatever timeout the app sent and use your default
+ignore-timeout=1
+
+# Low urgency → quick fade
+[urgency=low]
+default-timeout=2000
+
+# Normal urgency → standard fade
+[urgency=normal]
+default-timeout=4000
+
+# Critical → stay until clicked
+[urgency=critical]
+default-timeout=0
+ignore-timeout=0
