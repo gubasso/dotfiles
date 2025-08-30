@@ -20,10 +20,6 @@ for f in "$cfg_d"/abbreviations{,-$hostname}{,.priv}.fish
     test -f "$f" && source "$f"
 end
 
-fzf --fish | source
-
-eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-
 # --- Footer --------------------------------------------
 __source_starship
 zoxide init fish | source

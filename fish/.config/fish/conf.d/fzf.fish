@@ -28,3 +28,5 @@ set -x FZF_CTRL_R_OPTS "
   --bind 'ctrl-y:execute-silent(echo -n {} | xclip -selection clipboard)+abort'
   --color header:italic
   --header 'Press ^y to copy command into clipboard'"
+
+fzf --fish | source
