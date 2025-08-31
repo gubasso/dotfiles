@@ -599,6 +599,7 @@ return {
 	{
 		"mrjones2014/smart-splits.nvim",
 		lazy = false,
+    build = './kitty/install-kittens.bash',
 		config = function()
 			vim.keymap.set("n", "<A-h>", require("smart-splits").resize_left)
 			vim.keymap.set("n", "<A-j>", require("smart-splits").resize_down)
@@ -1073,6 +1074,11 @@ return {
 		init = function()
 			local ls = require("luasnip")
 			local wk = require("which-key")
+
+      ls.config.set_config({
+        update_events = "TextChanged,TextChangedI"
+      })
+
 			wk.add({
 				{ mode = "i", { "<c-K>", ls.expand, desc = "Expand snippet" } },
 				{
