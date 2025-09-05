@@ -12,7 +12,6 @@ abbr -a rms      "shred -n10 -uz"
 abbr -a rm       trash-put
 abbr -a ls       eza
 abbr -a ll       "eza -la"
-abbr -a tree     "eza --tree --all --git-ignore --ignore-glob '.git'"
 abbr -a cat      bat
 abbr -a rg       "rg --hidden --smart-case"
 abbr -a cl       clear
