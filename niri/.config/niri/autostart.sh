@@ -7,6 +7,6 @@ launch() {
   niri msg action maximize-column
 }
 
-launch work ghostty
-launch notes ghostty
+launch work kitty
+launch notes kitty
 niri msg action focus-workspace work
