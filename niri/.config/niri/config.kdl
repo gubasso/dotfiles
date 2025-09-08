@@ -75,6 +75,28 @@ cursor {
 // The built-in laptop monitor is usually called "eDP-1".
 // Find more information on the wiki:
 // https://github.com/YaLTeR/niri/wiki/Configuration:-Outputs
+
+debug {
+  keep-laptop-panel-on-when-lid-is-closed
+}
+
+switch-events {
+  lid-close { spawn "bash" "-c" "niri msg output \"eDP-1\" off"; }
+  lid-open  { spawn "bash" "-c" "niri msg output \"eDP-1\" on"; }
+}
+
+// DP-7
+output "Samsung Electric Company SAMSUNG Unknown" {
+    mode "1920x1080@60.000"
+    scale 1.0
+}
+
+// eDP-1, laptop
+output "Samsung Display Corp. 0x4165 Unknown" {
+  mode "3840x2400@60.000"
+  scale 2.0
+}
+
 // Remember to uncomment the node by removing "/-"!
 /-output "eDP-1" {
     // Uncomment this line to disable this output.
