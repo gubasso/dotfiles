@@ -1,0 +1,10 @@
+profile docked {
+  output "Samsung Display Corp. 0x4165 Unknown" enable position 0,0
+  output "Samsung Electric Company SAMSUNG Unknown" enable mode 1920x1080@60Hz position 1920,0
+  exec sh -c 'sleep 0.2; niri msg output "Samsung Electric Company SAMSUNG Unknown" mode "1920x1080@60.000"; ~/.local/bin/niri-promote-output.sh "Samsung Display Corp. 0x4165 Unknown" "Samsung Electric Company SAMSUNG Unknown"'
+}
+
+profile undocked {
+  output "Samsung Display Corp. 0x4165 Unknown" enable
+  exec ~/.local/bin/niri-promote-output.sh "Samsung Electric Company SAMSUNG Unknown" "Samsung Display Corp. 0x4165 Unknown"
+}
