@@ -32,12 +32,20 @@
       }
     },
     // Modules configuration
+    "niri/window": {
+      "format": "{title}",
+      "separate-outputs": true,   // show title of the window on THIS monitor
+      // optional niceties:
+      // "icon": false,
+      // "max-length": 80,
+      // "expand": true
+    },
     "custom/peek": {
       "format": " ",
       "tooltip": "Show controls"
     },
     "niri/workspaces": {
-      "all-outputs": true,
+      "all-outputs": false,
       "format": "{icon}",
       "format-icons": {
         "work": "仕",
@@ -45,6 +53,17 @@
         "notes": "メ",
         "google": "遊",
         "social": "つ",
+        // unnamed workspaces → indices (show numbers)
+        "1": "1",
+        "2": "2",
+        "3": "3",
+        "4": "4",
+        "5": "5",
+        "6": "6",
+        "7": "7",
+        "8": "8",
+        "9": "9",
+        "10": "0",
         "default": "〇"
       },
     },
