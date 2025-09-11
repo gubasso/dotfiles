@@ -881,6 +881,7 @@ return {
           find_files = {
             hidden = true,
             follow = true,
+            file_ignore_patterns = { "%.git/" },
           },
         },
 			})
