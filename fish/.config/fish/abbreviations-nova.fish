@@ -1,4 +1,3 @@
-abbr -a clip  "wl-copy"
 
 abbr -a pin   "paru -Syu --needed"
 abbr -a psr   "paru -Ss"

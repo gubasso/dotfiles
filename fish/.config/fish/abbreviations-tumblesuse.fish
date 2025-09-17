@@ -1,4 +1,3 @@
-abbr -a clip 'xclip -selection clipboard'
 abbr -a zref 'sudo zypper refresh'
 abbr -a zin 'sudo zypper in'
 abbr -a zrin 'sudo zypper refresh; and sudo zypper in'

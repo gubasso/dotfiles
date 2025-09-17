@@ -13,6 +13,7 @@ abbr -a rm       trash-put
 abbr -a ls       eza
 abbr -a ll       "eza -la"
 abbr -a cat      bat
+abbr -a batd     "bat --decorations=always"
 abbr -a rg       "rg --hidden --smart-case"
 abbr -a cl       clear
 abbr -a clrm     'clear && echo -en "\e[3J"'
