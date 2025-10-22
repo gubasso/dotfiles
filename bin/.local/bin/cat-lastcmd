@@ -1,0 +1,7 @@
+#!/usr/bin/sh
+set -eu
+
+cmd="$(fish -c 'history | head -n1' 2>/dev/null || printf '')"
+
+printf '❯ %s\n\n' "${cmd:-}"
+cat -
