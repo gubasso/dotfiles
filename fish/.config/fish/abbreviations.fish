@@ -15,8 +15,6 @@ abbr -a ll       "eza -la"
 abbr -a cat      bat
 abbr -a batd     "bat --decorations=always"
 abbr -a rg       "rg --hidden --smart-case"
-abbr -a cl       clear
-abbr -a clrm     'clear && echo -en "\e[3J"'
 abbr -a ss       "sudo systemctl"
 abbr -a rs       "rsync -vurzP"
 # docker
