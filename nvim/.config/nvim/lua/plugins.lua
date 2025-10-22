@@ -1,5 +1,4 @@
 -- Function for highlighting the visual selection upon pressing <CR> in Visual mode
--- Open file/URL under cursor in browser (gx)
 local function highlight_selection()
   vim.cmd.normal({ '"*y', bang = true })
   local text = vim.fn.getreg("*")
@@ -22,17 +21,54 @@ local function highlight_cword()
   vim.opt.hlsearch = true
 end
 
-local function open_in_browser()
-  local url = vim.fn.expand("<cfile>")
-  if url == "" then
+--- Open the file/URL under the cursor with the system opener.
+--- 
+--- Behavior:
+--- - If the token under cursor looks like a URL (has a scheme, e.g. https:// or file://),
+---   it is passed directly to `xdg-open`.
+--- - Otherwise it is treated as a filesystem path. Relative paths are resolved
+---   against the *current buffer's directory*, then normalized to an absolute path
+---   (removing any `.`/`..`). If the file exists, it is opened via `xdg-open`.
+--- - Shows friendly notifications when nothing is under the cursor or a file
+---   can’t be found after normalization.
+---
+--- Examples it handles:
+---   - ../media/img.png        (relative to current file)
+---   - ./notes/today.md
+---   - /abs/path/to/file.pdf
+---   - https://example.com
+---   - file:///home/user/pic.jpg
+local function system_open_under_cursor()
+  local cfile = vim.fn.expand("<cfile>")
+  if cfile == "" then
     vim.notify("No file/URL under the cursor", vim.log.levels.WARN)
     return
   end
-  local open_cmd = "xdg-open"
-  -- Run the command as a background job (no shell escaping needed
-  -- if you pass arguments as a list)
-  vim.fn.jobstart({ open_cmd, url }, { detach = true })
+
+  -- URL? (simple "has a scheme" check like 'http:', 'https:', 'file:', 'mailto:', etc.)
+  if cfile:match("^[%a][%w+.-]*:") then
+    vim.fn.jobstart({ "xdg-open", cfile }, { detach = true })
+    return
+  end
+
+  -- Resolve relative path against the *buffer's* directory, not just CWD.
+  local bufdir = vim.fn.expand("%:p:h")
+  local candidate = bufdir ~= "" and (bufdir .. "/" .. cfile) or cfile
+
+  -- Normalize to absolute path (collapses '.' and '..', expands '~')
+  local abs = vim.fn.fnamemodify(candidate, ":p")
+
+  -- Try to canonicalize (resolve symlinks) if possible; fall back to abs.
+  abs = vim.loop.fs_realpath(abs) or abs
+
+  if not vim.loop.fs_stat(abs) then
+    vim.notify("Not found: " .. abs, vim.log.levels.ERROR)
+    return
+  end
+
+  vim.fn.jobstart({ "xdg-open", abs }, { detach = true })
 end
+
 
 local function diagnostic_goto(next, severity)
   local go = next and vim.diagnostic.goto_next or vim.diagnostic.goto_prev
@@ -78,7 +114,7 @@ return {
 			wk.add({
 				{ "<CR>", highlight_selection, desc = "Highlighting visual selection", mode = "v" },
 				{ "<leader><CR>", highlight_cword, desc = "Highlighting word under cursor" },
-				{ "gx", open_in_browser, desc = "Open under-cursor in browser" },
+        { "gx", system_open_under_cursor, desc = "Open under-cursor (system opener)" },
 				{ "<leader>w", ":wa<CR>", desc = "Save all" },
 				{ "<leader>q", "<cmd>wa<CR><cmd>q<CR>", desc = "Save all and Quit" },
 				{ "<leader><tab>", "<cmd>b#<CR>", desc = "Switch to alternate buffer" },
