@@ -3,4 +3,4 @@ function sudo
   command sudo $argv
 end
 
-alias tree='eza --tree --all --git-ignore --ignore-glob ".git" --color=always'
+alias tree='eza --tree --all --git-ignore --ignore-glob ".git"'
