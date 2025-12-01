@@ -1,8 +1,5 @@
 abbr -a !!       --position anywhere --function last_history_item
 abbr -a cd       z
-abbr -a docs     "z $HOME/DocsNNotes; nvim"
-abbr -a todo     "z $HOME/Todo; nvim"
-abbr -a notes    "z $HOME/Notes; nvim"
 abbr -a dot      "z $HOME/.dotfiles"
 abbr -a n        nvim
 abbr -a sn       sudoedit
