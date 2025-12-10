@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+MACHINE="dev-sandbox"
+ROOT="/var/lib/machines/${MACHINE}"
+
+# Check rootfs existence using sudo so permissions do not cause a false negative
+if ! sudo test -d "$ROOT"; then
+  echo "Error: container rootfs not found at $ROOT" >&2
+  exit 1
+fi
+
+if [ $# -ge 1 ]; then
+  PROJECT_PATH="$1"
+else
+  PROJECT_PATH="$PWD"
+fi
+
+PROJECT_PATH="$(readlink -f "$PROJECT_PATH")"
+PROJECT_NAME="$(basename "$PROJECT_PATH")"
+
+if [ ! -d "$PROJECT_PATH" ]; then
+  echo "Error: project directory '$PROJECT_PATH' does not exist." >&2
+  exit 1
+fi
+
+sudo systemd-nspawn \
+  -M "$MACHINE" \
+  -D "$ROOT" \
+  --user=dev \
+  --bind="${PROJECT_PATH}:/workspace/${PROJECT_NAME}" \
+  /bin/bash -lc "mkdir -p /workspace/${PROJECT_NAME} && cd /workspace/${PROJECT_NAME} && exec bash"

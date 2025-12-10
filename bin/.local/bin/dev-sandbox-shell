@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="/var/lib/machines/dev-sandbox"
+
+# Check rootfs existence using sudo so permissions do not cause a false negative
+if ! sudo test -d "$ROOT"; then
+  echo "Error: container rootfs not found at $ROOT" >&2
+  exit 1
+fi
+
+exec sudo systemd-nspawn -D "$ROOT" --user=dev /bin/bash
