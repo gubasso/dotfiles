@@ -9,4 +9,4 @@ if ! sudo test -d "$ROOT"; then
   exit 1
 fi
 
-exec sudo systemd-nspawn -D "$ROOT" --user=dev /bin/bash
+exec sudo systemd-nspawn -D "$ROOT" --user=dev /usr/bin/fish

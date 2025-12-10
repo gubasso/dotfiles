@@ -10,7 +10,7 @@ if ! sudo test -d "$ROOT"; then
   exit 1
 fi
 
-if [ $# -ge 1 ]; then
+if [ "$#" -ge 1 ]; then
   PROJECT_PATH="$1"
 else
   PROJECT_PATH="$PWD"
@@ -29,4 +29,4 @@ sudo systemd-nspawn \
   -D "$ROOT" \
   --user=dev \
   --bind="${PROJECT_PATH}:/workspace/${PROJECT_NAME}" \
-  /bin/bash -lc "mkdir -p /workspace/${PROJECT_NAME} && cd /workspace/${PROJECT_NAME} && exec bash"
+  /usr/bin/fish -lc "mkdir -p /workspace/${PROJECT_NAME} && cd /workspace/${PROJECT_NAME} && exec fish"
