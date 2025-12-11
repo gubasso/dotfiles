@@ -4,27 +4,107 @@ set -euo pipefail
 MACHINE="dev-sandbox"
 ROOT="/var/lib/machines/${MACHINE}"
 
-# Check rootfs existence using sudo so permissions do not cause a false negative
+usage() {
+  cat >&2 <<EOF
+Usage: $(basename "$0") [OPTIONS] [PROJECT_PATH]
+
+Default (no options): Mount PROJECT_PATH (or current directory) and start
+a fish shell as 'dev' user in /workspace/<project-name>.
+
+Shell mode:
+  --shell           Start a root shell in the container (no project mount)
+  --shell-user USER Start a shell as USER (e.g. 'dev')
+  --shell-dev       Shortcut for --shell-user dev
+
+Options:
+  -h, --help        Show this help message
+
+Examples:
+  $(basename "$0")                    # mount PWD, start dev shell
+  $(basename "$0") /path/to/project   # mount project, start dev shell
+  $(basename "$0") --shell            # root shell, no mounts
+  $(basename "$0") --shell-dev        # dev user shell, no mounts
+EOF
+  exit 1
+}
+
+# Check rootfs existence early
 if ! sudo test -d "$ROOT"; then
   echo "Error: container rootfs not found at $ROOT" >&2
   exit 1
 fi
 
-if [ "$#" -ge 1 ]; then
-  PROJECT_PATH="$1"
-else
+# Parse arguments
+SHELL_MODE=""
+SHELL_USER=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --shell)
+      SHELL_MODE="root"
+      shift
+      ;;
+    --shell-user)
+      if [[ $# -lt 2 ]]; then
+        echo "Error: --shell-user requires an argument" >&2
+        exit 1
+      fi
+      SHELL_MODE="user"
+      SHELL_USER="$2"
+      shift 2
+      ;;
+    --shell-dev)
+      SHELL_MODE="user"
+      SHELL_USER="dev"
+      shift
+      ;;
+    -h|--help)
+      usage
+      ;;
+    -*)
+      echo "Error: unknown option: $1" >&2
+      usage
+      ;;
+    *)
+      # Positional argument: project path
+      if [[ -n "${PROJECT_PATH:-}" ]]; then
+        echo "Error: multiple project paths provided" >&2
+        exit 1
+      fi
+      PROJECT_PATH="$1"
+      shift
+      ;;
+  esac
+done
+
+# Shell mode: no project mount
+if [[ -n "$SHELL_MODE" ]]; then
+  if [[ -n "${PROJECT_PATH:-}" ]]; then
+    echo "Error: cannot specify PROJECT_PATH with --shell options" >&2
+    exit 1
+  fi
+
+  if [[ "$SHELL_MODE" == "root" ]]; then
+    exec sudo systemd-nspawn -D "$ROOT" /bin/bash
+  else
+    exec sudo systemd-nspawn -D "$ROOT" --user="$SHELL_USER" /usr/bin/fish
+  fi
+fi
+
+# Default mode: mount project and start dev shell
+if [[ -z "${PROJECT_PATH:-}" ]]; then
   PROJECT_PATH="$PWD"
 fi
 
 PROJECT_PATH="$(readlink -f "$PROJECT_PATH")"
 PROJECT_NAME="$(basename "$PROJECT_PATH")"
 
-if [ ! -d "$PROJECT_PATH" ]; then
+if [[ ! -d "$PROJECT_PATH" ]]; then
   echo "Error: project directory '$PROJECT_PATH' does not exist." >&2
   exit 1
 fi
 
-sudo systemd-nspawn \
+exec sudo systemd-nspawn \
   -M "$MACHINE" \
   -D "$ROOT" \
   --user=dev \
