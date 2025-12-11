@@ -3,10 +3,57 @@ set -euo pipefail
 
 ROOT="/var/lib/machines/dev-sandbox"
 
+usage() {
+  cat >&2 <<EOF
+Usage: $(basename "$0") [OPTIONS]
+
+No options: start a root shell in the dev-sandbox container.
+
+Options:
+  -u, --user USER   Start a shell as USER (e.g. 'dev')
+  -d, --dev         Shortcut for --user dev
+  -h, --help        Show this help message
+EOF
+  exit 1
+}
+
+USER=""
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -u|--user)
+      if [[ $# -lt 2 ]]; then
+        echo "Error: --user requires an argument" >&2
+        exit 1
+      fi
+      USER="$2"
+      shift 2
+      ;;
+    -d|--dev)
+      USER="dev"
+      shift
+      ;;
+    -h|--help)
+      usage
+      ;;
+    *)
+      echo "Error: unknown option: $1" >&2
+      usage
+      ;;
+  esac
+done
+
 # Check rootfs existence using sudo so permissions do not cause a false negative
 if ! sudo test -d "$ROOT"; then
   echo "Error: container rootfs not found at $ROOT" >&2
   exit 1
 fi
 
-exec sudo systemd-nspawn -D "$ROOT" --user=dev /usr/bin/fish
+if [[ -z "$USER" ]]; then
+  # No user specified: root shell
+  exec sudo systemd-nspawn -D "$ROOT" /bin/bash
+else
+  # User specified (commonly 'dev'): fish shell as that user
+  exec sudo systemd-nspawn -D "$ROOT" --user="$USER" /usr/bin/fish
+fi
