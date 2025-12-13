@@ -4,26 +4,34 @@ set -euo pipefail
 MACHINE="dev-sandbox"
 ROOT="/var/lib/machines/${MACHINE}"
 
+# Host dotfiles (read-only mounts into container)
+DOTFILES_PUBLIC="${HOME}/.dotfiles"
+DOTFILES_PRIVATE="${HOME}/.dotfiles-private"
+
+# Container mount points
+C_DOTFILES_PUBLIC="/opt/host-dotfiles"
+C_DOTFILES_PRIVATE="/opt/host-dotfiles-private"
+
 usage() {
   cat >&2 <<EOF
 Usage: $(basename "$0") [OPTIONS] [PROJECT_PATH]
 
-Default (no options): Mount PROJECT_PATH (or current directory) and start
-a fish shell as 'dev' user in /workspace/<project-name>.
+Default (no options):
+  Project mode: bind-mount PROJECT_PATH (or \$PWD) into /workspace/<project-name> and start a fish shell
+  as user 'dev' in that directory. Also bind-mount dotfiles read-only.
 
 Shell mode:
-  --shell           Start a root shell in the container (no project mount)
-  --shell-user USER Start a shell as USER (e.g. 'dev')
-  --shell-dev       Shortcut for --shell-user dev
-
-Options:
-  -h, --help        Show this help message
+  -S, --shell [USER]      Start a shell in the container (no project mount).
+                          If USER is omitted, defaults to root.
+  -D, --shell-dev         Shortcut for --shell dev
+  -h, --help              Show this help message
 
 Examples:
-  $(basename "$0")                    # mount PWD, start dev shell
-  $(basename "$0") /path/to/project   # mount project, start dev shell
-  $(basename "$0") --shell            # root shell, no mounts
-  $(basename "$0") --shell-dev        # dev user shell, no mounts
+  $(basename "$0")                     # project mode: mount \$PWD, start dev shell
+  $(basename "$0") /path/to/project    # project mode: mount project, start dev shell
+  $(basename "$0") -S                  # shell mode: root shell, no project mount
+  $(basename "$0") -S dev              # shell mode: dev shell, no project mount
+  $(basename "$0") -D                  # shell mode: dev shell, no project mount
 EOF
   exit 1
 }
@@ -35,26 +43,25 @@ if ! sudo test -d "$ROOT"; then
 fi
 
 # Parse arguments
-SHELL_MODE=""
+SHELL_MODE=0
 SHELL_USER=""
+PROJECT_PATH=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --shell)
-      SHELL_MODE="root"
+    -S|--shell)
+      SHELL_MODE=1
       shift
-      ;;
-    --shell-user)
-      if [[ $# -lt 2 ]]; then
-        echo "Error: --shell-user requires an argument" >&2
-        exit 1
+      # Optional USER argument: if next token exists and is not another option, treat as USER.
+      if [[ $# -gt 0 && "${1:-}" != -* ]]; then
+        SHELL_USER="$1"
+        shift
+      else
+        SHELL_USER="root"
       fi
-      SHELL_MODE="user"
-      SHELL_USER="$2"
-      shift 2
       ;;
-    --shell-dev)
-      SHELL_MODE="user"
+    -D|--shell-dev)
+      SHELL_MODE=1
       SHELL_USER="dev"
       shift
       ;;
@@ -66,8 +73,7 @@ while [[ $# -gt 0 ]]; do
       usage
       ;;
     *)
-      # Positional argument: project path
-      if [[ -n "${PROJECT_PATH:-}" ]]; then
+      if [[ -n "$PROJECT_PATH" ]]; then
         echo "Error: multiple project paths provided" >&2
         exit 1
       fi
@@ -77,22 +83,61 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# Shell mode: no project mount
-if [[ -n "$SHELL_MODE" ]]; then
-  if [[ -n "${PROJECT_PATH:-}" ]]; then
+# Common dotfiles mounts (read-only, only if present)
+DOTFILES_MOUNTS=()
+if [[ -d "$DOTFILES_PUBLIC" ]]; then
+  DOTFILES_MOUNTS+=( "--bind-ro=${DOTFILES_PUBLIC}:${C_DOTFILES_PUBLIC}" )
+fi
+if [[ -d "$DOTFILES_PRIVATE" ]]; then
+  DOTFILES_MOUNTS+=( "--bind-ro=${DOTFILES_PRIVATE}:${C_DOTFILES_PRIVATE}" )
+fi
+
+# ==============================================================================
+# MODE 1/2: SHELL MODE (NO PROJECT MOUNT)
+# ------------------------------------------------------------------------------
+# -S/--shell [USER] or -D/--shell-dev
+# - Starts an interactive shell inside the container.
+# - Does NOT bind-mount any project directory.
+# - Dotfiles dirs are mounted read-only (if they exist on the host).
+#
+# User selection rules:
+#   * If USER is omitted, assume root.
+#   * If USER == root, omit --user (default behavior).
+#   * Otherwise, pass --user=<USER>.
+# ==============================================================================
+if [[ "$SHELL_MODE" -eq 1 ]]; then
+  if [[ -n "$PROJECT_PATH" ]]; then
     echo "Error: cannot specify PROJECT_PATH with --shell options" >&2
     exit 1
   fi
 
-  if [[ "$SHELL_MODE" == "root" ]]; then
-    exec sudo systemd-nspawn -D "$ROOT" /bin/bash
-  else
-    exec sudo systemd-nspawn -D "$ROOT" --user="$SHELL_USER" /usr/bin/fish
+  # Root is the default for systemd-nspawn; omitting --user is effectively "root".
+  NSPAWN_USER_ARGS=()
+  if [[ -n "${SHELL_USER:-}" && "$SHELL_USER" != "root" ]]; then
+    NSPAWN_USER_ARGS=( "--user=$SHELL_USER" )
   fi
+
+  exec sudo systemd-nspawn \
+    -M "$MACHINE" \
+    -D "$ROOT" \
+    "${DOTFILES_MOUNTS[@]}" \
+    "${NSPAWN_USER_ARGS[@]}" \
+    /usr/bin/fish
 fi
 
-# Default mode: mount project and start dev shell
-if [[ -z "${PROJECT_PATH:-}" ]]; then
+# ==============================================================================
+# MODE 2/2: PROJECT MODE (DEFAULT)
+# ------------------------------------------------------------------------------
+# No -S/-D flags:
+# - Bind-mount PROJECT_PATH (or \$PWD) into /workspace/<project-name>.
+# - Start an interactive fish shell as user 'dev' in that directory.
+# - Dotfiles dirs are mounted read-only (if they exist on the host).
+#
+# Note:
+# - This wrapper does NOT manage symlinks or config linking inside the container.
+#   Perform any linking manually inside the container as needed.
+# ==============================================================================
+if [[ -z "$PROJECT_PATH" ]]; then
   PROJECT_PATH="$PWD"
 fi
 
@@ -109,4 +154,5 @@ exec sudo systemd-nspawn \
   -D "$ROOT" \
   --user=dev \
   --bind="${PROJECT_PATH}:/workspace/${PROJECT_NAME}" \
+  "${DOTFILES_MOUNTS[@]}" \
   /usr/bin/fish -lc "mkdir -p /workspace/${PROJECT_NAME} && cd /workspace/${PROJECT_NAME} && exec fish"
