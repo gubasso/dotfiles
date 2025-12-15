@@ -34,6 +34,11 @@ end
 
 local hostname = vim.loop.os_gethostname()
 
+local host_file = vim.fn.stdpath("config") .. "/lua/host-" .. hostname .. ".lua"
+if vim.fn.filereadable(host_file) == 0 then
+	hostname = "nova"
+end
+
 local specs = {
 	{ import = "plugins" },
 	{ import = "host-" .. hostname },
