@@ -12,6 +12,13 @@ DOTFILES_PRIVATE="${HOME}/.dotfiles-private"
 C_DOTFILES_PUBLIC="/opt/host-dotfiles"
 C_DOTFILES_PRIVATE="/opt/host-dotfiles-private"
 
+# Disable systemd terminal tint/title/emoji adjustments (keep host kitty colors intact)
+SYSTEMD_TTY_ENV=(
+  "SYSTEMD_TINT_BACKGROUND=0"
+  "SYSTEMD_ADJUST_TERMINAL_TITLE=0"
+  "SYSTEMD_EMOJI=0"
+)
+
 usage() {
   cat >&2 <<EOF
 Usage: $(basename "$0") [OPTIONS] [PROJECT_PATH]
@@ -94,16 +101,6 @@ fi
 
 # ==============================================================================
 # MODE 1/2: SHELL MODE (NO PROJECT MOUNT)
-# ------------------------------------------------------------------------------
-# -S/--shell [USER] or -D/--shell-dev
-# - Starts an interactive shell inside the container.
-# - Does NOT bind-mount any project directory.
-# - Dotfiles dirs are mounted read-only (if they exist on the host).
-#
-# User selection rules:
-#   * If USER is omitted, assume root.
-#   * If USER == root, omit --user (default behavior).
-#   * Otherwise, pass --user=<USER>.
 # ==============================================================================
 if [[ "$SHELL_MODE" -eq 1 ]]; then
   if [[ -n "$PROJECT_PATH" ]]; then
@@ -117,25 +114,17 @@ if [[ "$SHELL_MODE" -eq 1 ]]; then
     NSPAWN_USER_ARGS=( "--user=$SHELL_USER" )
   fi
 
-  exec sudo systemd-nspawn \
+  exec sudo env "${SYSTEMD_TTY_ENV[@]}" systemd-nspawn \
     -M "$MACHINE" \
     -D "$ROOT" \
     "${DOTFILES_MOUNTS[@]}" \
     "${NSPAWN_USER_ARGS[@]}" \
+    -E "DEV_SANDBOX=${MACHINE}" \
     /usr/bin/fish
 fi
 
 # ==============================================================================
 # MODE 2/2: PROJECT MODE (DEFAULT)
-# ------------------------------------------------------------------------------
-# No -S/-D flags:
-# - Bind-mount PROJECT_PATH (or \$PWD) into /workspace/<project-name>.
-# - Start an interactive fish shell as user 'dev' in that directory.
-# - Dotfiles dirs are mounted read-only (if they exist on the host).
-#
-# Note:
-# - This wrapper does NOT manage symlinks or config linking inside the container.
-#   Perform any linking manually inside the container as needed.
 # ==============================================================================
 if [[ -z "$PROJECT_PATH" ]]; then
   PROJECT_PATH="$PWD"
@@ -149,10 +138,11 @@ if [[ ! -d "$PROJECT_PATH" ]]; then
   exit 1
 fi
 
-exec sudo systemd-nspawn \
+exec sudo env "${SYSTEMD_TTY_ENV[@]}" systemd-nspawn \
   -M "$MACHINE" \
   -D "$ROOT" \
   --user=dev \
   --bind="${PROJECT_PATH}:/workspace/${PROJECT_NAME}" \
   "${DOTFILES_MOUNTS[@]}" \
+  -E "DEV_SANDBOX=${MACHINE}" \
   /usr/bin/fish -lc "mkdir -p /workspace/${PROJECT_NAME} && cd /workspace/${PROJECT_NAME} && exec fish"

@@ -1,6 +1,9 @@
 format = """
 $username\
 $hostname\
+$container\
+${custom.container_engine}\
+${env_var.DEV_SANDBOX}\
 $directory\
 $git_branch\
 $git_state\
@@ -21,6 +24,22 @@ style = "blue"
 success_symbol = "[❯](bright-purple)"
 error_symbol = "[❯](red)"
 vimcmd_symbol = "[❮](green)"
+
+
+[container]
+symbol = "🧊"
+style = "bright-black"
+format = "[$symbol]($style) "
+
+[custom.container_engine]
+when = "systemd-detect-virt --container --quiet 2>/dev/null"
+command = "sh -lc 't=$(systemd-detect-virt --container 2>/dev/null); [ \"$t\" = none ] && exit 1; case \"$t\" in systemd-nspawn) echo nspawn ;; *) echo \"$t\" ;; esac'"
+style = "bright-black"
+format = "[$output:]($style)"
+
+[env_var.DEV_SANDBOX]
+style = "bright-black"
+format = "[$env_value]($style) "
 
 [git_branch]
 symbol = " "
