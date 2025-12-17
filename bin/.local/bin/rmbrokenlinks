@@ -1,2 +1,2 @@
 #!/bin/sh
-find . -type l ! -exec test -e {} \; -exec rm {} \; -print;
+find . -type l ! -exec test -e {} \; -print -delete
