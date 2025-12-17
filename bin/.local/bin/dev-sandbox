@@ -1,16 +1,31 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# ==============================================================================
+# dev-sandbox
+#
+# Assumptions:
+# - Host OS: openSUSE Tumbleweed (or host has zypper installed and configured)
+# - Host terminal: kitty (tab-title helper is best-effort; script still works without kitty)
+# - Host interactive shell: fish (container sessions start fish)
+# - AI CLIs are installed globally inside the container
+# - API keys are per-project in .env.ai files (inside each project; not managed by the script)
+#
+# Notes:
+# - First run provisions the rootfs (heavy). Subsequent runs are lightweight.
+# - ~/.config is synced on every attach via: rsync -aL --delete
+# - Project mapping is basename -> /workspace/<basename>; basename collisions error.
+# ==============================================================================
+
 MACHINE="dev-sandbox"
 ROOT="/var/lib/machines/${MACHINE}"
+NSPAWN_CONF="/etc/systemd/nspawn/${MACHINE}.nspawn"
+SENTINEL="${ROOT}/.dev-sandbox/initialized"
+LOCK="/var/lock/dev-sandbox.provision.lock"
 
-# Host dotfiles (read-only mounts into container)
-DOTFILES_PUBLIC="${HOME}/.dotfiles"
-DOTFILES_PRIVATE="${HOME}/.dotfiles-private"
-
-# Container mount points
-C_DOTFILES_PUBLIC="/opt/host-dotfiles"
-C_DOTFILES_PRIVATE="/opt/host-dotfiles-private"
+HOST_USER="$(id -un)"
+HOST_UID="$(id -u)"
+HOST_GID="$(id -g)"
 
 # Disable systemd terminal tint/title/emoji adjustments (keep host kitty colors intact)
 SYSTEMD_TTY_ENV=(
@@ -19,152 +34,465 @@ SYSTEMD_TTY_ENV=(
   "SYSTEMD_EMOJI=0"
 )
 
+# Repo URLs (Tumbleweed via CDN)
+REPO_OSS="https://cdn.opensuse.org/tumbleweed/repo/oss/"          # :contentReference[oaicite:1]{index=1}
+REPO_NON_OSS="https://cdn.opensuse.org/tumbleweed/repo/non-oss/"  # implied by repo index :contentReference[oaicite:2]{index=2}
+REPO_UPDATE="https://cdn.opensuse.org/update/tumbleweed/"         # :contentReference[oaicite:3]{index=3}
+
+# Science repo (best-effort). Using the canonical .repo endpoint is generally robust.
+REPO_SCIENCE_REPOFILE="https://download.opensuse.org/repositories/science/openSUSE_Tumbleweed/science.repo" # :contentReference[oaicite:4]{index=4}
+
+# Patterns
+PATTERNS=( base enhanced_base devel_basis devel_perl )
+
+# Packages (opinionated baseline; extend as needed)
+CORE_PACKAGES=(
+  fish
+  git
+  openssh
+  sudo
+  ca-certificates
+  curl
+  wget
+  rsync
+  ripgrep
+  fd
+  vim
+  tmux
+  make
+  gcc
+  gcc-c++
+  cmake
+  ninja
+  python311
+  python311-pip
+  python311-virtualenv
+  nodejs
+  npm
+  zypper
+  rpm
+  shadow
+  util-linux
+)
+
+OPTIONAL_PACKAGES=(
+  # Add your stacks here (best-effort installs during provisioning):
+  # e.g. podman, skopeo, terraform, etc.
+)
+
+# Globals set during execution
+NSPAWN_CREATED=0
+PROVISIONED_NOW=0
+PROJECT_NAME=""
+
+die() { echo "Error: $*" >&2; exit 1; }
+log() { echo "[dev-sandbox] $*" >&2; }
+
+require_cmd() {
+  command -v "$1" >/dev/null 2>&1 || die "missing required command: $1"
+}
+
+sudo_cmd() {
+  sudo env "${SYSTEMD_TTY_ENV[@]}" "$@"
+}
+
+sudo_systemd_run() {
+  sudo env "${SYSTEMD_TTY_ENV[@]}" systemd-run "$@"
+}
+
 usage() {
   cat >&2 <<EOF
-Usage: $(basename "$0") [OPTIONS] [PROJECT_PATH]
+Usage:
+  dev-sandbox                      # project mode: mount \$PWD -> /workspace/<basename>, attach as host user
+  dev-sandbox /path/to/project     # project mode: mount path, attach as host user
 
-Default (no options):
-  Project mode: bind-mount PROJECT_PATH (or \$PWD) into /workspace/<project-name> and start a fish shell
-  as user 'dev' in that directory. Also bind-mount dotfiles read-only.
+Attach modes:
+  dev-sandbox -R|--shell-root      # attach as root (no project mount)
+  dev-sandbox -D|--shell-dev       # attach as host user (no project mount)
 
-Shell mode:
-  -S, --shell [USER]      Start a shell in the container (no project mount).
-                          If USER is omitted, defaults to root.
-  -D, --shell-dev         Shortcut for --shell dev
-  -h, --help              Show this help message
+Management:
+  dev-sandbox start                # ensure config/rootfs/machine running (idempotent)
+  dev-sandbox stop                 # stop machine
+  dev-sandbox status               # show status/health summary
+  dev-sandbox setup                # force full provisioning (re-run provisioning payload)
 
-Examples:
-  $(basename "$0")                     # project mode: mount \$PWD, start dev shell
-  $(basename "$0") /path/to/project    # project mode: mount project, start dev shell
-  $(basename "$0") -S                  # shell mode: root shell, no project mount
-  $(basename "$0") -S dev              # shell mode: dev shell, no project mount
-  $(basename "$0") -D                  # shell mode: dev shell, no project mount
+Behavior:
+  - First run provisions rootfs (heavy); subsequent runs do not touch zypper.
+  - Project mapping is basename -> /workspace/<basename>.
+  - Basename collisions are errors (existing + requested sources shown).
+  - ~/.config is synced on every attach with: rsync -aL --delete (container-only config under that tree is removed).
 EOF
   exit 1
 }
 
 set_kitty_tab_title() {
   local title="$1"
-  # Only do anything if we are inside kitty
   if [[ -n "${KITTY_WINDOW_ID:-}" ]]; then
-    # Use kitty remote control to set the tab title (best-effort)
     command kitten @ set-tab-title "$title" 2>/dev/null || true
   fi
 }
 
-# Check rootfs existence early
-if ! sudo test -d "$ROOT"; then
-  echo "Error: container rootfs not found at $ROOT" >&2
-  exit 1
-fi
+machine_state() {
+  sudo_cmd machinectl show "$MACHINE" --property=State --value 2>/dev/null || true
+}
 
-# Parse arguments
-SHELL_MODE=0
-SHELL_USER=""
-PROJECT_PATH=""
+machine_is_running() {
+  [[ "$(machine_state)" == "running" ]]
+}
 
-while [[ $# -gt 0 ]]; do
+wait_for_machine_systemd() {
+  # Best-effort wait until the container's systemd is responsive for systemd-run -M.
+  local i
+  for i in {1..30}; do
+    if sudo_systemd_run -M "$MACHINE" --pipe --quiet --wait /bin/true >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 0.2
+  done
+  return 1
+}
+
+ensure_nspawn_config() {
+  sudo_cmd install -d -m 0755 /etc/systemd/nspawn
+
+  if ! sudo_cmd test -f "$NSPAWN_CONF"; then
+    log "creating nspawn config: $NSPAWN_CONF"
+    cat <<EOF | sudo_cmd tee "$NSPAWN_CONF" >/dev/null
+[Exec]
+Boot=yes
+PrivateUsers=no
+
+[Network]
+VirtualEthernet=no
+EOF
+    NSPAWN_CREATED=1
+  fi
+}
+
+ensure_rootfs_provisioned_if_needed() {
+  local force="$1" # 0/1
+
+  local had_sentinel=0
+  if sudo_cmd test -f "$SENTINEL" 2>/dev/null; then
+    had_sentinel=1
+  fi
+
+  local need=0
+  if ! sudo_cmd test -d "$ROOT" 2>/dev/null; then
+    need=1
+  fi
+  if ! sudo_cmd test -f "$SENTINEL" 2>/dev/null; then
+    need=1
+  fi
+  if [[ "$force" -eq 1 ]]; then
+    need=1
+  fi
+
+  if [[ "$need" -eq 0 ]]; then
+    return 0
+  fi
+
+  provision_rootfs_with_lock "$force"
+
+  # Track "newly provisioned" (used to enable at boot best-effort).
+  if [[ "$had_sentinel" -eq 0 ]] && sudo_cmd test -f "$SENTINEL" 2>/dev/null; then
+    PROVISIONED_NOW=1
+  fi
+}
+
+provision_rootfs_with_lock() {
+  local force="$1" # 0/1
+
+  sudo_cmd install -d -m 0755 "$(dirname "$LOCK")"
+  sudo_cmd touch "$LOCK"
+
+  log "provisioning rootfs (locked): $ROOT"
+  sudo_cmd flock -x "$LOCK" bash -lc "
+    set -euo pipefail
+
+    ROOT='$ROOT'
+    SENTINEL='$SENTINEL'
+    FORCE='$force'
+
+    REPO_OSS='$REPO_OSS'
+    REPO_NON_OSS='$REPO_NON_OSS'
+    REPO_UPDATE='$REPO_UPDATE'
+    REPO_SCIENCE_REPOFILE='$REPO_SCIENCE_REPOFILE'
+
+    # Double-check under the lock
+    if [[ \"\$FORCE\" -ne 1 ]] && [[ -f \"\$SENTINEL\" ]]; then
+      exit 0
+    fi
+
+    trap 'cat >&2 <<MSG
+[dev-sandbox] provisioning failed; sentinel not written; next run will retry.
+[dev-sandbox] after fixing network/repos, you can force reprovision with: dev-sandbox setup
+[dev-sandbox] full reset (DESTROYS ROOTFS): sudo rm -rf /var/lib/machines/dev-sandbox
+MSG
+      exit 1' ERR
+
+    install -d -m 0755 \"\$ROOT\"
+    rpm --root \"\$ROOT\" --initdb || true
+
+    # Add repos inside the rootfs (best-effort if already present)
+    zypper -n --root \"\$ROOT\" ar -f \"\$REPO_OSS\" repo-oss 2>/dev/null || true
+    zypper -n --root \"\$ROOT\" ar -f \"\$REPO_NON_OSS\" repo-non-oss 2>/dev/null || true
+    zypper -n --root \"\$ROOT\" ar -f \"\$REPO_UPDATE\" repo-update 2>/dev/null || true
+
+    # Science repo (best-effort)
+    zypper -n --root \"\$ROOT\" ar -f \"\$REPO_SCIENCE_REPOFILE\" science 2>/dev/null || true
+
+    zypper -n --gpg-auto-import-keys --root \"\$ROOT\" refresh
+
+    # Patterns
+    zypper -n --root \"\$ROOT\" install -t pattern ${PATTERNS[*]}
+
+    # Core packages
+    zypper -n --root \"\$ROOT\" install --no-recommends ${CORE_PACKAGES[*]}
+
+    # Optional packages (only if non-empty)
+    if [[ -n \"${OPTIONAL_PACKAGES[*]:-}\" ]]; then
+      zypper -n --root \"\$ROOT\" install --no-recommends ${OPTIONAL_PACKAGES[*]}
+    fi
+
+    zypper -n --root \"\$ROOT\" clean -a || true
+
+    systemd-machine-id-setup --root=\"\$ROOT\"
+
+    install -d -m 0755 \"\$ROOT/workspace\" \"\$ROOT/.dev-sandbox\"
+
+    # Sentinel written only at the end on success
+    date -Iseconds > \"\$SENTINEL\"
+  "
+}
+
+ensure_machine_running() {
+  local state
+  state="$(machine_state)"
+
+  if [[ "$state" != "running" ]]; then
+    log "starting machine: $MACHINE"
+    sudo_cmd machinectl start "$MACHINE"
+  elif [[ "$NSPAWN_CREATED" -eq 1 ]]; then
+    log "nspawn config created; restarting machine to apply config"
+    sudo_cmd machinectl poweroff "$MACHINE" || sudo_cmd machinectl terminate "$MACHINE" || true
+    sudo_cmd machinectl start "$MACHINE"
+  fi
+
+  if ! wait_for_machine_systemd; then
+    die "machine started but container systemd is not responding (systemd-run -M failed)"
+  fi
+
+  # Best-effort: enable at boot (aligns with survives reboots).
+  if [[ "$PROVISIONED_NOW" -eq 1 ]]; then
+    sudo_cmd machinectl enable "$MACHINE" >/dev/null 2>&1 || true
+  fi
+}
+
+ensure_host_user_in_container() {
+  log "ensuring host user exists in container: $HOST_USER ($HOST_UID:$HOST_GID)"
+
+  sudo_systemd_run -M "$MACHINE" --pipe --quiet --wait \
+    -E "HOST_USER=$HOST_USER" \
+    -E "HOST_UID=$HOST_UID" \
+    -E "HOST_GID=$HOST_GID" \
+    /bin/bash -lc '
+      set -euo pipefail
+
+      # Ensure group (best-effort if already exists)
+      if ! getent group "$HOST_USER" >/dev/null 2>&1; then
+        groupadd -g "$HOST_GID" "$HOST_USER" 2>/dev/null || true
+      fi
+
+      # Ensure user
+      if ! id -u "$HOST_USER" >/dev/null 2>&1; then
+        useradd -m -u "$HOST_UID" -g "$HOST_GID" -s /usr/bin/fish "$HOST_USER"
+      fi
+
+      mkdir -p "/home/$HOST_USER" /workspace
+      chown -R "$HOST_UID:$HOST_GID" "/home/$HOST_USER"
+    '
+}
+
+sync_host_config_every_attach() {
+  mkdir -p "$HOME/.config"
+  sudo_cmd install -d -m 0755 "$ROOT/home/$HOST_USER/.config"
+  log "syncing host ~/.config -> container (~/.config) with rsync -aL --delete"
+  sudo_cmd rsync -aL --delete "$HOME/.config/" "$ROOT/home/$HOST_USER/.config/"
+  sudo_cmd chown -R "$HOST_UID:$HOST_GID" "$ROOT/home/$HOST_USER/.config"
+}
+
+bind_project_with_collision_check() {
+  local project_path="$1"
+  project_path="$(readlink -f "$project_path")"
+  PROJECT_NAME="$(basename "$project_path")"
+  local target="/workspace/$PROJECT_NAME"
+
+  # Collision check MUST run inside the container.
+  local existing_source
+  existing_source="$(
+    sudo_systemd_run -M "$MACHINE" --pipe --quiet --wait \
+      /usr/bin/findmnt -n -o SOURCE --target "$target" 2>/dev/null | tr -d '\n' || true
+  )"
+
+  if [[ -n "$existing_source" ]]; then
+    if [[ "$existing_source" == "$project_path" ]]; then
+      return 0
+    fi
+    die "basename collision for $target
+  existing source: $existing_source
+  requested source: $project_path"
+  fi
+
+  log "binding project: $project_path -> $target"
+  sudo_cmd machinectl bind "$MACHINE" "$project_path" "$target" --mkdir
+}
+
+attach_root() {
+  set_kitty_tab_title "$MACHINE"
+  sudo_systemd_run -M "$MACHINE" --pty --quiet \
+    -E "DEV_SANDBOX=$MACHINE" \
+    /usr/bin/fish
+}
+
+attach_host_user_shell() {
+  set_kitty_tab_title "$MACHINE"
+  sudo_systemd_run -M "$MACHINE" --pty --quiet --uid="$HOST_UID" \
+    -E "DEV_SANDBOX=$MACHINE" \
+    /usr/bin/fish
+}
+
+attach_project() {
+  local project_path="$1"
+  set_kitty_tab_title "$MACHINE:$PROJECT_NAME"
+  sudo_systemd_run -M "$MACHINE" --pty --quiet --uid="$HOST_UID" \
+    -E "DEV_SANDBOX=$MACHINE" \
+    -E "DEV_SANDBOX_PROJECT=$PROJECT_NAME" \
+    /usr/bin/fish -lc "cd /workspace/$PROJECT_NAME; exec fish"
+}
+
+cmd_start() {
+  ensure_nspawn_config
+  ensure_rootfs_provisioned_if_needed 0
+  ensure_machine_running
+  ensure_host_user_in_container
+}
+
+cmd_stop() {
+  if machine_is_running; then
+    log "stopping machine: $MACHINE"
+    sudo_cmd machinectl poweroff "$MACHINE" || sudo_cmd machinectl terminate "$MACHINE" || true
+  else
+    log "machine not running: $MACHINE"
+  fi
+}
+
+cmd_setup() {
+  ensure_nspawn_config
+  if machine_is_running; then
+    log "stopping machine for setup: $MACHINE"
+    sudo_cmd machinectl poweroff "$MACHINE" || sudo_cmd machinectl terminate "$MACHINE" || true
+  fi
+  ensure_rootfs_provisioned_if_needed 1
+  ensure_machine_running
+  ensure_host_user_in_container
+}
+
+cmd_status() {
+  local rootfs="absent"
+  local sentinel="absent"
+  local conf="absent"
+  local state="(unknown)"
+  local user_status="(unknown)"
+
+  if sudo_cmd test -d "$ROOT" 2>/dev/null; then rootfs="present"; fi
+  if sudo_cmd test -f "$SENTINEL" 2>/dev/null; then sentinel="present"; fi
+  if sudo_cmd test -f "$NSPAWN_CONF" 2>/dev/null; then conf="present"; fi
+
+  state="$(machine_state)"
+  if [[ -z "$state" ]]; then state="not running"; fi
+
+  if [[ "$state" == "running" ]]; then
+    if sudo_systemd_run -M "$MACHINE" --pipe --quiet --wait /usr/bin/id -u "$HOST_USER" >/dev/null 2>&1; then
+      user_status="present ($HOST_USER)"
+    else
+      user_status="missing ($HOST_USER)"
+    fi
+  fi
+
+  cat <<EOF
+Machine:        $MACHINE
+Rootfs:         $rootfs ($ROOT)
+Sentinel:       $sentinel ($SENTINEL)
+Nspawn config:  $conf ($NSPAWN_CONF)
+State:          $state
+Host user:      $user_status
+EOF
+}
+
+main() {
+  require_cmd sudo
+  require_cmd machinectl
+  require_cmd systemd-run
+  require_cmd zypper
+  require_cmd rpm
+  require_cmd rsync
+  require_cmd flock
+  require_cmd readlink
+
+  # Avoid repeated sudo prompts in the common path.
+  sudo -v
+
+  if [[ $# -eq 0 ]]; then
+    # default: project mode, PWD
+    local project_path="$PWD"
+    cmd_start
+    sync_host_config_every_attach
+    bind_project_with_collision_check "$project_path"
+    attach_project "$project_path"
+    return 0
+  fi
+
   case "$1" in
-    -S|--shell)
-      SHELL_MODE=1
+    -h|--help) usage ;;
+    start) shift; [[ $# -eq 0 ]] || usage; cmd_start ;;
+    stop) shift; [[ $# -eq 0 ]] || usage; cmd_stop ;;
+    status) shift; [[ $# -eq 0 ]] || usage; cmd_status ;;
+    setup) shift; [[ $# -eq 0 ]] || usage; cmd_setup ;;
+
+    -R|--shell-root)
       shift
-      # Optional USER argument: if next token exists and is not another option, treat as USER.
-      if [[ $# -gt 0 && "${1:-}" != -* ]]; then
-        SHELL_USER="$1"
-        shift
-      else
-        SHELL_USER="root"
-      fi
+      [[ $# -eq 0 ]] || usage
+      cmd_start
+      sync_host_config_every_attach
+      attach_root
       ;;
+
     -D|--shell-dev)
-      SHELL_MODE=1
-      SHELL_USER="dev"
       shift
+      [[ $# -eq 0 ]] || usage
+      cmd_start
+      sync_host_config_every_attach
+      attach_host_user_shell
       ;;
-    -h|--help)
-      usage
-      ;;
+
     -*)
-      echo "Error: unknown option: $1" >&2
-      usage
+      die "unknown option: $1"
       ;;
+
     *)
-      if [[ -n "$PROJECT_PATH" ]]; then
-        echo "Error: multiple project paths provided" >&2
-        exit 1
-      fi
-      PROJECT_PATH="$1"
+      # project mode: single path
+      local project_path="$1"
       shift
+      [[ $# -eq 0 ]] || die "multiple project paths provided"
+      [[ -d "$project_path" ]] || die "project directory does not exist: $project_path"
+
+      cmd_start
+      sync_host_config_every_attach
+      bind_project_with_collision_check "$project_path"
+      attach_project "$project_path"
       ;;
   esac
-done
+}
 
-# Common dotfiles mounts (read-only, only if present)
-DOTFILES_MOUNTS=()
-if [[ -d "$DOTFILES_PUBLIC" ]]; then
-  DOTFILES_MOUNTS+=( "--bind-ro=${DOTFILES_PUBLIC}:${C_DOTFILES_PUBLIC}" )
-fi
-if [[ -d "$DOTFILES_PRIVATE" ]]; then
-  DOTFILES_MOUNTS+=( "--bind-ro=${DOTFILES_PRIVATE}:${C_DOTFILES_PRIVATE}" )
-fi
-
-# Build mode-specific systemd-nspawn args and final command
-NSPAWN_USER_ARGS=()
-MODE_ARGS=()
-FISH_ARGS=()
-
-if [[ "$SHELL_MODE" -eq 1 ]]; then
-  # ==============================================================================
-  # MODE 1/2: SHELL MODE (NO PROJECT MOUNT)
-  # ==============================================================================
-  if [[ -n "$PROJECT_PATH" ]]; then
-    echo "Error: cannot specify PROJECT_PATH with --shell options" >&2
-    exit 1
-  fi
-
-  # Root is the default for systemd-nspawn; omitting --user is effectively "root".
-  if [[ -n "${SHELL_USER:-}" && "$SHELL_USER" != "root" ]]; then
-    NSPAWN_USER_ARGS=( "--user=$SHELL_USER" )
-  fi
-
-  FISH_ARGS=( /usr/bin/fish )
-else
-  # ==============================================================================
-  # MODE 2/2: PROJECT MODE (DEFAULT)
-  # ==============================================================================
-  if [[ -z "$PROJECT_PATH" ]]; then
-    PROJECT_PATH="$PWD"
-  fi
-
-  PROJECT_PATH="$(readlink -f "$PROJECT_PATH")"
-  PROJECT_NAME="$(basename "$PROJECT_PATH")"
-
-  if [[ ! -d "$PROJECT_PATH" ]]; then
-    echo "Error: project directory '$PROJECT_PATH' does not exist." >&2
-    exit 1
-  fi
-
-  NSPAWN_USER_ARGS=( "--user=dev" )
-  MODE_ARGS+=( "--bind=${PROJECT_PATH}:/workspace/${PROJECT_NAME}" )
-
-  FISH_ARGS=(
-    /usr/bin/fish -lc
-    "mkdir -p /workspace/${PROJECT_NAME} && cd /workspace/${PROJECT_NAME} && exec fish"
-  )
-fi
-
-# Set kitty tab title before entering the container (best-effort)
-set_kitty_tab_title "🧊 $MACHINE"
-
-# Single final exec for all modes
-CMD=(
-  sudo env "${SYSTEMD_TTY_ENV[@]}" systemd-nspawn
-  -M "$MACHINE"
-  -D "$ROOT"
-  "${DOTFILES_MOUNTS[@]}"
-  "${NSPAWN_USER_ARGS[@]}"
-  "${MODE_ARGS[@]}"
-  -E "DEV_SANDBOX=${MACHINE}"
-)
-
-exec "${CMD[@]}" "${FISH_ARGS[@]}"
+main "$@"
