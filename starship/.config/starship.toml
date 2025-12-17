@@ -25,7 +25,6 @@ success_symbol = "[❯](bright-purple)"
 error_symbol = "[❯](red)"
 vimcmd_symbol = "[❮](green)"
 
-
 [container]
 symbol = "🧊"
 style = "bright-black"
