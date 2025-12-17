@@ -15,6 +15,7 @@ set -euo pipefail
 # - First run provisions the rootfs (heavy). Subsequent runs are lightweight.
 # - ~/.config is synced on every attach via: rsync -aL --delete
 # - Project mapping is basename -> /workspace/<basename>; basename collisions error.
+# - Sandbox user policy: if UID conflicts exist, conflicting users may be deleted.
 # ==============================================================================
 
 MACHINE="dev-sandbox"
@@ -34,50 +35,44 @@ SYSTEMD_TTY_ENV=(
   "SYSTEMD_EMOJI=0"
 )
 
-# Repo URLs (Tumbleweed via CDN)
-REPO_OSS="https://cdn.opensuse.org/tumbleweed/repo/oss/"          # :contentReference[oaicite:1]{index=1}
-REPO_NON_OSS="https://cdn.opensuse.org/tumbleweed/repo/non-oss/"  # implied by repo index :contentReference[oaicite:2]{index=2}
-REPO_UPDATE="https://cdn.opensuse.org/update/tumbleweed/"         # :contentReference[oaicite:3]{index=3}
-
-# Science repo (best-effort). Using the canonical .repo endpoint is generally robust.
-REPO_SCIENCE_REPOFILE="https://download.opensuse.org/repositories/science/openSUSE_Tumbleweed/science.repo" # :contentReference[oaicite:4]{index=4}
+# Repo URLs (Tumbleweed)
+REPO_OSS="https://cdn.opensuse.org/tumbleweed/repo/oss/"
+REPO_NON_OSS="https://cdn.opensuse.org/tumbleweed/repo/non-oss/"
+REPO_UPDATE="https://cdn.opensuse.org/update/tumbleweed/"
+REPO_SCIENCE_DIR="https://download.opensuse.org/repositories/science/openSUSE_Tumbleweed/"
 
 # Patterns
 PATTERNS=( base enhanced_base devel_basis devel_perl )
 
-# Packages (opinionated baseline; extend as needed)
+# Packages (baseline; extend as needed)
 CORE_PACKAGES=(
+  # Shell
   fish
+
+  # Dev tools (not in devel_basis)
   git
-  openssh
-  sudo
-  ca-certificates
-  curl
-  wget
-  rsync
-  ripgrep
-  fd
-  vim
-  tmux
-  make
-  gcc
+  neovim
   gcc-c++
   cmake
   ninja
-  python311
-  python311-pip
-  python311-virtualenv
+
+  # Modern CLI (not in base)
+  rsync
+  wget
+  ripgrep
+  fd
+
+  # Language runtimes
+  python3
+  python3-pip
+  python3-virtualenv
+  python313-poetry
   nodejs
   npm
-  zypper
-  rpm
-  shadow
-  util-linux
 )
 
 OPTIONAL_PACKAGES=(
-  # Add your stacks here (best-effort installs during provisioning):
-  # e.g. podman, skopeo, terraform, etc.
+  # Keep empty or add your stacks.
 )
 
 # Globals set during execution
@@ -120,7 +115,7 @@ Behavior:
   - First run provisions rootfs (heavy); subsequent runs do not touch zypper.
   - Project mapping is basename -> /workspace/<basename>.
   - Basename collisions are errors (existing + requested sources shown).
-  - ~/.config is synced on every attach with: rsync -aL --delete (container-only config under that tree is removed).
+  - ~/.config is synced on every attach with: rsync -aL --delete
 EOF
   exit 1
 }
@@ -141,7 +136,6 @@ machine_is_running() {
 }
 
 wait_for_machine_systemd() {
-  # Best-effort wait until the container's systemd is responsive for systemd-run -M.
   local i
   for i in {1..30}; do
     if sudo_systemd_run -M "$MACHINE" --pipe --quiet --wait /bin/true >/dev/null 2>&1; then
@@ -194,7 +188,6 @@ ensure_rootfs_provisioned_if_needed() {
 
   provision_rootfs_with_lock "$force"
 
-  # Track "newly provisioned" (used to enable at boot best-effort).
   if [[ "$had_sentinel" -eq 0 ]] && sudo_cmd test -f "$SENTINEL" 2>/dev/null; then
     PROVISIONED_NOW=1
   fi
@@ -217,9 +210,8 @@ provision_rootfs_with_lock() {
     REPO_OSS='$REPO_OSS'
     REPO_NON_OSS='$REPO_NON_OSS'
     REPO_UPDATE='$REPO_UPDATE'
-    REPO_SCIENCE_REPOFILE='$REPO_SCIENCE_REPOFILE'
+    REPO_SCIENCE_DIR='$REPO_SCIENCE_DIR'
 
-    # Double-check under the lock
     if [[ \"\$FORCE\" -ne 1 ]] && [[ -f \"\$SENTINEL\" ]]; then
       exit 0
     fi
@@ -235,12 +227,10 @@ MSG
     rpm --root \"\$ROOT\" --initdb || true
 
     # Add repos inside the rootfs (best-effort if already present)
-    zypper -n --root \"\$ROOT\" ar -f \"\$REPO_OSS\" repo-oss 2>/dev/null || true
-    zypper -n --root \"\$ROOT\" ar -f \"\$REPO_NON_OSS\" repo-non-oss 2>/dev/null || true
-    zypper -n --root \"\$ROOT\" ar -f \"\$REPO_UPDATE\" repo-update 2>/dev/null || true
-
-    # Science repo (best-effort)
-    zypper -n --root \"\$ROOT\" ar -f \"\$REPO_SCIENCE_REPOFILE\" science 2>/dev/null || true
+    zypper -n --root \"\$ROOT\" ar -f \"\$REPO_OSS\" repo-oss >/dev/null 2>&1 || true
+    zypper -n --root \"\$ROOT\" ar -f \"\$REPO_NON_OSS\" repo-non-oss >/dev/null 2>&1 || true
+    zypper -n --root \"\$ROOT\" ar -f \"\$REPO_UPDATE\" repo-update >/dev/null 2>&1 || true
+    zypper -n --root \"\$ROOT\" ar -f \"\$REPO_SCIENCE_DIR\" science >/dev/null 2>&1 || true
 
     zypper -n --gpg-auto-import-keys --root \"\$ROOT\" refresh
 
@@ -283,7 +273,6 @@ ensure_machine_running() {
     die "machine started but container systemd is not responding (systemd-run -M failed)"
   fi
 
-  # Best-effort: enable at boot (aligns with survives reboots).
   if [[ "$PROVISIONED_NOW" -eq 1 ]]; then
     sudo_cmd machinectl enable "$MACHINE" >/dev/null 2>&1 || true
   fi
@@ -296,18 +285,69 @@ ensure_host_user_in_container() {
     -E "HOST_USER=$HOST_USER" \
     -E "HOST_UID=$HOST_UID" \
     -E "HOST_GID=$HOST_GID" \
-    /bin/bash -lc '
+    /bin/bash -c '
       set -euo pipefail
 
-      # Ensure group (best-effort if already exists)
-      if ! getent group "$HOST_USER" >/dev/null 2>&1; then
-        groupadd -g "$HOST_GID" "$HOST_USER" 2>/dev/null || true
+      delete_user_best_effort() {
+        local name="$1"
+        local uid="$2"
+        local i
+
+        # Best-effort: kill processes + retry userdel a few times to avoid “user logged in” races.
+        for i in 1 2 3 4 5; do
+          pkill -KILL -u "$uid" 2>/dev/null || true
+          sleep 0.1
+          userdel -r "$name" 2>/dev/null && return 0
+          userdel "$name" 2>/dev/null && return 0
+          sleep 0.2
+        done
+        return 0
+      }
+
+      delete_group_best_effort() {
+        local name="$1"
+        local i
+
+        for i in 1 2 3 4 5; do
+          groupdel "$name" 2>/dev/null && return 0
+          sleep 0.1
+        done
+        return 0
+      }
+
+      # Ensure group/user are exactly HOST_USER@HOST_UID:HOST_GID (simplest sandbox policy: delete conflicts)
+      existing_user_by_uid="$(getent passwd "$HOST_UID" 2>/dev/null | cut -d: -f1 || true)"
+      if [[ -n "$existing_user_by_uid" && "$existing_user_by_uid" != "$HOST_USER" ]]; then
+        delete_user_best_effort "$existing_user_by_uid" "$HOST_UID"
       fi
 
-      # Ensure user
-      if ! id -u "$HOST_USER" >/dev/null 2>&1; then
-        useradd -m -u "$HOST_UID" -g "$HOST_GID" -s /usr/bin/fish "$HOST_USER"
+      if getent passwd "$HOST_USER" >/dev/null 2>&1; then
+        current_uid="$(id -u "$HOST_USER")"
+        if [[ "$current_uid" != "$HOST_UID" ]]; then
+          delete_user_best_effort "$HOST_USER" "$current_uid"
+        fi
       fi
+
+      existing_group_by_gid="$(getent group "$HOST_GID" 2>/dev/null | cut -d: -f1 || true)"
+      if [[ -n "$existing_group_by_gid" && "$existing_group_by_gid" != "$HOST_USER" ]]; then
+        delete_group_best_effort "$existing_group_by_gid"
+      fi
+
+      if getent group "$HOST_USER" >/dev/null 2>&1; then
+        current_gid="$(getent group "$HOST_USER" | cut -d: -f3)"
+        if [[ "$current_gid" != "$HOST_GID" ]]; then
+          delete_group_best_effort "$HOST_USER"
+        fi
+      fi
+
+      # Now create (useradd -U creates a group with the same user name)
+      if ! getent passwd "$HOST_USER" >/dev/null 2>&1; then
+        useradd -m -u "$HOST_UID" -U -s /usr/bin/fish "$HOST_USER"
+      fi
+
+      # Force group gid and user primary group to match host
+      groupmod -g "$HOST_GID" "$HOST_USER"
+      usermod -g "$HOST_USER" -s /usr/bin/fish -d "/home/$HOST_USER" "$HOST_USER" || true
 
       mkdir -p "/home/$HOST_USER" /workspace
       chown -R "$HOST_UID:$HOST_GID" "/home/$HOST_USER"
@@ -328,11 +368,10 @@ bind_project_with_collision_check() {
   PROJECT_NAME="$(basename "$project_path")"
   local target="/workspace/$PROJECT_NAME"
 
-  # Collision check MUST run inside the container.
   local existing_source
   existing_source="$(
     sudo_systemd_run -M "$MACHINE" --pipe --quiet --wait \
-      /usr/bin/findmnt -n -o SOURCE --target "$target" 2>/dev/null | tr -d '\n' || true
+      /usr/bin/findmnt -n -o SOURCE --mountpoint "$target" 2>/dev/null | tr -d "\n" || true
   )"
 
   if [[ -n "$existing_source" ]]; then
@@ -350,22 +389,21 @@ bind_project_with_collision_check() {
 
 attach_root() {
   set_kitty_tab_title "$MACHINE"
-  sudo_systemd_run -M "$MACHINE" --pty --quiet \
+  sudo_systemd_run -M "$MACHINE" --pty --quiet --wait \
     -E "DEV_SANDBOX=$MACHINE" \
     /usr/bin/fish
 }
 
 attach_host_user_shell() {
   set_kitty_tab_title "$MACHINE"
-  sudo_systemd_run -M "$MACHINE" --pty --quiet --uid="$HOST_UID" \
+  sudo_systemd_run -M "$MACHINE" --pty --quiet --wait --uid="$HOST_UID" \
     -E "DEV_SANDBOX=$MACHINE" \
     /usr/bin/fish
 }
 
 attach_project() {
-  local project_path="$1"
   set_kitty_tab_title "$MACHINE:$PROJECT_NAME"
-  sudo_systemd_run -M "$MACHINE" --pty --quiet --uid="$HOST_UID" \
+  sudo_systemd_run -M "$MACHINE" --pty --quiet --wait --uid="$HOST_UID" \
     -E "DEV_SANDBOX=$MACHINE" \
     -E "DEV_SANDBOX_PROJECT=$PROJECT_NAME" \
     /usr/bin/fish -lc "cd /workspace/$PROJECT_NAME; exec fish"
@@ -440,25 +478,24 @@ main() {
   require_cmd flock
   require_cmd readlink
 
-  # Avoid repeated sudo prompts in the common path.
   sudo -v
 
   if [[ $# -eq 0 ]]; then
-    # default: project mode, PWD
     local project_path="$PWD"
     cmd_start
     sync_host_config_every_attach
     bind_project_with_collision_check "$project_path"
-    attach_project "$project_path"
+    attach_project
     return 0
   fi
 
   case "$1" in
     -h|--help) usage ;;
-    start) shift; [[ $# -eq 0 ]] || usage; cmd_start ;;
-    stop) shift; [[ $# -eq 0 ]] || usage; cmd_stop ;;
+
+    start)  shift; [[ $# -eq 0 ]] || usage; cmd_start ;;
+    stop)   shift; [[ $# -eq 0 ]] || usage; cmd_stop ;;
     status) shift; [[ $# -eq 0 ]] || usage; cmd_status ;;
-    setup) shift; [[ $# -eq 0 ]] || usage; cmd_setup ;;
+    setup)  shift; [[ $# -eq 0 ]] || usage; cmd_setup ;;
 
     -R|--shell-root)
       shift
@@ -481,7 +518,6 @@ main() {
       ;;
 
     *)
-      # project mode: single path
       local project_path="$1"
       shift
       [[ $# -eq 0 ]] || die "multiple project paths provided"
@@ -490,7 +526,7 @@ main() {
       cmd_start
       sync_host_config_every_attach
       bind_project_with_collision_check "$project_path"
-      attach_project "$project_path"
+      attach_project
       ;;
   esac
 }
