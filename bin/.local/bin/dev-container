@@ -1,0 +1,416 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# dev-container: Podman-based isolated AI dev environment (per-project persistent containers)
+#
+# Model:
+# - One persistent container per project path: dev-sandbox-<project>-<hash>
+# - Multiple terminals: re-run this script to `podman exec -it` into the same container
+# - Host config replication (stow-friendly):
+#     * Host ~/.config is synced one-way into a persistent volume mounted at /home/dev/.config
+#     * Sync runs automatically on EVERY invocation (merge semantics; no deletes)
+#     * Symlinks in host ~/.config are dereferenced (rsync -L) => real files in the volume
+# - Host mounts are read-only (except project mount: RW so the container can modify code)
+# - Prefer non-root inside the container (run as your host UID/GID)
+
+MACHINE_BASE="dev-sandbox"
+IMAGE_DEFAULT="dev-sandbox:latest"
+HOST_CONFIG_DIR="${HOME}/.config"
+
+# -----------------------------------------------------------------------------
+# UI (kitty tab title)
+# -----------------------------------------------------------------------------
+set_kitty_tab_title() {
+  local title="$1"
+  if [[ -n "${KITTY_WINDOW_ID:-}" ]]; then
+    command kitten @ set-tab-title "$title" 2>/dev/null || true
+  fi
+}
+
+# -----------------------------------------------------------------------------
+# Helpers
+# -----------------------------------------------------------------------------
+usage() {
+  cat >&2 <<EOF
+Usage: $(basename "$0") [OPTIONS] [PROJECT_PATH]
+
+Default (project mode):
+  Start/reuse a persistent container for PROJECT_PATH (or \$PWD), auto-sync host config, open fish.
+
+Shell mode:
+  -S, --shell [USER]      Start/attach to "${MACHINE_BASE}" (no project mount). USER defaults to root.
+  -D, --shell-dev         Shortcut for --shell dev
+
+Maintenance:
+  --list                  List dev-sandbox* containers
+  --stop                  Stop the target container
+  --rm                    Remove the target container (and its config volume)
+  --rebuild-image         Force rebuild of the image (${IMAGE_DEFAULT})
+  --image IMAGE           Override image (default: ${IMAGE_DEFAULT})
+  --no-sync               Skip config sync for this invocation (debug/perf)
+  -h, --help              Show help
+
+Examples:
+  $(basename "$0")                      # project container for \$PWD + auto sync
+  $(basename "$0") ~/Projects/foo       # project container for foo + auto sync
+  $(basename "$0") -S                   # shell container (root) + auto sync
+  $(basename "$0") -D                   # shell container (dev) + auto sync
+  $(basename "$0") --no-sync            # attach without syncing config
+  $(basename "$0") --list
+  $(basename "$0") --rm                 # remove project container for \$PWD
+EOF
+  exit 1
+}
+
+need_cmd() {
+  command -v "$1" >/dev/null 2>&1 || {
+    echo "Error: missing required command: $1" >&2
+    exit 1
+  }
+}
+
+sanitize_name() {
+  local s="$1"
+  s="$(echo "$s" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//')"
+  [[ -n "$s" ]] || s="project"
+  echo "$s"
+}
+
+short_hash() {
+  local input="$1"
+  if command -v sha1sum >/dev/null 2>&1; then
+    echo -n "$input" | sha1sum | awk '{print substr($1,1,8)}'
+  elif command -v shasum >/dev/null 2>&1; then
+    echo -n "$input" | shasum | awk '{print substr($1,1,8)}'
+  elif command -v cksum >/dev/null 2>&1; then
+    echo -n "$input" | cksum | awk '{print $1}'
+  else
+    echo "00000000"
+  fi
+}
+
+podman_cmd_array() {
+  if podman info >/dev/null 2>&1; then
+    echo "podman"
+  else
+    echo "sudo podman"
+  fi
+}
+
+is_sudo_podman() {
+  [[ "${PODMAN_CMD[0]:-}" == "sudo" ]]
+}
+
+image_exists()       { "${PODMAN_CMD[@]}" image exists "$1"; }
+container_exists()   { "${PODMAN_CMD[@]}" container exists "$1"; }
+volume_exists()      { "${PODMAN_CMD[@]}" volume exists "$1"; }
+
+container_running() {
+  local name="$1"
+  "${PODMAN_CMD[@]}" ps --format '{{.Names}}' | grep -Fxq "$name"
+}
+
+list_containers() {
+  "${PODMAN_CMD[@]}" ps -a --format 'table {{.Names}}\t{{.Status}}\t{{.Image}}' \
+    | (head -n 1; grep -E "^${MACHINE_BASE}([[:space:]]|-)") || true
+}
+
+# -----------------------------------------------------------------------------
+# Image build
+# -----------------------------------------------------------------------------
+build_image_if_needed() {
+  local image="$1"
+  local force_rebuild="$2"
+
+  local cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/dev-container"
+  mkdir -p "$cache_dir"
+  local containerfile="$cache_dir/Containerfile"
+
+  cat >"$containerfile" <<'EOF'
+FROM opensuse/tumbleweed
+
+# Add OBS Science repo (best-effort). Avoid .repo file URL; use the repository directory URL.
+# Ignore errors if it already exists.
+RUN zypper -n ar -f "https://download.opensuse.org/repositories/science/openSUSE_Tumbleweed/" science 2>/dev/null || true
+
+# Refresh metadata (auto-import keys so builds don't fail on first-seen signing keys)
+RUN zypper -n --gpg-auto-import-keys refresh
+
+# Base patterns (mirrors your nspawn setup)
+RUN zypper -n install -t pattern base enhanced_base devel_basis
+
+# Required tools
+RUN zypper -n install --no-recommends \
+  git neovim kitty-terminfo nodejs npm curl \
+  python3-poetry fish rsync
+
+# Optional tools / language stacks
+RUN zypper -n install --no-recommends \
+  fzf starship zoxide eza bat stow trash-cli mercurial python313-neovim \
+  go go-doc rust php8 php-composer java-25-openjdk-devel julia ruby-devel \
+  lua51 ruby3.4-rubygem-neovim perl-base perl-App-cpanminus
+
+RUN zypper -n clean -a && rm -rf /var/cache/zypp/*
+
+# Runtime model: run as arbitrary HOST_UID:HOST_GID, so keep these writable.
+RUN mkdir -p /home/dev /workspace && chmod 0777 /home/dev /workspace
+
+ENV HOME=/home/dev
+ENV XDG_CONFIG_HOME=/home/dev/.config
+
+WORKDIR /workspace
+CMD ["sleep", "infinity"]
+EOF
+
+  if [[ "$force_rebuild" -eq 1 ]] || ! image_exists "$image"; then
+    echo "Building image: $image" >&2
+    "${PODMAN_CMD[@]}" build -t "$image" -f "$containerfile" "$cache_dir"
+  fi
+}
+
+# -----------------------------------------------------------------------------
+# Runtime: start/attach
+# -----------------------------------------------------------------------------
+ensure_container_started() {
+  local name="$1"
+  local image="$2"
+  shift 2
+  local run_args=("$@")
+
+  if container_exists "$name"; then
+    if ! container_running "$name"; then
+      "${PODMAN_CMD[@]}" start "$name" >/dev/null
+    fi
+    return 0
+  fi
+
+  "${PODMAN_CMD[@]}" run -d --name "$name" "${run_args[@]}" "$image" >/dev/null
+}
+
+exec_shell_in_container() {
+  local name="$1"
+  local user="$2"
+  local workdir="$3"
+
+  exec "${PODMAN_CMD[@]}" exec -it \
+    ${user:+--user "$user"} \
+    ${workdir:+--workdir "$workdir"} \
+    "$name" /usr/bin/fish
+}
+
+assert_required_runtime_tools() {
+  local name="$1"
+
+  if ! "${PODMAN_CMD[@]}" exec "$name" sh -c 'command -v fish >/dev/null 2>&1'; then
+    cat >&2 <<EOF
+Error: required command 'fish' is missing inside container '$name'.
+
+Fix options:
+  1) Rebuild the default image:
+     dev-container --rebuild-image
+  2) If you used --image, ensure that image includes fish.
+EOF
+    exit 1
+  fi
+}
+
+# -----------------------------------------------------------------------------
+# Config sync (host rsync -> volume)
+# -----------------------------------------------------------------------------
+sync_config_into_volume_host() {
+  local volume="$1"
+
+  local mount_path=""
+  mount_path="$("${PODMAN_CMD[@]}" volume mount "$volume")"
+
+  unmount_volume() { "${PODMAN_CMD[@]}" volume unmount "$volume" >/dev/null 2>&1 || true; }
+
+  trap unmount_volume EXIT
+
+  local rsync_cmd=(rsync -aL --no-perms --no-owner --no-group --exclude ".git/" "${HOST_CONFIG_DIR}/" "${mount_path}/")
+  if is_sudo_podman; then
+    rsync_cmd=(sudo "${rsync_cmd[@]}")
+  fi
+
+  "${rsync_cmd[@]}"
+
+  trap - EXIT
+  unmount_volume
+}
+
+# -----------------------------------------------------------------------------
+# Main
+# -----------------------------------------------------------------------------
+need_cmd readlink
+need_cmd sed
+need_cmd tr
+need_cmd grep
+need_cmd awk
+need_cmd id
+
+read -r -a PODMAN_CMD <<<"$(podman_cmd_array)"
+
+IMAGE="$IMAGE_DEFAULT"
+
+SHELL_MODE=0
+SHELL_USER=""
+PROJECT_PATH=""
+STOP_ONLY=0
+RM_ONLY=0
+REBUILD_IMAGE=0
+LIST_ONLY=0
+NO_SYNC=0
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -S|--shell)
+      SHELL_MODE=1
+      shift
+      if [[ $# -gt 0 && "${1:-}" != -* ]]; then
+        SHELL_USER="$1"
+        shift
+      else
+        SHELL_USER="root"
+      fi
+      ;;
+    -D|--shell-dev)
+      SHELL_MODE=1
+      SHELL_USER="dev"
+      shift
+      ;;
+    --stop) STOP_ONLY=1; shift ;;
+    --rm) RM_ONLY=1; shift ;;
+    --rebuild-image) REBUILD_IMAGE=1; shift ;;
+    --image)
+      shift
+      [[ $# -gt 0 ]] || { echo "Error: --image requires a value" >&2; exit 1; }
+      IMAGE="$1"
+      shift
+      ;;
+    --list) LIST_ONLY=1; shift ;;
+    --no-sync) NO_SYNC=1; shift ;;
+    -h|--help) usage ;;
+    -*)
+      echo "Error: unknown option: $1" >&2
+      usage
+      ;;
+    *)
+      if [[ -n "$PROJECT_PATH" ]]; then
+        echo "Error: multiple project paths provided" >&2
+        exit 1
+      fi
+      PROJECT_PATH="$1"
+      shift
+      ;;
+  esac
+done
+
+build_image_if_needed "$IMAGE" "$REBUILD_IMAGE"
+
+if [[ "$LIST_ONLY" -eq 1 ]]; then
+  list_containers
+  exit 0
+fi
+
+# Fail fast if sync is enabled but prerequisites are missing
+if [[ "$NO_SYNC" -eq 0 ]]; then
+  need_cmd rsync
+  if [[ ! -d "$HOST_CONFIG_DIR" ]]; then
+    echo "Error: host config dir '$HOST_CONFIG_DIR' does not exist" >&2
+    exit 1
+  fi
+fi
+
+HOST_UID="$(id -u)"
+HOST_GID="$(id -g)"
+
+TARGET_CONTAINER=""
+WORKDIR=""
+CONFIG_VOLUME=""
+EXEC_USER=""
+
+if [[ "$SHELL_MODE" -eq 1 ]]; then
+  [[ -z "$PROJECT_PATH" ]] || { echo "Error: cannot specify PROJECT_PATH with --shell options" >&2; exit 1; }
+
+  TARGET_CONTAINER="$MACHINE_BASE"
+  WORKDIR="/workspace"
+  CONFIG_VOLUME="${MACHINE_BASE}-config"
+
+  if [[ "${SHELL_USER:-root}" == "root" ]]; then
+    EXEC_USER=""
+  else
+    EXEC_USER="${HOST_UID}:${HOST_GID}"
+  fi
+else
+  if [[ -z "$PROJECT_PATH" ]]; then
+    PROJECT_PATH="$PWD"
+  fi
+
+  PROJECT_PATH="$(readlink -f "$PROJECT_PATH")"
+  [[ -d "$PROJECT_PATH" ]] || { echo "Error: project directory '$PROJECT_PATH' does not exist." >&2; exit 1; }
+
+  PROJECT_BASENAME="$(basename "$PROJECT_PATH")"
+  PROJECT_SAFE="$(sanitize_name "$PROJECT_BASENAME")"
+  PROJECT_HASH="$(short_hash "$PROJECT_PATH")"
+
+  TARGET_CONTAINER="${MACHINE_BASE}-${PROJECT_SAFE}-${PROJECT_HASH}"
+  WORKDIR="/workspace/${PROJECT_BASENAME}"
+  CONFIG_VOLUME="${TARGET_CONTAINER}-config"
+  EXEC_USER="${HOST_UID}:${HOST_GID}"
+fi
+
+if [[ "$RM_ONLY" -eq 1 ]]; then
+  if container_exists "$TARGET_CONTAINER"; then
+    "${PODMAN_CMD[@]}" rm -f "$TARGET_CONTAINER" >/dev/null
+  fi
+  if volume_exists "$CONFIG_VOLUME"; then
+    if ! "${PODMAN_CMD[@]}" volume rm "$CONFIG_VOLUME" >/dev/null; then
+      echo "Warning: could not remove volume '$CONFIG_VOLUME' (it may be in use)." >&2
+      exit 1
+    fi
+  fi
+  exit 0
+fi
+
+if [[ "$STOP_ONLY" -eq 1 ]]; then
+  if container_exists "$TARGET_CONTAINER"; then
+    "${PODMAN_CMD[@]}" stop "$TARGET_CONTAINER" >/dev/null || true
+  fi
+  exit 0
+fi
+
+if ! volume_exists "$CONFIG_VOLUME"; then
+  "${PODMAN_CMD[@]}" volume create "$CONFIG_VOLUME" >/dev/null
+fi
+
+if [[ "$NO_SYNC" -eq 0 ]]; then
+  echo "Auto-sync host config -> volume: $CONFIG_VOLUME" >&2
+  sync_config_into_volume_host "$CONFIG_VOLUME"
+fi
+
+RUN_ARGS=(
+  --env "HOME=/home/dev"
+  --env "XDG_CONFIG_HOME=/home/dev/.config"
+  --env "USER=dev"
+  --env "LOGNAME=dev"
+  --env "SHELL=/usr/bin/fish"
+  --user "${HOST_UID}:${HOST_GID}"
+  -v "${CONFIG_VOLUME}:/home/dev/.config"
+)
+
+if ! is_sudo_podman; then
+  RUN_ARGS+=( --userns=keep-id )
+fi
+
+if [[ "$SHELL_MODE" -eq 0 ]]; then
+  RUN_ARGS+=( -v "${PROJECT_PATH}:${WORKDIR}:rw" )
+fi
+
+ensure_container_started "$TARGET_CONTAINER" "$IMAGE" "${RUN_ARGS[@]}"
+
+assert_required_runtime_tools "$TARGET_CONTAINER"
+
+# Only set tab title for interactive attach (not for stop/rm paths)
+set_kitty_tab_title "🧊 ${TARGET_CONTAINER}"
+
+exec_shell_in_container "$TARGET_CONTAINER" "$EXEC_USER" "$WORKDIR"
