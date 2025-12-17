@@ -52,11 +52,15 @@ CORE_PACKAGES=(
   # Dev tools (not in devel_basis)
   git
   neovim
-  gcc-c++
-  cmake
-  ninja
 
   # Modern CLI (not in base)
+  fzf
+  starship
+  zoxide
+  eza
+  bat
+  stow
+  trash-cli
   rsync
   wget
   ripgrep
@@ -69,6 +73,17 @@ CORE_PACKAGES=(
   python313-poetry
   nodejs
   npm
+  go
+  go-doc
+  rust
+  php8
+  php-composer
+  java-25-openjdk-devel
+  julia
+  ruby-devel
+  ruby3.4-rubygem-neovim
+  lua51
+  perl-App-cpanminus
 )
 
 OPTIONAL_PACKAGES=(
@@ -368,6 +383,39 @@ bind_project_with_collision_check() {
   PROJECT_NAME="$(basename "$project_path")"
   local target="/workspace/$PROJECT_NAME"
 
+  normalize_findmnt_source() {
+    local src="$1"
+
+    # If SOURCE is like: /dev/mapper/xxx[/@/home/user/path], extract bracket path.
+    if [[ "$src" == *"["*"]"* ]]; then
+      local inner="${src#*[}"
+      inner="${inner%]*}"
+
+      # Handle various btrfs subvol prefixes (best-effort):
+      #   /@/path      -> /path
+      #   /@home/path  -> /path
+      #   @/path       -> /path
+      #   @home/path   -> /path
+      if [[ "$inner" == /@/* ]]; then
+        inner="${inner#/@}"
+      elif [[ "$inner" == /@*/* ]]; then
+        inner="${inner#/}"
+        inner="${inner#@}"
+        inner="/${inner#*/}"
+      elif [[ "$inner" == @/* ]]; then
+        inner="/${inner#@}"
+      elif [[ "$inner" == @*/* ]]; then
+        inner="/${inner#*/}"
+      fi
+
+      printf '%s\n' "$inner"
+      return 0
+    fi
+
+    # Otherwise assume it is already a path-like source (e.g., /home/user/path)
+    printf '%s\n' "$src"
+  }
+
   local existing_source
   existing_source="$(
     sudo_systemd_run -M "$MACHINE" --pipe --quiet --wait \
@@ -375,11 +423,17 @@ bind_project_with_collision_check() {
   )"
 
   if [[ -n "$existing_source" ]]; then
-    if [[ "$existing_source" == "$project_path" ]]; then
+    local existing_norm
+    existing_norm="$(normalize_findmnt_source "$existing_source")"
+
+    # If it's already bound to *this* project, do nothing.
+    if [[ "$existing_norm" == "$project_path" ]]; then
       return 0
     fi
+
     die "basename collision for $target
   existing source: $existing_source
+  normalized src:  $existing_norm
   requested source: $project_path"
   fi
 
