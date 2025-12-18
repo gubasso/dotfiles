@@ -1,23 +1,69 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# dev-container: Podman-based isolated AI dev environment (per-project persistent containers)
+# ==============================================================================
+# dev-container
 #
-# Model:
-# - One persistent container per project path: dev-sandbox-<project>-<hash>
-# - Multiple terminals: re-run this script to `podman exec -it` into the same container
-# - Host config replication (stow-friendly):
-#     * Host ~/.config is synced one-way into a persistent volume mounted at /home/<hostuser>/.config
-#     * Sync runs automatically on EVERY invocation (merge semantics; no deletes)
-#     * Symlinks in host ~/.config are dereferenced (rsync -L) => real files in the volume
-# - Host mounts are read-only (except project mount: RW so the container can modify code)
-# - Rootless-only Podman on the host
+# Purpose
+# - Provide a Podman-based, rootless, isolated AI/dev environment with:
+#   - Per-project persistent containers (one container per unique project path)
+#   - Multi-terminal attach (re-run the script to exec into the same running container)
+#   - A per-project persistent config volume mounted at /home/<hostuser>/.config
+#   - One-way host ~/.config sync into that volume on every invocation (merge semantics; no deletes)
+#   - Per-project source bind mount to /workspace/<basename> (RW for code edits)
+#   - Host identity mapping inside the container (keep-id, UID:GID) for sane file permissions
 #
-# Modes:
-# - Project mode (default): per-project persistent container, attach as host UID/GID
-# - Shell mode: attach to "${MACHINE_BASE}" container (no project mount)
-#     * --shell-root : attach as root inside container
-#     * --shell-dev  : attach as host user (UID:GID) inside container
+# Use cases / problems this solves
+# - Creates and manages an isolated environment to run coding AI agents/helpers (e.g., gemini-cli, codex,
+#   claude code) without granting them broad access to your host OS.
+# - Enables per-project environment segmentation: each project gets its own container name + config volume,
+#   reducing cross-project contamination and dependency conflicts.
+# - Supports multiple concurrent terminals into the same project container (repeatable podman exec -it),
+#   allowing parallel workflows (editor, tests, agent sessions) without spawning new environments.
+# - Keeps your host clean: language runtimes and tooling live in the container image/container layers.
+# - Solves “my dotfiles are symlinks” problems: host ~/.config is dereferenced (rsync -L) into a real-file
+#   volume so container tools don’t depend on host filesystem structure.
+# - Avoids destructive sync behavior: config sync is one-way and merge-like (no deletes), preventing
+#   accidental loss of host config while keeping container configs updated.
+#
+# Assumptions
+# - Rootless Podman is installed and functional on the host.
+# - The default image is openSUSE Tumbleweed and includes fish (and other tooling defined in the embedded
+#   Containerfile). If not, --rebuild-image or --image should be used accordingly.
+# - Host ~/.config exists (unless --no-sync is used).
+# - The host user should be mapped into the container using keep-id semantics for correct ownership on
+#   bind-mounted project files and config volumes.
+# - kitty tab-title helper is best-effort; script still functions without kitty.
+#
+# Notes
+# - Persistence model differs from the systemd-nspawn rootfs approach:
+#   - Containers are persistent per project (and re-used across invocations), but changes made *inside*
+#     one project’s container are scoped to that container only (not shared across other projects).
+#   - Image rebuilds affect newly created containers; existing containers keep their current layers/state
+#     unless removed (--rm) and recreated.
+# - Config is persisted via a named Podman volume per container; config sync merges on each run without
+#   deleting destination files (intentionally conservative).
+# - Project mount is RW to allow normal development workflows; other mounts are volume-based.
+# - The script is intentionally “per-project”: a change in one container’s environment (packages, files,
+#   local tweaks) will not automatically replicate to other projects’ containers.
+#
+# Design overview (high-level)
+# - Argument parsing:
+#   - Project mode (default): resolve PROJECT_PATH (or $PWD) -> derive stable container name:
+#       dev-sandbox-<project-safe>-<hash(project_path)>
+#   - Shell mode: attach to the base container name ("dev-sandbox") with no project mount
+#   - Maintenance flags: --list, --stop, --rm, --rebuild-image, --image, --no-sync
+# - Image handling:
+#   - Writes a Containerfile to a cache directory and builds IMAGE if missing or --rebuild-image is set
+# - Config sync:
+#   - If enabled, rsync host ~/.config into the per-container config volume using podman unshare; symlinks
+#     are dereferenced and broken symlinks on the host side are cleaned up (best-effort)
+# - Runtime:
+#   - Ensure config volume exists
+#   - Ensure container exists and is running (podman run -d on first creation; podman start on reuse)
+#   - Ensure /home/<hostuser> and /home/<hostuser>/.config exist and are owned by host UID:GID
+#   - Attach via podman exec -it into /usr/bin/fish (multi-terminal attach supported by design)
+# ==============================================================================
 
 MACHINE_BASE="dev-sandbox"
 IMAGE_DEFAULT="dev-sandbox:latest"

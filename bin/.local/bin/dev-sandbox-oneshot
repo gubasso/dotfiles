@@ -1,6 +1,57 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# ==============================================================================
+# dev-sandbox-oneshot
+#
+# Purpose
+# - Provide a one-shot, single-session entry into an existing systemd-nspawn machine ("dev-sandbox") with:
+#   - A persistent rootfs under /var/lib/machines/dev-sandbox (must already exist)
+#   - Optional per-invocation project bind mount to /workspace/<project-name>
+#   - Optional read-only dotfiles mounts from the host into /opt/host-dotfiles* (best-effort)
+#   - A fish shell as either root (default shell mode) or a specified container user
+#   - A minimal, direct systemd-nspawn invocation path (no provisioning, no machine lifecycle management)
+#
+# Use cases / problems this solves
+# - Creates and manages an isolated environment to run coding AI agents/helpers (e.g., gemini-cli, codex,
+#   claude code) without granting them broad access to your host OS.
+# - Provides a lightweight “enter the sandbox now” wrapper around systemd-nspawn for ad-hoc work.
+# - Enables quick project-context attaches without maintaining separate container instances per repo.
+# - Avoids host pollution by running dev tools inside the container filesystem, not on the host.
+# - Supports a simple “shell vs project” contract for predictable interactive sessions.
+# - Offers an easy path to mount host dotfiles read-only for consistent tooling behavior inside the container.
+#
+# Assumptions
+# - Container rootfs already exists at /var/lib/machines/dev-sandbox (this script does not provision).
+# - Host has systemd-nspawn available and sudo privileges to run it.
+# - Container has /usr/bin/fish installed.
+# - (Optional) Host dotfiles directories exist at:
+#   - ~/.dotfiles
+#   - ~/.dotfiles-private
+# - Host terminal may be kitty; tab-title setting is best-effort and safe to ignore if unsupported.
+#
+# Notes
+# - This script intentionally does not start/stop the machine, detect machine state, or run systemd-run:
+#   it directly executes systemd-nspawn against an existing rootfs.
+# - This script is designed for a single interactive session per invocation; it does not provide
+#   multi-terminal attach semantics to an already-running shared machine (contrast with dev-sandbox).
+# - Project mapping is basename -> /workspace/<basename> and is a plain nspawn bind mount for the session.
+# - Dotfiles mounts are read-only and only applied if the host directories exist.
+# - SYSTEMD_TTY_ENV is set to prevent systemd from adjusting terminal colors/title/emoji (kittty-friendly).
+#
+# Design overview (high-level)
+# - Argument parsing:
+#   - Default: project mode (PROJECT_PATH or $PWD) -> bind into /workspace/<basename>, run fish as user "dev"
+#   - -S/--shell [USER]: shell mode with no project mount; USER defaults to root if omitted
+#   - -D/--shell-dev: convenience for --shell dev
+# - Session setup:
+#   - Validate rootfs exists early and fail fast if missing
+#   - Collect optional dotfiles mounts (read-only) if present
+#   - Construct systemd-nspawn command line for the selected mode and exec it
+# - Execution:
+#   - Single exec of systemd-nspawn; process lifetime matches the interactive terminal session
+# ==============================================================================
+
 MACHINE="dev-sandbox"
 ROOT="/var/lib/machines/${MACHINE}"
 
