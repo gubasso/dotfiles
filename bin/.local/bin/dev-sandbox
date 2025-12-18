@@ -4,6 +4,14 @@ set -euo pipefail
 # ==============================================================================
 # dev-sandbox
 #
+# Purpose
+# - Provide a long-lived systemd-nspawn machine ("dev-sandbox") with:
+#   - Persistent rootfs under /var/lib/machines
+#   - Multi-terminal attach (many shells into the same running machine)
+#   - Per-invocation project binds to /workspace/<basename>
+#   - Host user identity mirrored inside container (UID/GID + username)
+#   - Host ~/.config synced into the container on every attach
+#
 # Assumptions:
 # - Host OS: openSUSE Tumbleweed (or host has zypper installed and configured)
 # - Host terminal: kitty (tab-title helper is best-effort; script still works without kitty)
@@ -16,35 +24,56 @@ set -euo pipefail
 # - ~/.config is synced on every attach via: rsync -aL --delete
 # - Project mapping is basename -> /workspace/<basename>; basename collisions error.
 # - Sandbox user policy: if UID conflicts exist, conflicting users may be deleted.
+#
+# Design overview (high-level)
+# - cmd_start:
+#   1) ensure_nspawn_config
+#   2) ensure_rootfs_provisioned_if_needed (uses flock lock + sentinel)
+#   3) ensure_machine_running (and wait for container systemd to respond)
+#   4) ensure_host_user_in_container (destructive conflict resolution by design)
+# - Attach flows (default/project, -D, -R):
+#   - cmd_start
+#   - sync_host_config_every_attach
+#   - (project mode) bind_project_with_collision_check
+#   - attach_* (systemd-run --pty into fish)
 # ==============================================================================
 
+# Machine identity and persistent storage paths.
 MACHINE="dev-sandbox"
 ROOT="/var/lib/machines/${MACHINE}"
 NSPAWN_CONF="/etc/systemd/nspawn/${MACHINE}.nspawn"
+
+# Provisioning sentinel: only created at the end of successful provisioning.
 SENTINEL="${ROOT}/.dev-sandbox/initialized"
+
+# Host-side provisioning lock to prevent first-run races.
 LOCK="/var/lock/dev-sandbox.provision.lock"
 
+# Host identity used to mirror user inside container.
 HOST_USER="$(id -un)"
 HOST_UID="$(id -u)"
 HOST_GID="$(id -g)"
 
-# Disable systemd terminal tint/title/emoji adjustments (keep host kitty colors intact)
+# Disable systemd terminal tint/title/emoji adjustments (keep host kitty colors intact).
+# Applied to systemd-nspawn / machinectl / systemd-run calls via sudo_cmd/sudo_systemd_run.
 SYSTEMD_TTY_ENV=(
   "SYSTEMD_TINT_BACKGROUND=0"
   "SYSTEMD_ADJUST_TERMINAL_TITLE=0"
   "SYSTEMD_EMOJI=0"
 )
 
-# Repo URLs (Tumbleweed)
+# Repo URLs (Tumbleweed). Used during rootfs provisioning via zypper --root "$ROOT".
 REPO_OSS="https://cdn.opensuse.org/tumbleweed/repo/oss/"
 REPO_NON_OSS="https://cdn.opensuse.org/tumbleweed/repo/non-oss/"
 REPO_UPDATE="https://cdn.opensuse.org/update/tumbleweed/"
 REPO_SCIENCE_DIR="https://download.opensuse.org/repositories/science/openSUSE_Tumbleweed/"
 
-# Patterns
+# Patterns installed during provisioning.
 PATTERNS=( base enhanced_base devel_basis devel_perl )
 
-# Packages (baseline; extend as needed)
+# Packages installed during provisioning.
+# - These are installed into the rootfs via zypper --root "$ROOT".
+# - This list is intended to be "baseline for all projects".
 CORE_PACKAGES=(
   # Shell
   fish
@@ -86,26 +115,36 @@ CORE_PACKAGES=(
   perl-App-cpanminus
 )
 
+# Optional packages can be appended here without changing provisioning logic.
 OPTIONAL_PACKAGES=(
   # Keep empty or add your stacks.
 )
 
-# Globals set during execution
+# Globals set during execution.
+# - NSPAWN_CREATED: set to 1 if we create /etc/systemd/nspawn/dev-sandbox.nspawn this run.
+# - PROVISIONED_NOW: set to 1 if provisioning ran and sentinel was newly created.
+# - PROJECT_NAME: basename of project path; used for /workspace/<PROJECT_NAME> mapping and attach title.
 NSPAWN_CREATED=0
 PROVISIONED_NOW=0
 PROJECT_NAME=""
 
+# --------------------------------------------------------------------------
+# Small utilities / conventions
+# --------------------------------------------------------------------------
 die() { echo "Error: $*" >&2; exit 1; }
 log() { echo "[dev-sandbox] $*" >&2; }
 
+# Ensure a command exists on the host (not inside container).
 require_cmd() {
   command -v "$1" >/dev/null 2>&1 || die "missing required command: $1"
 }
 
+# Wrapper for host sudo calls with systemd terminal env controls applied.
 sudo_cmd() {
   sudo env "${SYSTEMD_TTY_ENV[@]}" "$@"
 }
 
+# Wrapper for host systemd-run calls with env controls applied.
 sudo_systemd_run() {
   sudo env "${SYSTEMD_TTY_ENV[@]}" systemd-run "$@"
 }
@@ -135,6 +174,7 @@ EOF
   exit 1
 }
 
+# Best-effort kitty tab title setter; no-op outside kitty.
 set_kitty_tab_title() {
   local title="$1"
   if [[ -n "${KITTY_WINDOW_ID:-}" ]]; then
@@ -142,14 +182,22 @@ set_kitty_tab_title() {
   fi
 }
 
+# --------------------------------------------------------------------------
+# Machine state helpers
+# --------------------------------------------------------------------------
+
+# Returns machinectl State value (e.g., "running") or empty on failure.
 machine_state() {
   sudo_cmd machinectl show "$MACHINE" --property=State --value 2>/dev/null || true
 }
 
+# True if machine_state is exactly "running".
 machine_is_running() {
   [[ "$(machine_state)" == "running" ]]
 }
 
+# Wait until container systemd is responsive enough to run a trivial command.
+# This ensures later systemd-run -M "$MACHINE" calls behave reliably.
 wait_for_machine_systemd() {
   local i
   for i in {1..30}; do
@@ -161,9 +209,15 @@ wait_for_machine_systemd() {
   return 1
 }
 
+# --------------------------------------------------------------------------
+# 1) Ensure nspawn config exists
+# --------------------------------------------------------------------------
 ensure_nspawn_config() {
+  # Ensure directory exists for per-machine nspawn config.
   sudo_cmd install -d -m 0755 /etc/systemd/nspawn
 
+  # Create config only if missing (idempotent).
+  # If created while machine is already running, ensure_machine_running() will restart the machine.
   if ! sudo_cmd test -f "$NSPAWN_CONF"; then
     log "creating nspawn config: $NSPAWN_CONF"
     cat <<EOF | sudo_cmd tee "$NSPAWN_CONF" >/dev/null
@@ -178,14 +232,22 @@ EOF
   fi
 }
 
+# --------------------------------------------------------------------------
+# 2) Rootfs provisioning gating (sentinel + lock)
+# --------------------------------------------------------------------------
 ensure_rootfs_provisioned_if_needed() {
   local force="$1" # 0/1
 
+  # Track whether sentinel existed before this call; used to infer "provisioned now".
   local had_sentinel=0
   if sudo_cmd test -f "$SENTINEL" 2>/dev/null; then
     had_sentinel=1
   fi
 
+  # Decide whether provisioning is needed.
+  # - missing root directory
+  # - missing sentinel
+  # - explicit force
   local need=0
   if ! sudo_cmd test -d "$ROOT" 2>/dev/null; then
     need=1
@@ -201,20 +263,29 @@ ensure_rootfs_provisioned_if_needed() {
     return 0
   fi
 
+  # Perform provisioning under a host-side flock to prevent races.
   provision_rootfs_with_lock "$force"
 
+  # Mark that provisioning completed this run (used to optionally machinectl enable).
   if [[ "$had_sentinel" -eq 0 ]] && sudo_cmd test -f "$SENTINEL" 2>/dev/null; then
     PROVISIONED_NOW=1
   fi
 }
 
+# --------------------------------------------------------------------------
+# 3) Provision rootfs payload (locked)
+# --------------------------------------------------------------------------
 provision_rootfs_with_lock() {
   local force="$1" # 0/1
 
+  # Ensure lockfile exists.
   sudo_cmd install -d -m 0755 "$(dirname "$LOCK")"
   sudo_cmd touch "$LOCK"
 
   log "provisioning rootfs (locked): $ROOT"
+
+  # Provision inside a single sudo + flock scope; keep state consistent.
+  # NOTE: Provisioning is considered complete only when SENTINEL is written at the end.
   sudo_cmd flock -x "$LOCK" bash -lc "
     set -euo pipefail
 
@@ -227,10 +298,12 @@ provision_rootfs_with_lock() {
     REPO_UPDATE='$REPO_UPDATE'
     REPO_SCIENCE_DIR='$REPO_SCIENCE_DIR'
 
+    # Double-check sentinel inside the lock to avoid redundant work if another process finished provisioning.
     if [[ \"\$FORCE\" -ne 1 ]] && [[ -f \"\$SENTINEL\" ]]; then
       exit 0
     fi
 
+    # If anything fails, do not write sentinel; next run will attempt provisioning again.
     trap 'cat >&2 <<MSG
 [dev-sandbox] provisioning failed; sentinel not written; next run will retry.
 [dev-sandbox] after fixing network/repos, you can force reprovision with: dev-sandbox setup
@@ -241,15 +314,18 @@ MSG
     install -d -m 0755 \"\$ROOT\"
     rpm --root \"\$ROOT\" --initdb || true
 
-    # Add repos inside the rootfs (best-effort if already present)
+    # Add repos inside the rootfs (best-effort if already present).
     zypper -n --root \"\$ROOT\" ar -f \"\$REPO_OSS\" repo-oss >/dev/null 2>&1 || true
     zypper -n --root \"\$ROOT\" ar -f \"\$REPO_NON_OSS\" repo-non-oss >/dev/null 2>&1 || true
     zypper -n --root \"\$ROOT\" ar -f \"\$REPO_UPDATE\" repo-update >/dev/null 2>&1 || true
     zypper -n --root \"\$ROOT\" ar -f \"\$REPO_SCIENCE_DIR\" science >/dev/null 2>&1 || true
 
+    # Refresh metadata and import keys automatically on first sight.
     zypper -n --gpg-auto-import-keys --root \"\$ROOT\" refresh
 
     # Patterns
+    # NOTE: -n is non-interactive, but depending on host zypper config/policies,
+    #       installs can still require confirmation. If that happens, prefer adding -y.
     zypper -n --root \"\$ROOT\" install -t pattern ${PATTERNS[*]}
 
     # Core packages
@@ -260,21 +336,29 @@ MSG
       zypper -n --root \"\$ROOT\" install --no-recommends ${OPTIONAL_PACKAGES[*]}
     fi
 
+    # Best-effort cleanup; do not fail provisioning on cache cleanup issues.
     zypper -n --root \"\$ROOT\" clean -a || true
 
+    # Ensure machine-id exists for systemd in the container.
     systemd-machine-id-setup --root=\"\$ROOT\"
 
+    # Ensure baseline dirs exist.
     install -d -m 0755 \"\$ROOT/workspace\" \"\$ROOT/.dev-sandbox\"
 
-    # Sentinel written only at the end on success
+    # Sentinel written only at the end on success.
     date -Iseconds > \"\$SENTINEL\"
   "
 }
 
+# --------------------------------------------------------------------------
+# 4) Ensure machine running and healthy
+# --------------------------------------------------------------------------
 ensure_machine_running() {
   local state
   state="$(machine_state)"
 
+  # If machine isn't running, start it.
+  # If we created the .nspawn config this run and the machine is already running, restart it.
   if [[ "$state" != "running" ]]; then
     log "starting machine: $MACHINE"
     sudo_cmd machinectl start "$MACHINE"
@@ -284,18 +368,25 @@ ensure_machine_running() {
     sudo_cmd machinectl start "$MACHINE"
   fi
 
+  # Wait for container systemd to respond to systemd-run -M calls.
   if ! wait_for_machine_systemd; then
     die "machine started but container systemd is not responding (systemd-run -M failed)"
   fi
 
+  # If provisioning happened now, try to enable the machine at boot (best-effort).
   if [[ "$PROVISIONED_NOW" -eq 1 ]]; then
     sudo_cmd machinectl enable "$MACHINE" >/dev/null 2>&1 || true
   fi
 }
 
+# --------------------------------------------------------------------------
+# 5) Ensure host user exists inside container (destructive conflict resolution)
+# --------------------------------------------------------------------------
 ensure_host_user_in_container() {
   log "ensuring host user exists in container: $HOST_USER ($HOST_UID:$HOST_GID)"
 
+  # This runs inside the container as root (systemd-run -M ... --pipe).
+  # Policy: this is a sandbox; to keep UID/GID mapping consistent, we may delete conflicting users/groups.
   sudo_systemd_run -M "$MACHINE" --pipe --quiet --wait \
     -E "HOST_USER=$HOST_USER" \
     -E "HOST_UID=$HOST_UID" \
@@ -303,6 +394,9 @@ ensure_host_user_in_container() {
     /bin/bash -c '
       set -euo pipefail
 
+      # Delete user best-effort with retries:
+      # - kill processes by uid to avoid "user currently logged in"
+      # - retry userdel to reduce race risk
       delete_user_best_effort() {
         local name="$1"
         local uid="$2"
@@ -319,6 +413,7 @@ ensure_host_user_in_container() {
         return 0
       }
 
+      # Delete group best-effort with retries.
       delete_group_best_effort() {
         local name="$1"
         local i
@@ -331,11 +426,14 @@ ensure_host_user_in_container() {
       }
 
       # Ensure group/user are exactly HOST_USER@HOST_UID:HOST_GID (simplest sandbox policy: delete conflicts)
+
+      # If the target UID exists but under a different username, delete that user.
       existing_user_by_uid="$(getent passwd "$HOST_UID" 2>/dev/null | cut -d: -f1 || true)"
       if [[ -n "$existing_user_by_uid" && "$existing_user_by_uid" != "$HOST_USER" ]]; then
         delete_user_best_effort "$existing_user_by_uid" "$HOST_UID"
       fi
 
+      # If HOST_USER exists but with a different UID, delete HOST_USER (will be recreated).
       if getent passwd "$HOST_USER" >/dev/null 2>&1; then
         current_uid="$(id -u "$HOST_USER")"
         if [[ "$current_uid" != "$HOST_UID" ]]; then
@@ -343,11 +441,13 @@ ensure_host_user_in_container() {
         fi
       fi
 
+      # If the target GID exists but under a different group name, delete that group.
       existing_group_by_gid="$(getent group "$HOST_GID" 2>/dev/null | cut -d: -f1 || true)"
       if [[ -n "$existing_group_by_gid" && "$existing_group_by_gid" != "$HOST_USER" ]]; then
         delete_group_best_effort "$existing_group_by_gid"
       fi
 
+      # If HOST_USER group exists but with a different GID, delete it (will be recreated/modified).
       if getent group "$HOST_USER" >/dev/null 2>&1; then
         current_gid="$(getent group "$HOST_USER" | cut -d: -f3)"
         if [[ "$current_gid" != "$HOST_GID" ]]; then
@@ -355,34 +455,63 @@ ensure_host_user_in_container() {
         fi
       fi
 
-      # Now create (useradd -U creates a group with the same user name)
+      # Now create the user if missing.
+      # useradd -U creates a group with the same user name (convenient + consistent).
       if ! getent passwd "$HOST_USER" >/dev/null 2>&1; then
         useradd -m -u "$HOST_UID" -U -s /usr/bin/fish "$HOST_USER"
       fi
 
-      # Force group gid and user primary group to match host
+      # Force group gid and user primary group to match host.
       groupmod -g "$HOST_GID" "$HOST_USER"
       usermod -g "$HOST_USER" -s /usr/bin/fish -d "/home/$HOST_USER" "$HOST_USER" || true
 
+      # Ensure home/workspace exist and are owned by host UID/GID.
       mkdir -p "/home/$HOST_USER" /workspace
       chown -R "$HOST_UID:$HOST_GID" "/home/$HOST_USER"
     '
 }
 
+# --------------------------------------------------------------------------
+# 6) Sync host ~/.config into container rootfs on every attach
+# --------------------------------------------------------------------------
 sync_host_config_every_attach() {
+  # Ensure host source exists.
   mkdir -p "$HOME/.config"
+
+  # Ensure container destination exists (inside rootfs path).
   sudo_cmd install -d -m 0755 "$ROOT/home/$HOST_USER/.config"
+
   log "syncing host ~/.config -> container (~/.config) with rsync -aL --delete"
+
+  # Copy host config into the container rootfs.
+  #
+  # Notes:
+  # - Runs as root (sudo_cmd) because /var/lib/machines/... is typically not writable by the host user.
+  # - --ignore-errors + || true: do not fail the entire attach if some dotfiles are unreadable.
+  #   (This is intentionally permissive; the attach should proceed even if a few files fail.)
   sudo_cmd rsync -aL --delete --ignore-errors "$HOME/.config/" "$ROOT/home/$HOST_USER/.config/" || true
+
+  # Reassert ownership so the container user can write its own config.
   sudo_cmd chown -R "$HOST_UID:$HOST_GID" "$ROOT/home/$HOST_USER/.config"
 }
 
+# --------------------------------------------------------------------------
+# 7) Project bind with collision detection
+# --------------------------------------------------------------------------
 bind_project_with_collision_check() {
+  # Contract:
+  # - PROJECT_NAME is derived from basename(project_path)
+  # - target is /workspace/$PROJECT_NAME
+  # - If target is already a mountpoint:
+  #   - If it points at the same source project_path: no-op
+  #   - Else: error out with details (basename collision)
   local project_path="$1"
   project_path="$(readlink -f "$project_path")"
   PROJECT_NAME="$(basename "$project_path")"
   local target="/workspace/$PROJECT_NAME"
 
+  # Normalize findmnt SOURCE output, especially for btrfs where SOURCE can include
+  # device + [subvol-path] format.
   normalize_findmnt_source() {
     local src="$1"
 
@@ -412,10 +541,12 @@ bind_project_with_collision_check() {
       return 0
     fi
 
-    # Otherwise assume it is already a path-like source (e.g., /home/user/path)
+    # Otherwise assume it is already a path-like source (e.g., /home/user/path).
     printf '%s\n' "$src"
   }
 
+  # Only consider it a bind collision if $target is a mountpoint.
+  # (findmnt --mountpoint is strict; it will return empty if $target is not mounted.)
   local existing_source
   existing_source="$(
     sudo_systemd_run -M "$MACHINE" --pipe --quiet --wait \
@@ -431,16 +562,23 @@ bind_project_with_collision_check() {
       return 0
     fi
 
+    # Otherwise, same basename but different source => hard error.
     die "basename collision for $target
   existing source: $existing_source
   normalized src:  $existing_norm
   requested source: $project_path"
   fi
 
+  # Bind project into container (dynamic bind).
   log "binding project: $project_path -> $target"
   sudo_cmd machinectl bind "$MACHINE" "$project_path" "$target" --mkdir
 }
 
+# --------------------------------------------------------------------------
+# 8) Attach functions (interactive shells)
+# --------------------------------------------------------------------------
+
+# Root shell attach (no project directory CD).
 attach_root() {
   set_kitty_tab_title "$MACHINE"
   sudo_systemd_run -M "$MACHINE" --pty --quiet --wait \
@@ -448,6 +586,7 @@ attach_root() {
     /usr/bin/fish
 }
 
+# Host user shell attach (no project mount, no project CD).
 attach_host_user_shell() {
   set_kitty_tab_title "$MACHINE"
   sudo_systemd_run -M "$MACHINE" --pty --quiet --wait --uid="$HOST_UID" \
@@ -455,6 +594,7 @@ attach_host_user_shell() {
     /usr/bin/fish
 }
 
+# Host user project attach (expects PROJECT_NAME set by bind_project_with_collision_check()).
 attach_project() {
   set_kitty_tab_title "$MACHINE:$PROJECT_NAME"
   sudo_systemd_run -M "$MACHINE" --pty --quiet --wait --uid="$HOST_UID" \
@@ -463,7 +603,11 @@ attach_project() {
     /usr/bin/fish -lc "cd /workspace/$PROJECT_NAME; exec fish"
 }
 
+# --------------------------------------------------------------------------
+# 9) Management commands
+# --------------------------------------------------------------------------
 cmd_start() {
+  # Idempotent: safe to run repeatedly.
   ensure_nspawn_config
   ensure_rootfs_provisioned_if_needed 0
   ensure_machine_running
@@ -471,6 +615,7 @@ cmd_start() {
 }
 
 cmd_stop() {
+  # Best-effort stop. Use poweroff then fallback terminate.
   if machine_is_running; then
     log "stopping machine: $MACHINE"
     sudo_cmd machinectl poweroff "$MACHINE" || sudo_cmd machinectl terminate "$MACHINE" || true
@@ -480,6 +625,7 @@ cmd_stop() {
 }
 
 cmd_setup() {
+  # Force reprovision. Stops machine first to avoid running against mutable rootfs.
   ensure_nspawn_config
   if machine_is_running; then
     log "stopping machine for setup: $MACHINE"
@@ -491,6 +637,7 @@ cmd_setup() {
 }
 
 cmd_status() {
+  # Report host-observable system state + container user existence.
   local rootfs="absent"
   local sentinel="absent"
   local conf="absent"
@@ -504,6 +651,7 @@ cmd_status() {
   state="$(machine_state)"
   if [[ -z "$state" ]]; then state="not running"; fi
 
+  # Only check user presence if the container is running (systemd-run -M requires it).
   if [[ "$state" == "running" ]]; then
     if sudo_systemd_run -M "$MACHINE" --pipe --quiet --wait /usr/bin/id -u "$HOST_USER" >/dev/null 2>&1; then
       user_status="present ($HOST_USER)"
@@ -522,7 +670,11 @@ Host user:      $user_status
 EOF
 }
 
+# --------------------------------------------------------------------------
+# 10) Main entrypoint + CLI routing
+# --------------------------------------------------------------------------
 main() {
+  # Host prereqs
   require_cmd sudo
   require_cmd machinectl
   require_cmd systemd-run
@@ -532,8 +684,11 @@ main() {
   require_cmd flock
   require_cmd readlink
 
+  # Cache sudo credentials early to reduce repeated prompts.
   sudo -v
 
+  # Default invocation (no args):
+  # - Project mode using current working directory.
   if [[ $# -eq 0 ]]; then
     local project_path="$PWD"
     cmd_start
@@ -543,14 +698,17 @@ main() {
     return 0
   fi
 
+  # Explicit subcommands / options.
   case "$1" in
     -h|--help) usage ;;
 
+    # Management subcommands (no attach)
     start)  shift; [[ $# -eq 0 ]] || usage; cmd_start ;;
     stop)   shift; [[ $# -eq 0 ]] || usage; cmd_stop ;;
     status) shift; [[ $# -eq 0 ]] || usage; cmd_status ;;
     setup)  shift; [[ $# -eq 0 ]] || usage; cmd_setup ;;
 
+    # Root attach (no project mount)
     -R|--shell-root)
       shift
       [[ $# -eq 0 ]] || usage
@@ -559,6 +717,7 @@ main() {
       attach_root
       ;;
 
+    # Host-user attach (no project mount)
     -D|--shell-dev)
       shift
       [[ $# -eq 0 ]] || usage
@@ -567,10 +726,15 @@ main() {
       attach_host_user_shell
       ;;
 
+    # Unknown options
     -*)
       die "unknown option: $1"
       ;;
 
+    # Project path attach:
+    # - Interpret the argument as a project directory on the host.
+    # - Bind it into /workspace/<basename>
+    # - Attach as the host UID and cd into that directory.
     *)
       local project_path="$1"
       shift
