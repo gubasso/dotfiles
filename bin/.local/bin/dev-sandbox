@@ -373,7 +373,7 @@ sync_host_config_every_attach() {
   mkdir -p "$HOME/.config"
   sudo_cmd install -d -m 0755 "$ROOT/home/$HOST_USER/.config"
   log "syncing host ~/.config -> container (~/.config) with rsync -aL --delete"
-  sudo_cmd rsync -aL --delete "$HOME/.config/" "$ROOT/home/$HOST_USER/.config/"
+  sudo_cmd rsync -aL --delete --ignore-errors "$HOME/.config/" "$ROOT/home/$HOST_USER/.config/" || true
   sudo_cmd chown -R "$HOST_UID:$HOST_GID" "$ROOT/home/$HOST_USER/.config"
 }
 
