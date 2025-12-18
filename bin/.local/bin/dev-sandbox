@@ -601,7 +601,7 @@ attach_root() {
   set_kitty_tab_title "$MACHINE"
   sudo_systemd_run -M "$MACHINE" --pty --quiet --wait \
     -E "DEV_SANDBOX=$MACHINE" \
-    /usr/bin/fish
+    /usr/bin/fish -lc 'cd ~; exec fish'
 }
 
 # Host user shell attach (no project mount, no project CD).
@@ -609,7 +609,7 @@ attach_host_user_shell() {
   set_kitty_tab_title "$MACHINE"
   sudo_systemd_run -M "$MACHINE" --pty --quiet --wait --uid="$HOST_UID" \
     -E "DEV_SANDBOX=$MACHINE" \
-    /usr/bin/fish
+    /usr/bin/fish -lc 'cd ~; exec fish'
 }
 
 # Host user project attach (expects PROJECT_NAME set by bind_project_with_collision_check()).
