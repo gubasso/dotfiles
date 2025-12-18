@@ -1,6 +1,5 @@
 # ~/.bash_profile
-# ---
-# This file must have just this part
-## just load .profile
-# https://nanxiao.me/en/why-doesnt-profile-take-effect-in-arch-linux/
-[[ -f ~/.profile ]] && . ~/.profile
+# Source POSIX login environment settings
+if [[ -r "$HOME/.profile" ]]; then
+  . "$HOME/.profile"
+fi
