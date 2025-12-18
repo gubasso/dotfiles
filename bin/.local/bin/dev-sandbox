@@ -5,6 +5,25 @@ set -euo pipefail
 # dev-sandbox
 #
 # Purpose
+#
+# - Use cases / problems this solves:
+#   - Creates and manages an isolated, repeatable dev environment for running coding AI agents/helpers
+#     (e.g., gemini-cli, codex, claude code) without granting them direct access to your host OS.
+#   - Prevents host pollution: packages, language runtimes, and toolchains live in the container rootfs,
+#     so your host remains clean and upgrades/reinstalls are low-risk.
+#   - Enables fast context switching across projects: per-invocation bind mounts let you attach the same
+#     running sandbox to different repos without rebuilding images or maintaining per-project containers.
+#   - Avoids “snowflake machines”: provisioning is declarative (patterns + package lists + sentinel), so
+#     the environment is consistent across reboots and across multiple terminals.
+#   - Solves multi-terminal concurrency: many shells can attach to a single long-lived machine, sharing
+#     cached installs, language toolchains, and warm filesystem state.
+#   - Makes UID/GID mapping predictable: mirrors the host identity inside the container to avoid permission
+#     issues on bind-mounted source trees and to keep file ownership sane.
+#   - Centralizes and standardizes developer ergonomics: automatically syncs host ~/.config into the
+#     container on attach so editors/CLIs behave consistently with your host setup.
+#   - Provides safe failure and recovery semantics: provisioning uses a lock + sentinel so first-run races
+#     are avoided and failed provisioning retries cleanly on the next invocation.
+#
 # - Provide a long-lived systemd-nspawn machine ("dev-sandbox") with:
 #   - Persistent rootfs under /var/lib/machines
 #   - Multi-terminal attach (many shells into the same running machine)
