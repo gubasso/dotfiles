@@ -13,8 +13,8 @@ fi
 
 for d in \
   "$HOME/.local/bin" \
+  "$HOME/.local/npm/bin" \
   "$HOME/.cargo/bin" \
-  "$HOME/.npm-global/bin" \
   ; do
   [ -d "$d" ] && path_prepend "$d"
 done
