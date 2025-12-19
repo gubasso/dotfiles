@@ -99,6 +99,7 @@ CORE_PACKAGES=(
   # Dev tools (not in devel_basis)
   git
   neovim
+  tree-sitter
 
   # Modern CLI (not in base)
   fzf
