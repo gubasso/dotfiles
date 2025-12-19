@@ -3,5 +3,5 @@
 # "duplicates/mirror" ~/.profile
 
 fish_add_path -m ~/.local/bin
+fish_add_path -m ~/.local/npm/bin
 fish_add_path -m ~/.cargo/bin
-fish_add_path -m ~/.npm-global/bin
