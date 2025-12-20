@@ -1,7 +1,7 @@
 configuration {
   modes: "window,drun,run";
   display-window: "Select:";
-  display-drun: "Run:";
+  display-drun: "";
   drun-display-format: "{icon} {name} [<span weight='light' size='small'><i>({generic})</i></span>]";
   case-sensitive: false;
 // font: "mono 16";
@@ -151,7 +151,7 @@ configuration {
   }
 }
 
-@theme "/usr/share/rofi/themes/arthur.rasi"
+@theme "~/.config/rofi/themes/everforest.rasi"
 
 * {
   font: "IBM Plex Mono 16";
