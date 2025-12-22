@@ -244,6 +244,9 @@ ensure_nspawn_config() {
 Boot=yes
 PrivateUsers=no
 
+[Files]
+ResolvConf=copy-host
+
 [Network]
 VirtualEthernet=no
 EOF
@@ -508,7 +511,22 @@ sync_host_config_every_attach() {
   # - Runs as root (sudo_cmd) because /var/lib/machines/... is typically not writable by the host user.
   # - --ignore-errors + || true: do not fail the entire attach if some dotfiles are unreadable.
   #   (This is intentionally permissive; the attach should proceed even if a few files fail.)
-  sudo_cmd rsync -aL --delete --ignore-errors "$HOME/.config/" "$ROOT/home/$HOST_USER/.config/" || true
+  # Exclude browser/runtime lock artifacts that are commonly broken symlinks.
+  # Keeps host untouched; avoids rsync exit 23 from -L dereference.
+  local -a RSYNC_EXCLUDES=(
+    --exclude 'BraveSoftware/Brave-Browser/Singleton*'
+    --exclude 'chromium/Singleton*'
+    --exclude 'google-chrome/Singleton*'
+    --exclude '**/Singleton*'
+    --exclude '**/*Lock'
+    --exclude '**/*Cookie'
+    --exclude '**/*Socket'
+  )
+
+  sudo_cmd rsync -aL --delete --ignore-errors \
+    "${RSYNC_EXCLUDES[@]}" \
+    "$HOME/.config/" \
+    "$ROOT/home/$HOST_USER/.config/" || true
 
   # Reassert ownership so the container user can write its own config.
   sudo_cmd chown -R "$HOST_UID:$HOST_GID" "$ROOT/home/$HOST_USER/.config"
