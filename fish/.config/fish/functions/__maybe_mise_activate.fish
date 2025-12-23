@@ -1,6 +1,6 @@
 function __maybe_mise_activate --description 'If mise.toml exists in cwd, activate mise for fish; otherwise log and do nothing'
     if not test -f mise.toml
-        printf "INFO: No mise.toml found; skipping mise activation.\n" >&2
+        __info "No mise.toml found; skipping mise activation."
         return 0
     end
 
@@ -18,5 +18,6 @@ function __maybe_mise_activate --description 'If mise.toml exists in cwd, activa
         return 1
     end
 
+    __info "Activated mise environment."
     return 0
 end

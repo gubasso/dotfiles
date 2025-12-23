@@ -45,6 +45,7 @@ function p --description 'FZF-select a git project under ~/Projects; set kitty t
         __err_exit "Failed to cd into:" $selected_dir
         return 1
     end
+    __info "Changed directory to:" $selected_dir
 
     set -l proj_name (path basename -- "$selected_dir")
     __kitty_set_tab_title "P: $proj_name"
@@ -52,6 +53,9 @@ function p --description 'FZF-select a git project under ~/Projects; set kitty t
         __err_exit "Failed to set kitty tab title via __kitty_set_tab_title."
         return 1
     end
+    __info "Set Kitty tab title to:" "P: $proj_name"
 
     __python_project_setup; or return
+
+    __info "Project '$proj_name' ready."
 end

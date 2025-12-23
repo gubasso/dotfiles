@@ -29,10 +29,11 @@ function __poetry_activate --description 'If cwd is a Poetry project, activate i
                 return 1
             end
 
+            __info "Activated Poetry virtualenv:" $VIRTUAL_ENV
             return 0
 
         case 1
-            # Not a Poetry project; do nothing.
+            __info "Not a Poetry project; skipping poetry activation."
             return 0
 
         case '*'
