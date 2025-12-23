@@ -37,5 +37,23 @@ function __find_git_projects --description 'Find all git project root directorie
         return 1
     end
 
-    printf "%s\n" $proj_dirs | sort -u
+    # Sort by path length (shortest first) so parents come before children.
+    set -l sorted_dirs (printf "%s\n" $proj_dirs | sort -u)
+
+    # Filter out nested repos (dirs that are subdirectories of another repo).
+    set -l top_level_dirs
+    for dir in $sorted_dirs
+        set -l is_nested false
+        for parent in $top_level_dirs
+            if string match -q "$parent/*" $dir
+                set is_nested true
+                break
+            end
+        end
+        if test $is_nested = false
+            set -a top_level_dirs $dir
+        end
+    end
+
+    printf "%s\n" $top_level_dirs
 end
