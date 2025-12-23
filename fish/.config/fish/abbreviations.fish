@@ -35,4 +35,4 @@ abbr -a gbn      'git switch -c'
 abbr -a pre         "pre-commit run"
 abbr -a dev-mise    "mise activate fish | source"
 abbr -a dev-poetry  "eval (poetry env activate)"
-abbr -a dev-py      "mise activate fish | source && eval (poetry env activate)"
+abbr -a dev-py      __python_project_setup
