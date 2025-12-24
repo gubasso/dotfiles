@@ -188,7 +188,7 @@ Behavior:
   - First run provisions rootfs (heavy); subsequent runs do not touch zypper.
   - Project mapping is basename -> /workspace/<basename>.
   - Basename collisions are errors (existing + requested sources shown).
-  - ~/.config is synced on every attach with: rsync -aL --delete
+  - ~/.config is synced on every attach with: rsync -aL
 EOF
   exit 1
 }
@@ -503,7 +503,7 @@ sync_host_config_every_attach() {
   # Ensure container destination exists (inside rootfs path).
   sudo_cmd install -d -m 0755 "$ROOT/home/$HOST_USER/.config"
 
-  log "syncing host ~/.config -> container (~/.config) with rsync -aL --delete"
+  log "syncing host ~/.config -> container (~/.config) with rsync -aL"
 
   # Copy host config into the container rootfs.
   #
@@ -523,7 +523,7 @@ sync_host_config_every_attach() {
     --exclude '**/*Socket'
   )
 
-  sudo_cmd rsync -aL --delete --ignore-errors \
+  sudo_cmd rsync -aL --update --ignore-errors \
     "${RSYNC_EXCLUDES[@]}" \
     "$HOME/.config/" \
     "$ROOT/home/$HOST_USER/.config/" || true
