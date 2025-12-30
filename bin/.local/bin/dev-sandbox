@@ -243,9 +243,14 @@ ensure_nspawn_config() {
 [Exec]
 Boot=yes
 PrivateUsers=no
-
-[Files]
-ResolvConf=copy-host
+#
+# Keep container DNS configuration in sync with the host:
+#   - bind-host makes /etc/resolv.conf inside the container a
+#     read-only bind mount of the host's /etc/resolv.conf
+#   - this means any nameserver changes done by NetworkManager/
+#     systemd-resolved on the host are immediately visible in
+#     dev-sandbox as well.
+ResolvConf=bind-host
 
 [Network]
 VirtualEthernet=no
