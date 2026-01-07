@@ -22,7 +22,7 @@ local function highlight_cword()
 end
 
 --- Open the file/URL under the cursor with the system opener.
---- 
+---
 --- Behavior:
 --- - If the token under cursor looks like a URL (has a scheme, e.g. https:// or file://),
 ---   it is passed directly to `xdg-open`.
@@ -547,7 +547,6 @@ return {
 					"editorconfig-checker",
 					"json-to-struct",
 					"misspell",
-					"codelldb",
 					"rust-analyzer",
 					"editorconfig-checker",
 					"doctoc",
