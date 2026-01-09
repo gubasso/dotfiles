@@ -200,15 +200,6 @@ vim.api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {
 	end,
 })
 
--- Python + Jinja2 chaining: *.py.j2 => python.jinja2
-vim.api.nvim_create_autocmd({ "BufNewFile", "BufRead" }, {
-	group = M.augroup("Jinja2Python"),
-	pattern = { "*.py.j2" },
-	callback = function()
-		vim.bo.filetype = "python.jinja2"
-	end,
-})
-
 -- Text / Markdown
 vim.api.nvim_create_autocmd("FileType", {
 	group = M.augroup("wrap_spell"),

@@ -315,12 +315,14 @@ return {
 
 	{
 		"nvim-treesitter/nvim-treesitter",
+		branch = "master", -- Pin to master (stable API); main branch is a complete rewrite
 		build = ":TSUpdate",
 		cmd = { "TSUpdateSync" },
 		dependencies = {
 			{ "JoosepAlviste/nvim-ts-context-commentstring" },
 			{
 				"nvim-treesitter/nvim-treesitter-textobjects",
+				branch = "master", -- Must match nvim-treesitter branch
 				init = function()
 					require("lazy.core.loader").disable_rtp_plugin("nvim-treesitter-textobjects")
 				end,
@@ -387,6 +389,38 @@ return {
 		config = function()
 			require("nvim-ts-autotag").setup()
 		end,
+	},
+
+	-- Jinja2 Tree-sitter grammar + filetype detection
+	{
+		"geigerzaehler/tree-sitter-jinja2",
+		dependencies = { "nvim-treesitter/nvim-treesitter" },
+		build = ":TSUpdate",
+		config = function()
+			-- Register the jinja2 parser for nvim-treesitter master branch
+			local parser_config = require("nvim-treesitter.parsers").get_parser_configs()
+			parser_config.jinja2 = {
+				install_info = {
+					url = "https://github.com/geigerzaehler/tree-sitter-jinja2",
+					branch = "main",
+					files = { "src/parser.c" },
+				},
+				filetype = "jinja2",
+			}
+			-- Filetype detection for .py.j2 -> python.jinja2 (enables both Python and Jinja2 highlighting)
+			vim.filetype.add({
+				pattern = {
+					[".*%.py%.j2"] = "python.jinja2",
+				},
+			})
+		end,
+	},
+
+	-- Mixed-language injection (Python + Jinja2 in .py.j2 files)
+	{
+		"cathaysia/nvim-jinja",
+		dependencies = { "nvim-treesitter/nvim-treesitter", "geigerzaehler/tree-sitter-jinja2" },
+		ft = { "jinja2", "htmljinja", "python.jinja2" },
 	},
 
 	{
@@ -1084,9 +1118,6 @@ return {
 	-- =========================
 	-- Coding
 	-- =========================
-
-  -- Python
-	{ "Glench/Vim-Jinja2-Syntax" },
 
 	-- linter
 	{
