@@ -22,3 +22,5 @@ vim.api.nvim_create_user_command("CopyFilePath", function()
 	vim.fn.setreg("+", file_path)
 	print("File path copied to clipboard: " .. file_path)
 end, { nargs = 0 })
+
+require("core.commands.md_new").setup()
