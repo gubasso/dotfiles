@@ -116,7 +116,13 @@ return {
 				{ "<CR>", highlight_selection, desc = "Highlighting visual selection", mode = "v" },
 				{ "<leader><CR>", highlight_cword, desc = "Highlighting word under cursor" },
         { "gx", system_open_under_cursor, desc = "Open under-cursor (system opener)" },
-				{ "<leader>nm", "<cmd>MdNew<CR>", desc = "New Markdown note" },
+				{
+					"<leader>nm",
+					function()
+						require("core.commands.md_new").prompt()
+					end,
+					desc = "New Markdown note",
+				},
 				{ "<leader>w", ":wa<CR>", desc = "Save all" },
 				{ "<leader>q", "<cmd>wa<CR><cmd>q<CR>", desc = "Save all and Quit" },
 				{ "<leader><tab>", "<cmd>b#<CR>", desc = "Switch to alternate buffer" },

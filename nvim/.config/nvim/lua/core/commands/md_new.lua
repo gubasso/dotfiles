@@ -4,6 +4,11 @@ local strings = require("core.utils.strings")
 
 local M = {}
 
+function M.prompt()
+	local keys = vim.api.nvim_replace_termcodes(':MdNew ""<Left>', true, false, true)
+	vim.api.nvim_feedkeys(keys, "n", false)
+end
+
 function M.setup()
 	vim.api.nvim_create_user_command("MdNew", function(opts)
 		local title = strings.strip_outer_quotes(opts.args)
@@ -27,6 +32,7 @@ function M.setup()
 		if (not existed) or is_empty then
 			vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
 				"# " .. title,
+				"",
 				"",
 			})
 			if not existed then
