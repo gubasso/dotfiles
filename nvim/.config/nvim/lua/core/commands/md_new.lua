@@ -35,6 +35,7 @@ function M.setup()
 				"",
 				"",
 			})
+			vim.api.nvim_win_set_cursor(0, { vim.api.nvim_buf_line_count(buf), 0 })
 			if not existed then
 				vim.api.nvim_buf_call(buf, function()
 					vim.api.nvim_cmd({ cmd = "write", mods = { silent = true } }, {})
