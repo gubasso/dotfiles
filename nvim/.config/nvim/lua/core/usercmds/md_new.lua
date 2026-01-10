@@ -1,3 +1,4 @@
+-- MdNew: Create/open a Markdown file from a title
 local uv = vim.uv or vim.loop
 local paths = require("core.utils.paths")
 local strings = require("core.utils.strings")

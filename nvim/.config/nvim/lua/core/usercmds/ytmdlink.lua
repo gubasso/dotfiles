@@ -1,3 +1,4 @@
+-- RunYTMDLink: Replace YouTube URL with markdown link via ytmdlink CLI
 vim.api.nvim_create_user_command("RunYTMDLink", function()
 	-- Get the current line number and content
 	local line = vim.api.nvim_get_current_line()
@@ -16,11 +17,3 @@ vim.api.nvim_create_user_command("RunYTMDLink", function()
 		print("No URL found in the current line.")
 	end
 end, { nargs = 0 })
-
-vim.api.nvim_create_user_command("CopyFilePath", function()
-	local file_path = vim.api.nvim_buf_get_name(0)
-	vim.fn.setreg("+", file_path)
-	print("File path copied to clipboard: " .. file_path)
-end, { nargs = 0 })
-
-require("core.commands.md_new").setup()
