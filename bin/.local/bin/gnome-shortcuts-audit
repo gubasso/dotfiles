@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# gnome-shortcuts-audit - Audit GNOME keybindings for duplicate accelerators
+# gnome-shortcuts-audit - Audit GNOME keybindings for duplicate accelerators (optional rebind mode)
 #
 # Scans GSettings for keyboard shortcuts across:
 #   - Mutter/WM keybindings (org.gnome.desktop.wm.keybindings)
@@ -10,7 +10,8 @@
 #   - Extensions (org.gnome.shell.extensions.*)
 #   - Any schema matching: keybindings, shortcut, hotkey
 #
-# This tool is READ-ONLY: it does not modify any settings.
+# This tool is READ-ONLY by default.
+# It can modify settings only when using: --set ... --apply
 #
 # USAGE:
 #   gnome-shortcuts-audit [OPTIONS]
@@ -29,6 +30,10 @@
 #       --list-relocatable      List relocatable schemas and exit
 #       --list-keys SCHEMA[:PATH]
 #                               List keys for a schema instance and exit
+#       --set SCHEMA[:PATH] KEY ACCEL
+#                               Rebind ACCEL: remove from all other owners, then set on target
+#       --apply                 Apply changes for --set (otherwise dry-run)
+#       --dry-run               Explicitly do not apply (default for --set)
 #   -h, --help                  Show this help
 #
 # EXAMPLES:
@@ -41,6 +46,10 @@
 #   gnome-shortcuts-audit -j
 #   gnome-shortcuts-audit --list-schemas
 #   gnome-shortcuts-audit --list-keys org.gnome.desktop.wm.keybindings
+#   # Dry-run: show what would be changed
+#   gnome-shortcuts-audit --set org.gnome.shell.keybindings toggle-overview '<Super>p'
+#   # Apply: actually move the accel everywhere + set target
+#   gnome-shortcuts-audit --set org.gnome.shell.keybindings toggle-overview '<Super>p' --apply
 #
 # EXIT CODES:
 #   0 - Success (or no duplicates in -d mode)
@@ -76,6 +85,14 @@ FILTER_OWNER=""         # regex, case-insensitive (matches "schema key [detail]"
 NO_COLOR=false
 QUIET=false
 TMP=""
+
+# Mutating mode (optional)
+SET_MODE=false
+SET_TARGET_INST=""
+SET_TARGET_KEY=""
+SET_ACCEL=""
+APPLY=false
+
 LIST_SCHEMAS=false
 LIST_RELOCATABLE=false
 LIST_KEYS_SCHEMA=""
@@ -214,6 +231,254 @@ extract_quoted_strings() {
   # Extract all single-quoted tokens from a GVariant string.
   local v="$1"
   printf "%s" "$v" | grep -oE "'[^']*'" | sed "s/^'//; s/'$//" || true
+}
+
+# ----------------------------
+# Extension schema discovery
+# ----------------------------
+discover_extension_schema_dirs() {
+  # Finds GNOME Shell extension schema dirs that contain gschemas.compiled.
+  #
+  # Locations covered:
+  #   - User extensions:   ~/.local/share/gnome-shell/extensions/*/schemas/
+  #   - System extensions: /usr/share/gnome-shell/extensions/*/schemas/
+  #   - Local system ext:  /usr/local/share/gnome-shell/extensions/*/schemas/
+  #   - Flatpak user:      ~/.var/app/*/data/gnome-shell/extensions/*/schemas/
+  #   - Flatpak system:    /var/lib/flatpak/app/*/current/active/files/share/gnome-shell/extensions/*/schemas/
+  #
+  # Output: one directory per line
+
+  local -a dirs=()
+  local f
+
+  (
+    shopt -s nullglob
+
+    # User extensions
+    for f in "$HOME/.local/share/gnome-shell/extensions"/*/schemas/gschemas.compiled; do
+      dirs+=("$(dirname "$f")")
+    done
+
+    # System extensions
+    for f in /usr/share/gnome-shell/extensions/*/schemas/gschemas.compiled; do
+      dirs+=("$(dirname "$f")")
+    done
+
+    # Local system extensions
+    for f in /usr/local/share/gnome-shell/extensions/*/schemas/gschemas.compiled; do
+      dirs+=("$(dirname "$f")")
+    done
+
+    # Flatpak user extensions
+    for f in "$HOME/.var/app"/*/data/gnome-shell/extensions/*/schemas/gschemas.compiled; do
+      dirs+=("$(dirname "$f")")
+    done
+
+    # Flatpak system extensions
+    for f in /var/lib/flatpak/app/*/current/active/files/share/gnome-shell/extensions/*/schemas/gschemas.compiled; do
+      dirs+=("$(dirname "$f")")
+    done
+
+    if ((${#dirs[@]})); then
+      printf "%s\n" "${dirs[@]}" | sort -u
+    fi
+  )
+}
+
+build_schema_path() {
+  # Construct a de-duplicated colon-separated GSETTINGS_SCHEMA_DIR.
+  # Includes:
+  #   - discovered extension schema dirs (with gschemas.compiled)
+  #   - existing $GSETTINGS_SCHEMA_DIR entries (if any)
+  #   - default GLib schema dirs (if present)
+  #
+  # Output: path string (may be empty)
+
+  local -a parts=()
+  local -a ext_dirs=()
+  local -a env_dirs=()
+  local -a out=()
+  local -A seen=()
+  local p
+
+  mapfile -t ext_dirs < <(discover_extension_schema_dirs || true)
+  ((${#ext_dirs[@]})) && parts+=("${ext_dirs[@]}")
+
+  if [[ -n "${GSETTINGS_SCHEMA_DIR:-}" ]]; then
+    IFS=: read -r -a env_dirs <<<"${GSETTINGS_SCHEMA_DIR}"
+    ((${#env_dirs[@]})) && parts+=("${env_dirs[@]}")
+  fi
+
+  [[ -d /usr/local/share/glib-2.0/schemas ]] && parts+=("/usr/local/share/glib-2.0/schemas")
+  [[ -d /usr/share/glib-2.0/schemas ]]       && parts+=("/usr/share/glib-2.0/schemas")
+
+  for p in "${parts[@]}"; do
+    [[ -z "$p" ]] && continue
+    [[ -d "$p" ]] || continue
+    [[ -f "$p/gschemas.compiled" ]] || continue
+    if [[ -z "${seen[$p]:-}" ]]; then
+      out+=("$p")
+      seen["$p"]=1
+    fi
+  done
+
+  ((${#out[@]})) || return 0
+  local IFS=:
+  printf "%s" "${out[*]}"
+}
+
+# ----------------------------
+# Optional rebind (mutating) helpers
+# ----------------------------
+gvariant_is_array_of_strings() {
+  # gsettings get for string arrays typically returns:
+  #   ['<Super>p']
+  # or:
+  #   @as []
+  [[ "$1" == \[* || "$1" == @as* ]]
+}
+
+gvariant_is_string() {
+  [[ "$1" == \'*\' ]]
+}
+
+build_gvariant_array() {
+  # Build "['a', 'b']" (GVariant array of strings)
+  local -a items=("$@")
+  if ((${#items[@]} == 0)); then
+    printf "[]"
+    return 0
+  fi
+  local out="["
+  local i
+  for i in "${!items[@]}"; do
+    out+="'${items[$i]}'"
+    if (( i < ${#items[@]} - 1 )); then
+      out+=", "
+    fi
+  done
+  out+="]"
+  printf "%s" "$out"
+}
+
+remove_accel_from_setting() {
+  # Remove any entry whose normalized accel matches target_norm.
+  local inst="$1"
+  local key="$2"
+  local target_norm="$3"
+
+  local cur
+  cur="$(gsettings get "$inst" "$key" 2>/dev/null)" || return 0
+
+  if gvariant_is_array_of_strings "$cur"; then
+    local -a els=()
+    local e
+    while IFS= read -r e; do
+      [[ -z "$e" ]] && continue
+      if [[ "$(normalize_accel "$e")" == "$target_norm" ]]; then
+        continue
+      fi
+      els+=("$e")
+    done < <(extract_quoted_strings "$cur")
+
+    local newv
+    newv="$(build_gvariant_array "${els[@]}")"
+    gsettings set "$inst" "$key" "$newv" >/dev/null
+    return 0
+  fi
+
+  if gvariant_is_string "$cur"; then
+    local inner="${cur#\'}"; inner="${inner%\'}"
+    if [[ "$(normalize_accel "$inner")" == "$target_norm" ]]; then
+      gsettings set "$inst" "$key" "''" >/dev/null
+    fi
+    return 0
+  fi
+
+  return 0
+}
+
+set_accel_on_setting() {
+  local inst="$1"
+  local key="$2"
+  local accel="$3"
+
+  local cur
+  cur="$(gsettings get "$inst" "$key" 2>/dev/null)" || die "cannot read target: $inst $key"
+
+  if gvariant_is_array_of_strings "$cur"; then
+    gsettings set "$inst" "$key" "['$accel']" >/dev/null
+    return 0
+  fi
+
+  if gvariant_is_string "$cur"; then
+    gsettings set "$inst" "$key" "'$accel'" >/dev/null
+    return 0
+  fi
+
+  die "unsupported target value type for: $inst $key (got: $cur)"
+}
+
+run_set_mode() {
+  local tmpfile="$1"
+
+  [[ -n "$SET_TARGET_INST" && -n "$SET_TARGET_KEY" && -n "$SET_ACCEL" ]] || die "--set requires SCHEMA[:PATH] KEY ACCEL"
+  looks_like_accel "$SET_ACCEL" || die "invalid accelerator for --set: $SET_ACCEL"
+
+  local target_norm
+  target_norm="$(normalize_accel "$SET_ACCEL")"
+
+  local -a to_clear=()
+  mapfile -t to_clear < <(
+    awk -F'\t' -v n="$target_norm" -v ti="$SET_TARGET_INST" -v tk="$SET_TARGET_KEY" '
+      $1 == n {
+        if (!($3 == ti && $4 == tk)) print $3 "\t" $4
+      }
+    ' "$tmpfile" | sort -u
+  )
+
+  printf "Rebind plan\n"
+  printf "  accel:      %s\n" "$SET_ACCEL"
+  printf "  normalized: %s\n" "$target_norm"
+  printf "  target:     %s %s\n" "$SET_TARGET_INST" "$SET_TARGET_KEY"
+  printf "\n"
+
+  if ((${#to_clear[@]} == 0)); then
+    printf "Nothing to clear elsewhere (no other owners found for this accelerator).\n"
+  else
+    printf "Will clear from:\n"
+    local line inst key
+    for line in "${to_clear[@]}"; do
+      inst="${line%%$'\t'*}"
+      key="${line#*$'\t'}"
+      printf "  - %s %s\n" "$inst" "$key"
+    done
+  fi
+
+  printf "\nWill set target to:\n"
+  printf "  - %s %s = %s\n" "$SET_TARGET_INST" "$SET_TARGET_KEY" "$SET_ACCEL"
+  printf "\n"
+
+  if [[ "$APPLY" != true ]]; then
+    printf "Dry-run: no changes applied. Re-run with --apply to execute.\n"
+    return 0
+  fi
+
+  log "Applying rebind…"
+
+  local line inst key
+  for line in "${to_clear[@]}"; do
+    inst="${line%%$'\t'*}"
+    key="${line#*$'\t'}"
+    remove_accel_from_setting "$inst" "$key" "$target_norm"
+  done
+
+  # Clear from target first (handles duplicates-in-place), then set
+  remove_accel_from_setting "$SET_TARGET_INST" "$SET_TARGET_KEY" "$target_norm"
+  set_accel_on_setting "$SET_TARGET_INST" "$SET_TARGET_KEY" "$SET_ACCEL"
+
+  log "Rebind applied."
+  return 0
 }
 
 # ----------------------------
@@ -508,6 +773,16 @@ parse_args() {
       --list-schemas)      LIST_SCHEMAS=true; shift ;;
       --list-relocatable)  LIST_RELOCATABLE=true; shift ;;
       --list-keys)         LIST_KEYS_SCHEMA="${2:-}"; [[ -z "$LIST_KEYS_SCHEMA" ]] && die "--list-keys requires SCHEMA[:PATH]"; shift 2 ;;
+      --set)
+        SET_MODE=true
+        SET_TARGET_INST="${2:-}"
+        SET_TARGET_KEY="${3:-}"
+        SET_ACCEL="${4:-}"
+        [[ -z "$SET_TARGET_INST" || -z "$SET_TARGET_KEY" || -z "$SET_ACCEL" ]] && die "--set requires SCHEMA[:PATH] KEY ACCEL"
+        shift 4
+        ;;
+      --apply)             APPLY=true; shift ;;
+      --dry-run)           APPLY=false; shift ;;
       -h|--help)           usage ;;
       *)                   die "unknown option: $1 (use --help)" ;;
     esac
@@ -522,6 +797,15 @@ main() {
   have awk       || die "awk not found"
 
   parse_args "$@"
+
+  # Ensure extension schemas compiled inside GNOME Shell extensions are visible
+  # to gsettings list-schemas / list-recursively.
+  local schema_path=""
+  schema_path="$(build_schema_path || true)"
+  if [[ -n "$schema_path" ]]; then
+    export GSETTINGS_SCHEMA_DIR="$schema_path"
+    log "Using GSETTINGS_SCHEMA_DIR with extension schemas enabled."
+  fi
 
   if [[ "$LIST_RELOCATABLE" == true ]]; then
     gsettings list-relocatable-schemas 2>/dev/null | sort -u
@@ -580,6 +864,12 @@ main() {
     exit 0
   fi
 
+  # Mutating path: rebind accel to target and exit
+  if [[ "$SET_MODE" == true ]]; then
+    run_set_mode "$TMP"
+    exit $?
+  fi
+
   local duplicates_only="false"
   [[ "$MODE" == "duplicates" ]] && duplicates_only="true"
 
@@ -606,4 +896,3 @@ main() {
 }
 
 main "$@"
-
