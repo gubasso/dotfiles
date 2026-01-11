@@ -33,8 +33,11 @@
 #       --debug-schema-path     Show computed GSETTINGS_SCHEMA_DIR and exit
 #       --set SCHEMA[:PATH] KEY ACCEL
 #                               Rebind ACCEL: remove from all other owners, then set on target
-#       --apply                 Apply changes for --set (otherwise dry-run)
-#       --dry-run               Explicitly do not apply (default for --set)
+#       --clear-accel ACCEL     Clear accelerator from all bindings
+#       --clear-binding SCHEMA[:PATH] KEY
+#                               Clear all accelerators from specific binding
+#       --apply                 Apply changes for --set/--clear-* (otherwise dry-run)
+#       --dry-run               Explicitly do not apply (default for --set/--clear-*)
 #   -h, --help                  Show this help
 #
 # EXAMPLES:
@@ -52,6 +55,12 @@
 #   gnome-shortcuts-audit --set org.gnome.shell.keybindings toggle-overview '<Super>p'
 #   # Apply: actually move the accel everywhere + set target
 #   gnome-shortcuts-audit --set org.gnome.shell.keybindings toggle-overview '<Super>p' --apply
+#   # Clear an accelerator from all bindings
+#   gnome-shortcuts-audit --clear-accel '<Super>comma'
+#   gnome-shortcuts-audit --clear-accel '<Super>comma' --apply
+#   # Clear a specific binding
+#   gnome-shortcuts-audit --clear-binding org.gnome.shell.extensions.paperwm.keybindings switch-previous
+#   gnome-shortcuts-audit --clear-binding org.gnome.shell.extensions.paperwm.keybindings switch-previous --apply
 #
 # EXIT CODES:
 #   0 - Success (or no duplicates in -d mode)
@@ -94,6 +103,13 @@ SET_TARGET_INST=""
 SET_TARGET_KEY=""
 SET_ACCEL=""
 APPLY=false
+
+# Clear modes
+CLEAR_ACCEL_MODE=false
+CLEAR_ACCEL=""
+CLEAR_BINDING_MODE=false
+CLEAR_BINDING_INST=""
+CLEAR_BINDING_KEY=""
 
 LIST_SCHEMAS=false
 LIST_RELOCATABLE=false
@@ -548,6 +564,106 @@ run_set_mode() {
   return 0
 }
 
+run_clear_accel_mode() {
+  local tmpfile="$1"
+
+  [[ -n "$CLEAR_ACCEL" ]] || die "--clear-accel requires ACCEL"
+  looks_like_accel "$CLEAR_ACCEL" || die "invalid accelerator for --clear-accel: $CLEAR_ACCEL"
+
+  local norm
+  norm="$(normalize_accel "$CLEAR_ACCEL")"
+
+  # Find all bindings using this accelerator
+  local -a to_clear=()
+  mapfile -t to_clear < <(
+    awk -F'\t' -v n="$norm" '$1 == n { print $3 "\t" $4 }' "$tmpfile" | sort -u
+  )
+
+  printf "Clear accelerator plan\n"
+  printf "  accel:      %s\n" "$CLEAR_ACCEL"
+  printf "  normalized: %s\n" "$norm"
+  printf "\n"
+
+  if ((${#to_clear[@]} == 0)); then
+    printf "No bindings found using this accelerator.\n"
+    return 0
+  fi
+
+  printf "Will clear from:\n"
+  local line inst key
+  for line in "${to_clear[@]}"; do
+    inst="${line%%$'\t'*}"
+    key="${line#*$'\t'}"
+    printf "  - %s %s\n" "$inst" "$key"
+  done
+  printf "\n"
+
+  if [[ "$APPLY" != true ]]; then
+    printf "Dry-run: no changes applied. Re-run with --apply to execute.\n"
+    return 0
+  fi
+
+  log "Applying clear…"
+
+  for line in "${to_clear[@]}"; do
+    inst="${line%%$'\t'*}"
+    key="${line#*$'\t'}"
+    remove_accel_from_setting "$inst" "$key" "$norm"
+  done
+
+  log "Clear applied."
+  return 0
+}
+
+run_clear_binding_mode() {
+  [[ -n "$CLEAR_BINDING_INST" && -n "$CLEAR_BINDING_KEY" ]] || die "--clear-binding requires SCHEMA[:PATH] KEY"
+
+  # Resolve schema instance
+  local resolved_inst
+  resolved_inst="$(resolve_schema_instance "$CLEAR_BINDING_INST")" || die "cannot resolve schema: $CLEAR_BINDING_INST"
+
+  # Validate
+  schema_has_keys "$resolved_inst" || die "target schema does not exist or has no keys: $resolved_inst"
+  if ! schema_has_key "$resolved_inst" "$CLEAR_BINDING_KEY"; then
+    printf "error: target key '%s' does not exist in schema: %s\n" "$CLEAR_BINDING_KEY" "$resolved_inst" >&2
+    printf "hint: run 'gnome-shortcuts-audit --list-keys %s' to see available keys\n" "$resolved_inst" >&2
+    exit 2
+  fi
+
+  # Read current value
+  local cur
+  cur="$(gsettings get "$resolved_inst" "$CLEAR_BINDING_KEY" 2>/dev/null)" || die "cannot read binding: $resolved_inst $CLEAR_BINDING_KEY"
+
+  # Determine empty value
+  local empty_val
+  if gvariant_is_array_of_strings "$cur"; then
+    empty_val="[]"
+  elif gvariant_is_string "$cur"; then
+    empty_val="''"
+  else
+    die "unsupported value type for: $resolved_inst $CLEAR_BINDING_KEY (got: $cur)"
+  fi
+
+  printf "Clear binding plan\n"
+  printf "  target: %s %s\n" "$resolved_inst" "$CLEAR_BINDING_KEY"
+  printf "  current value: %s\n" "$cur"
+  printf "\n"
+
+  printf "Will clear binding:\n"
+  printf "  - %s %s = %s\n" "$resolved_inst" "$CLEAR_BINDING_KEY" "$empty_val"
+  printf "\n"
+
+  if [[ "$APPLY" != true ]]; then
+    printf "Dry-run: no changes applied. Re-run with --apply to execute.\n"
+    return 0
+  fi
+
+  log "Applying clear…"
+  gsettings set "$resolved_inst" "$CLEAR_BINDING_KEY" "$empty_val" >/dev/null
+  log "Clear applied."
+  return 0
+}
+
 # ----------------------------
 # Schema discovery
 # ----------------------------
@@ -608,6 +724,42 @@ schema_has_key() {
   local inst="$1"
   local key="$2"
   gsettings list-keys "$inst" 2>/dev/null | grep -Fxq "$key"
+}
+
+resolve_schema_instance() {
+  # Resolve a user-provided schema name to a full instance identifier.
+  # If user provides SCHEMA:PATH, use as-is.
+  # Otherwise, check if non-relocatable (use schema name), or infer path for relocatable.
+  local input="$1"
+
+  # Already has path
+  if [[ "$input" == *:* ]]; then
+    printf "%s" "$input"
+    return 0
+  fi
+
+  local schema="$input"
+
+  # Check if non-relocatable
+  if gsettings list-schemas 2>/dev/null | grep -Fxq "$schema"; then
+    printf "%s" "$schema"
+    return 0
+  fi
+
+  # Check if relocatable
+  if ! gsettings list-relocatable-schemas 2>/dev/null | grep -Fxq "$schema"; then
+    return 1  # Schema not found
+  fi
+
+  # Infer path for relocatable schema (extension heuristic)
+  if [[ "$schema" == "${EXT_PREFIX}"* ]]; then
+    local name="${schema#"${EXT_PREFIX}"}"
+    printf "%s:/org/gnome/shell/extensions/%s/" "$schema" "$name"
+    return 0
+  fi
+
+  # Relocatable but not an extension - can't infer path
+  return 1
 }
 
 # ----------------------------
@@ -876,6 +1028,19 @@ parse_args() {
         [[ -z "$SET_TARGET_INST" || -z "$SET_TARGET_KEY" || -z "$SET_ACCEL" ]] && die "--set requires SCHEMA[:PATH] KEY ACCEL"
         shift 4
         ;;
+      --clear-accel)
+        CLEAR_ACCEL_MODE=true
+        CLEAR_ACCEL="${2:-}"
+        [[ -z "$CLEAR_ACCEL" ]] && die "--clear-accel requires ACCEL"
+        shift 2
+        ;;
+      --clear-binding)
+        CLEAR_BINDING_MODE=true
+        CLEAR_BINDING_INST="${2:-}"
+        CLEAR_BINDING_KEY="${3:-}"
+        [[ -z "$CLEAR_BINDING_INST" || -z "$CLEAR_BINDING_KEY" ]] && die "--clear-binding requires SCHEMA[:PATH] KEY"
+        shift 3
+        ;;
       --apply)             APPLY=true; shift ;;
       --dry-run)           APPLY=false; shift ;;
       -h|--help)           usage ;;
@@ -967,6 +1132,18 @@ main() {
   # Mutating path: rebind accel to target and exit
   if [[ "$SET_MODE" == true ]]; then
     run_set_mode "$TMP"
+    exit $?
+  fi
+
+  # Clear accelerator mode
+  if [[ "$CLEAR_ACCEL_MODE" == true ]]; then
+    run_clear_accel_mode "$TMP"
+    exit $?
+  fi
+
+  # Clear binding mode (doesn't need tmpfile since it only targets one binding)
+  if [[ "$CLEAR_BINDING_MODE" == true ]]; then
+    run_clear_binding_mode
     exit $?
   fi
 
