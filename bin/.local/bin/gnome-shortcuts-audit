@@ -483,6 +483,15 @@ run_set_mode() {
   [[ -n "$SET_TARGET_INST" && -n "$SET_TARGET_KEY" && -n "$SET_ACCEL" ]] || die "--set requires SCHEMA[:PATH] KEY ACCEL"
   looks_like_accel "$SET_ACCEL" || die "invalid accelerator for --set: $SET_ACCEL"
 
+  # Validate target exists
+  schema_has_keys "$SET_TARGET_INST" || die "target schema does not exist or has no keys: $SET_TARGET_INST"
+  if ! schema_has_key "$SET_TARGET_INST" "$SET_TARGET_KEY"; then
+    printf "error: target key '%s' does not exist in schema: %s\n" "$SET_TARGET_KEY" "$SET_TARGET_INST" >&2
+    printf "hint: run 'gnome-shortcuts-audit --list-keys %s' to see available keys\n" "$SET_TARGET_INST" >&2
+    printf "hint: run 'gnome-shortcuts-audit -r | grep -i %s' to find where this key exists\n" "$SET_TARGET_KEY" >&2
+    exit 2
+  fi
+
   local target_norm
   target_norm="$(normalize_accel "$SET_ACCEL")"
 
@@ -592,6 +601,13 @@ derive_schema_instances() {
 
 schema_has_keys() {
   gsettings list-keys "$1" >/dev/null 2>&1
+}
+
+schema_has_key() {
+  # Check if a specific key exists in a schema instance.
+  local inst="$1"
+  local key="$2"
+  gsettings list-keys "$inst" 2>/dev/null | grep -Fxq "$key"
 }
 
 # ----------------------------
