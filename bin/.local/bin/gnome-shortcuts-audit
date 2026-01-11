@@ -30,6 +30,7 @@
 #       --list-relocatable      List relocatable schemas and exit
 #       --list-keys SCHEMA[:PATH]
 #                               List keys for a schema instance and exit
+#       --debug-schema-path     Show computed GSETTINGS_SCHEMA_DIR and exit
 #       --set SCHEMA[:PATH] KEY ACCEL
 #                               Rebind ACCEL: remove from all other owners, then set on target
 #       --apply                 Apply changes for --set (otherwise dry-run)
@@ -46,6 +47,7 @@
 #   gnome-shortcuts-audit -j
 #   gnome-shortcuts-audit --list-schemas
 #   gnome-shortcuts-audit --list-keys org.gnome.desktop.wm.keybindings
+#   gnome-shortcuts-audit --debug-schema-path
 #   # Dry-run: show what would be changed
 #   gnome-shortcuts-audit --set org.gnome.shell.keybindings toggle-overview '<Super>p'
 #   # Apply: actually move the accel everywhere + set target
@@ -96,6 +98,7 @@ APPLY=false
 LIST_SCHEMAS=false
 LIST_RELOCATABLE=false
 LIST_KEYS_SCHEMA=""
+DEBUG_SCHEMA_PATH=false
 
 # ----------------------------
 # Core schema set (high-value)
@@ -169,6 +172,37 @@ looks_like_accel() {
   return 1
 }
 
+get_base_schema() {
+  # Extract base schema from instance identifier (strips :path suffix for relocatable schemas).
+  local inst="$1"
+  printf "%s" "${inst%%:*}"
+}
+
+build_child_instance() {
+  # Construct proper child instance identifier.
+  # Args: child_schema parent_inst
+  local child_schema="$1"
+  local parent_inst="$2"
+
+  # Check if child is relocatable
+  if gsettings list-relocatable-schemas 2>/dev/null | grep -Fxq "$child_schema"; then
+    # For relocatable child, infer path from parent
+    if [[ "$parent_inst" == *:* ]]; then
+      local parent_path="${parent_inst#*:}"
+      # Child path pattern: parent_path/child_name/
+      # Extract child name from schema (last component after last .)
+      local child_name="${child_schema##*.}"
+      printf "%s:%s%s/" "$child_schema" "$parent_path" "$child_name"
+    else
+      # Parent is not relocatable, child probably isn't either or has default path
+      printf "%s" "$child_schema"
+    fi
+  else
+    # Non-relocatable: use schema ID directly
+    printf "%s" "$child_schema"
+  fi
+}
+
 normalize_accel() {
   # Canonicalize modifier aliases and ordering.
   # For non-<...> accelerators (XF86...), return as-is.
@@ -236,37 +270,43 @@ extract_quoted_strings() {
 # ----------------------------
 # Extension schema discovery
 # ----------------------------
+xdg_data_dirs() {
+  # Emit XDG data roots, one per line.
+  # Defaults per XDG Base Directory spec:
+  #   XDG_DATA_HOME: ~/.local/share
+  #   XDG_DATA_DIRS: /usr/local/share:/usr/share
+  local data_home="${XDG_DATA_HOME:-$HOME/.local/share}"
+  local data_dirs="${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+
+  printf "%s\n" "$data_home"
+  tr ':' '\n' <<<"$data_dirs"
+}
+
 discover_extension_schema_dirs() {
   # Finds GNOME Shell extension schema dirs that contain gschemas.compiled.
   #
-  # Locations covered:
-  #   - User extensions:   ~/.local/share/gnome-shell/extensions/*/schemas/
-  #   - System extensions: /usr/share/gnome-shell/extensions/*/schemas/
-  #   - Local system ext:  /usr/local/share/gnome-shell/extensions/*/schemas/
-  #   - Flatpak user:      ~/.var/app/*/data/gnome-shell/extensions/*/schemas/
-  #   - Flatpak system:    /var/lib/flatpak/app/*/current/active/files/share/gnome-shell/extensions/*/schemas/
+  # Locations covered (XDG-aware):
+  #   - For each base in XDG_DATA_HOME + XDG_DATA_DIRS:
+  #       BASE/gnome-shell/extensions/*/schemas/gschemas.compiled
+  #   - Flatpak host paths (common on Arch):
+  #       ~/.var/app/*/data/gnome-shell/extensions/*/schemas/gschemas.compiled
+  #       /var/lib/flatpak/app/*/current/active/files/share/gnome-shell/extensions/*/schemas/gschemas.compiled
   #
   # Output: one directory per line
 
   local -a dirs=()
-  local f
+  local f base
+  local -a bases=()
 
   (
     shopt -s nullglob
 
-    # User extensions
-    for f in "$HOME/.local/share/gnome-shell/extensions"/*/schemas/gschemas.compiled; do
-      dirs+=("$(dirname "$f")")
-    done
-
-    # System extensions
-    for f in /usr/share/gnome-shell/extensions/*/schemas/gschemas.compiled; do
-      dirs+=("$(dirname "$f")")
-    done
-
-    # Local system extensions
-    for f in /usr/local/share/gnome-shell/extensions/*/schemas/gschemas.compiled; do
-      dirs+=("$(dirname "$f")")
+    # XDG roots
+    mapfile -t bases < <(xdg_data_dirs | awk 'NF' | sort -u)
+    for base in "${bases[@]}"; do
+      for f in "$base/gnome-shell/extensions"/*/schemas/gschemas.compiled; do
+        dirs+=("$(dirname "$f")")
+      done
     done
 
     # Flatpak user extensions
@@ -289,6 +329,8 @@ build_schema_path() {
   # Construct a de-duplicated colon-separated GSETTINGS_SCHEMA_DIR.
   # Includes:
   #   - discovered extension schema dirs (with gschemas.compiled)
+  #   - GLib schema dirs under XDG roots (user-compiled schemas)
+  #   - Flatpak GLib schema dirs
   #   - existing $GSETTINGS_SCHEMA_DIR entries (if any)
   #   - default GLib schema dirs (if present)
   #
@@ -297,6 +339,7 @@ build_schema_path() {
   local -a parts=()
   local -a ext_dirs=()
   local -a env_dirs=()
+  local -a xdg_bases=()
   local -a out=()
   local -A seen=()
   local p
@@ -304,11 +347,26 @@ build_schema_path() {
   mapfile -t ext_dirs < <(discover_extension_schema_dirs || true)
   ((${#ext_dirs[@]})) && parts+=("${ext_dirs[@]}")
 
+  # Add any GLib schema dirs under XDG roots (covers custom prefixes and ~/.local/share/glib-2.0/schemas)
+  mapfile -t xdg_bases < <(xdg_data_dirs | awk 'NF' | sort -u)
+  for p in "${xdg_bases[@]}"; do
+    [[ -d "$p/glib-2.0/schemas" ]] && parts+=("$p/glib-2.0/schemas")
+  done
+
+  # Flatpak host-side schema roots (GLib schemas inside Flatpak installations)
+  for p in "$HOME/.var/app"/*/data; do
+    [[ -d "$p/glib-2.0/schemas" ]] && parts+=("$p/glib-2.0/schemas")
+  done
+  for p in /var/lib/flatpak/app/*/current/active/files/share; do
+    [[ -d "$p/glib-2.0/schemas" ]] && parts+=("$p/glib-2.0/schemas")
+  done
+
   if [[ -n "${GSETTINGS_SCHEMA_DIR:-}" ]]; then
     IFS=: read -r -a env_dirs <<<"${GSETTINGS_SCHEMA_DIR}"
     ((${#env_dirs[@]})) && parts+=("${env_dirs[@]}")
   fi
 
+  # Keep explicit defaults as a belt-and-suspenders fallback
   [[ -d /usr/local/share/glib-2.0/schemas ]] && parts+=("/usr/local/share/glib-2.0/schemas")
   [[ -d /usr/share/glib-2.0/schemas ]]       && parts+=("/usr/share/glib-2.0/schemas")
 
@@ -545,16 +603,36 @@ collect_from_schema_instance() {
   local inst="$1"
   schema_has_keys "$inst" || return 0
 
-  local schema key value_rest accel norm
+  local base_schema
+  base_schema="$(get_base_schema "$inst")"
+
+  # Track processed keys to avoid duplicates from child schemas
+  local -A processed=()
+
+  local schema key value_rest accel norm owner_inst dedup_key
   while IFS=$' \t' read -r schema key value_rest; do
     [[ -z "${schema:-}" || -z "${key:-}" || -z "${value_rest:-}" ]] && continue
     [[ "$value_rest" != *"'"* ]] && continue
+
+    # Determine the correct owner instance based on the actual schema
+    if [[ "$schema" == "$base_schema" ]]; then
+      # This row belongs to the instance we're scanning
+      owner_inst="$inst"
+    else
+      # This is a child schema row - build proper child instance identifier
+      owner_inst="$(build_child_instance "$schema" "$inst")"
+    fi
+
+    # Deduplicate: skip if we've already processed this (owner_inst, key) pair
+    dedup_key="${owner_inst}${key}"
+    [[ -n "${processed[$dedup_key]:-}" ]] && continue
+    processed[$dedup_key]=1
 
     while IFS= read -r accel; do
       [[ -z "$accel" ]] && continue
       looks_like_accel "$accel" || continue
       norm="$(normalize_accel "$accel")"
-      printf "%s\t%s\t%s\t%s\t%s\n" "$norm" "$accel" "$inst" "$key" ""
+      printf "%s\t%s\t%s\t%s\t%s\n" "$norm" "$accel" "$owner_inst" "$key" ""
     done < <(extract_quoted_strings "$value_rest")
 
   done < <(gsettings list-recursively "$inst" 2>/dev/null)
@@ -773,6 +851,7 @@ parse_args() {
       --list-schemas)      LIST_SCHEMAS=true; shift ;;
       --list-relocatable)  LIST_RELOCATABLE=true; shift ;;
       --list-keys)         LIST_KEYS_SCHEMA="${2:-}"; [[ -z "$LIST_KEYS_SCHEMA" ]] && die "--list-keys requires SCHEMA[:PATH]"; shift 2 ;;
+      --debug-schema-path) DEBUG_SCHEMA_PATH=true; shift ;;
       --set)
         SET_MODE=true
         SET_TARGET_INST="${2:-}"
@@ -805,6 +884,11 @@ main() {
   if [[ -n "$schema_path" ]]; then
     export GSETTINGS_SCHEMA_DIR="$schema_path"
     log "Using GSETTINGS_SCHEMA_DIR with extension schemas enabled."
+  fi
+
+  if [[ "$DEBUG_SCHEMA_PATH" == true ]]; then
+    printf "Computed GSETTINGS_SCHEMA_DIR:\n%s\n" "${schema_path//:/$'\n'}" >&2
+    exit 0
   fi
 
   if [[ "$LIST_RELOCATABLE" == true ]]; then
