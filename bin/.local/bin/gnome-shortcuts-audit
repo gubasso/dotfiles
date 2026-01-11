@@ -75,6 +75,7 @@ FILTER_ACCEL=""         # regex, case-insensitive
 FILTER_OWNER=""         # regex, case-insensitive (matches "schema key [detail]")
 NO_COLOR=false
 QUIET=false
+TMP=""
 LIST_SCHEMAS=false
 LIST_RELOCATABLE=false
 LIST_KEYS_SCHEMA=""
@@ -540,9 +541,8 @@ main() {
     exit 0
   fi
 
-  local TMP
   TMP="$(mktemp)"
-  trap 'rm -f "$TMP"' EXIT
+  trap '[[ -n "${TMP:-}" ]] && rm -f -- "$TMP"' EXIT
 
   log "Discovering schema instances…"
 
