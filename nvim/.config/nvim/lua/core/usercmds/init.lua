@@ -4,3 +4,4 @@
 require("core.usercmds.ytmdlink")
 require("core.usercmds.copy_file_path")
 require("core.usercmds.md_new").setup()
+require("core.usercmds.deps")
