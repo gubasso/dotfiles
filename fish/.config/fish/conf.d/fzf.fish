@@ -50,8 +50,8 @@ set -l bat_cmd  "bat -n --color=always"
 set -x FZF_DEFAULT_COMMAND "fd --hidden --follow --color=always $fd_excludes"
 
 # Global fzf opts; walker-skip only applies when fzf’s internal walker is used
+# removed those flags: --select-1 --exit-0
 set -x FZF_DEFAULT_OPTS "
-  --select-1 --exit-0
   --walker-skip \"$walker_skip\"
   --no-height
   --layout=reverse

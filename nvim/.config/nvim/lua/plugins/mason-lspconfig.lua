@@ -6,7 +6,7 @@ return {
     "williamboman/mason.nvim",
     "neovim/nvim-lspconfig",
     "hrsh7th/cmp-nvim-lsp",
-    "nvim-telescope/telescope.nvim",
+    "ibhagwan/fzf-lua",
   },
   config = function()
     local lspconfig = require("lspconfig")
