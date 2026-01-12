@@ -36,7 +36,7 @@ return {
       {
         "<leader>nm",
         function()
-          require("core.commands.md_new").prompt()
+          require("core.usercmds.md_new").prompt()
         end,
         desc = "New Markdown note",
       },
