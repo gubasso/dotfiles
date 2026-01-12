@@ -41,7 +41,7 @@ M.executables = {
 
 	-- Tree-sitter
 	{ name = "tree-sitter", required = false, hint = "pacman -S tree-sitter", pacman = "tree-sitter" },
-	{ name = "tree-sitter-cli", required = true, hint = "pacman -S tree-sitter-cli", pacman = "tree-sitter-cli" },
+	{ name = "tree-sitter", required = true, hint = "pacman -S tree-sitter-cli", pacman = "tree-sitter-cli" },
 
 	-- Build tools
 	{ name = "make", required = false, hint = "pacman -S base-devel", pacman = "base-devel" },
