@@ -13,12 +13,12 @@ return {
       files = {
         hidden = true,
         follow = true,
-        fd_opts = [[--color=never --type f --hidden --follow --exclude .git]],
+        fd_opts = [[--color=never --type f --exclude .git]],
       },
       grep = {
         hidden = true,
         follow = true,
-        rg_opts = [[--column --line-number --no-heading --color=always --smart-case --hidden --follow --glob "!.git/"]],
+        rg_opts = [[--column --line-number --no-heading --color=always --smart-case --glob "!.git/"]],
         fzf_opts = {
           ["--delimiter"] = ":",
           ["--nth"] = "4..",              -- match only line text
