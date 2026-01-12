@@ -18,7 +18,6 @@ M.executables = {
 	-- Ruby
 	{ name = "ruby", required = false, hint = "pacman -S ruby", pacman = "ruby" },
 	{ name = "gem", required = false, hint = "Comes with ruby", pacman = nil },
-	{ name = "neovim-ruby", required = false, hint = "pacman -S neovim-ruby", pacman = "neovim-ruby" },
 
 	-- PHP
 	{ name = "php", required = false, hint = "pacman -S php", pacman = "php" },
@@ -37,11 +36,9 @@ M.executables = {
 	-- Python
 	{ name = "python", required = true, hint = "pacman -S python", pacman = "python" },
 	{ name = "pip", required = true, hint = "pacman -S python-pip", pacman = "python-pip" },
-	{ name = "python-pynvim", required = false, hint = "pacman -S python-pynvim", pacman = "python-pynvim" },
 
 	-- Tree-sitter
-	{ name = "tree-sitter", required = false, hint = "pacman -S tree-sitter", pacman = "tree-sitter" },
-	{ name = "tree-sitter", required = true, hint = "pacman -S tree-sitter-cli", pacman = "tree-sitter-cli" },
+	{ name = "tree-sitter", required = false, hint = "pacman -S tree-sitter-cli", pacman = "tree-sitter-cli" },
 
 	-- Build tools
 	{ name = "make", required = false, hint = "pacman -S base-devel", pacman = "base-devel" },
