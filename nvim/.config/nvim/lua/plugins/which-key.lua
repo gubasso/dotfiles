@@ -38,7 +38,14 @@ return {
         function()
           require("core.usercmds.md_new").prompt()
         end,
-        desc = "New Markdown note",
+        desc = "MdNew: New Markdown note",
+      },
+      {
+        "<leader>nd",
+        function()
+          require("core.usercmds.md_dir_new").prompt()
+        end,
+        desc = "MdDirNew: New Dir with REAMDE.md",
       },
       { "<leader>w", ":wa<CR>", desc = "Save all" },
       { "<leader>q", "<cmd>wa<CR><cmd>q<CR>", desc = "Save all and Quit" },
