@@ -1,6 +1,6 @@
 function __require --description 'Require one or more commands to exist on PATH'
     if test (count $argv) -eq 0
-        __err_exit "__require: no dependencies specified"
+        __log_err "__require: no dependencies specified"
         return 1
     end
 
@@ -12,7 +12,7 @@ function __require --description 'Require one or more commands to exist on PATH'
     end
 
     if test (count $missing) -gt 0
-        __err_exit "Missing dependencies:" (string join ", " -- $missing)
+        __log_err "Missing dependencies:" (string join ", " -- $missing)
         return 1
     end
 

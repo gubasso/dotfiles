@@ -13,7 +13,7 @@ function __is_poetry_project --description 'Return 0 if cwd looks like a Poetry 
             case 1
                 return 1
             case '*'
-                __err_exit "rg failed while checking pyproject.toml for [tool.poetry]. Exit status:" $status
+                __log_err "rg failed while checking pyproject.toml for [tool.poetry]. Exit status:" $status
                 return 2
         end
     end

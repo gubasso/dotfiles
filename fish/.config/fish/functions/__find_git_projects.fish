@@ -2,12 +2,12 @@ function __find_git_projects --description 'Find all git project root directorie
     set -l search_dir $argv[1]
 
     if test -z "$search_dir"
-        __err_exit "__find_git_projects: No search directory provided."
+        __log_err "__find_git_projects: No search directory provided."
         return 1
     end
 
     if not test -d "$search_dir"
-        __err_exit "__find_git_projects: Directory not found:" $search_dir
+        __log_err "__find_git_projects: Directory not found:" $search_dir
         return 1
     end
 
@@ -15,11 +15,11 @@ function __find_git_projects --description 'Find all git project root directorie
 
     set -l git_dirs (fd --hidden --no-ignore --absolute-path --type d '^\.git$' $search_dir 2>/dev/null)
     if test $status -ne 0
-        __err_exit "fd failed while scanning for .git directories."
+        __log_err "fd failed while scanning for .git directories."
         return 1
     end
     if test (count $git_dirs) -eq 0
-        __err_exit "No git repositories found under:" $search_dir
+        __log_err "No git repositories found under:" $search_dir
         return 1
     end
 
@@ -33,7 +33,7 @@ function __find_git_projects --description 'Find all git project root directorie
     end
 
     if test (count $proj_dirs) -eq 0
-        __err_exit "No valid project roots derived from .git directories."
+        __log_err "No valid project roots derived from .git directories."
         return 1
     end
 

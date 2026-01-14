@@ -33,6 +33,6 @@ abbr -a gbd      'git branch -d'
 abbr -a gbn      'git switch -c'
 # development
 abbr -a pre         "pre-commit run"
-abbr -a dev-mise    "mise activate fish | source"
+abbr -a dev-mise    __mise_activate
 abbr -a dev-poetry  "eval (poetry env activate)"
 abbr -a dev-py      __python_project_setup
