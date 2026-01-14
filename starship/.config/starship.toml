@@ -2,7 +2,6 @@ format = """
 $username\
 $hostname\
 $container\
-${custom.container_engine}\
 ${env_var.DEV_SANDBOX}\
 $directory\
 $git_branch\
@@ -28,13 +27,55 @@ vimcmd_symbol = "[❮](green)"
 [container]
 symbol = "🧊"
 style = "bright-black"
-format = "[$symbol]($style) "
+format = "[$symbol $name]($style) "
 
 [custom.container_engine]
-when = "systemd-detect-virt --container --quiet 2>/dev/null"
-command = "sh -lc 't=$(systemd-detect-virt --container 2>/dev/null); [ \"$t\" = none ] && exit 1; case \"$t\" in systemd-nspawn) echo nspawn ;; *) echo \"$t\" ;; esac'"
-style = "bright-black"
-format = "[$output:]($style)"
+# Keep 'when' cheap to avoid timeouts; rely on common indicators.
+# If you prefer maximal coverage, see the "Accurate gating" variant below.
+when = '''
+test -n "${container-}" \
+  || test -r /run/host/container-manager \
+  || test -f /.dockerenv \
+  || test -f /run/.containerenv
+'''
+
+command = '''
+t=""
+
+# 1) Prefer $container if present
+if [ -n "${container-}" ]; then
+  t="$container"
+
+# 2) Toolbox/Flatpak-style hint file, if present
+elif [ -r /run/host/container-manager ]; then
+  IFS= read -r t < /run/host/container-manager || true
+fi
+
+# 3) Fallback to systemd-detect-virt only if still unknown
+if [ -z "$t" ]; then
+  t="$(systemd-detect-virt --container 2>/dev/null || true)"
+fi
+
+# Hide module if unknown / none
+[ -z "$t" ] && exit 1
+[ "$t" = "none" ] && exit 1
+
+case "$t" in
+  docker)          echo " docker" ;;
+  podman)          echo "󰡄 podman" ;;
+  systemd-nspawn)  echo "󱄚 nspawn" ;;
+  lxc|lxc-libvirt) echo "󱄚 $t" ;;
+  openvz)          echo "󱄚 openvz" ;;
+  rkt)             echo "󰡄 rkt" ;;
+  wsl)             echo " wsl" ;;
+  proot)           echo "󰏗 proot" ;;
+  pouch)           echo "󰏗 pouch" ;;
+  *)               echo "󰏗 $t" ;;
+esac
+'''
+
+style  = "bright-black"
+format = "[$output]($style) "
 
 [env_var.DEV_SANDBOX]
 style = "bright-black"
