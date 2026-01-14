@@ -26,6 +26,16 @@ function __python_project_setup --description 'If cwd is a python project, run m
         __mise_activate; or return  # Hard error - respect pinned version
     else if test -f pyproject.toml
         __mise_python_setup
+        # Note: may fail silently (e.g., no tomlq) - OK, we check python3 below
+    else if test -f .python-version -o -f .tool-versions
+        # Mise reads these natively
+        __mise_activate
+    end
+
+    # Verify python3 is available before venv operations
+    if not type -q python3
+        __log_err "python3 not found on PATH"
+        return 1
     end
 
     # Step 2: Poetry activation (handles non-poetry gracefully)

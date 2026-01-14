@@ -1,11 +1,11 @@
 function __venv_activate --description 'Create .venv if needed and activate it'
-    __require python; or return
+    __require python3; or return
 
     if not test -d .venv
-        __log_info "Creating .venv with python -m venv..."
-        python -m venv .venv
+        __log_info "Creating .venv with python3 -m venv..."
+        python3 -m venv .venv
         if test $status -ne 0
-            __log_err "Failed to create .venv with python -m venv"
+            __log_err "Failed to create .venv with python3 -m venv"
             return 1
         end
         __log_info "Created .venv successfully."
