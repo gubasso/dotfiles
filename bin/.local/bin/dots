@@ -1,0 +1,1171 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# ==============================================================================
+# dots - GNU Stow wrapper for dual dotfiles repository management
+#
+# Features:
+# - Ignores markdown files (*.md) automatically
+# - Run from anywhere (no need to cd to dotfiles dir)
+# - Supports dual repos: ~/.dotfiles (public) + ~/.dotfiles-private (private)
+# - Auto-detects user (~) vs system (/) target based on package structure
+# - Automatic conflict resolution when both repos have the same package
+# ==============================================================================
+
+# --- Constants ---
+DOTFILES_PUBLIC="$HOME/.dotfiles"
+DOTFILES_PRIVATE="$HOME/.dotfiles-private"
+VERSION="1.1.0"
+
+# Stow ignore pattern for markdown files
+STOW_IGNORE='\.md$'
+
+# --- Global State ---
+VERBOSE=0
+DRY_RUN=0
+QUIET=0
+AUTO_YES=0
+NO_HOOKS=0
+ACTION="stow"           # stow | delete | restow | list | sync
+REPO_FILTER="both"      # both | public | private
+
+# Execution plan (populated by resolve_all_dependencies)
+declare -a EXEC_PLAN=()           # Ordered list of packages to process
+declare -A EXEC_PLAN_DEPOF=()     # Maps package -> "dependency of: X" or ""
+declare -A SKIPPED_DEPS=()        # Maps skipped pkg -> comma-separated requesters
+declare -A SKIPPED_DIRECT=()      # Maps skipped pkg -> 1 if requested directly
+
+# ==============================================================================
+# Utility Functions
+# ==============================================================================
+
+die() {
+    echo "❌ Error: $*" >&2
+    exit 1
+}
+
+warn() {
+    echo "⚠️  Warning: $*" >&2
+}
+
+log() {
+    [[ $QUIET -eq 0 ]] && echo "• $*" || true
+}
+
+log_verbose() {
+    [[ $QUIET -eq 0 && $VERBOSE -ge 1 ]] && echo "  → $*" || true
+}
+
+log_debug() {
+    [[ $QUIET -eq 0 && $VERBOSE -ge 2 ]] && echo "  [debug] $*" || true
+}
+
+log_success() {
+    [[ $QUIET -eq 0 ]] && echo "✅ $*" || true
+}
+
+# Run command with sudo if target requires it
+# Args: target_dir command [args...]
+run_cmd() {
+    local target_dir="$1"
+    shift
+
+    if [[ "$target_dir" == "/" ]]; then
+        sudo "$@"
+    else
+        "$@"
+    fi
+}
+
+usage() {
+    cat >&2 <<'EOF'
+dots - GNU Stow wrapper for dual dotfiles repository management
+
+USAGE:
+  dots [OPTIONS] <package>...        Stow packages from both repos
+  dots -D|--delete <package>...      Unstow packages from both repos
+  dots -R|--restow <package>...      Restow packages (delete + stow)
+  dots --list                        List all available packages
+  dots --sync                        Stow all packages from both repos
+
+OPTIONS:
+  -n, --dry-run     Show preview only, make no changes
+  -y, --yes         Skip confirmation prompt (non-interactive)
+  -q, --quiet       Suppress non-essential output
+  -v, --verbose     Enable verbose output (can be repeated: -vv)
+  -p, --public      Only operate on ~/.dotfiles (public repo)
+  -P, --private     Only operate on ~/.dotfiles-private (private repo)
+  --no-hooks        Skip hook scripts and dependency resolution
+  -h, --help        Show this help message
+  --version         Show version
+
+BEHAVIOR:
+  Default:          Show preview → confirm → apply
+  With -n:          Show preview only (hooks not executed)
+  With -y:          Show preview → apply (no prompt)
+  With -q:          Minimal output → confirm → apply
+  With -q -y:       Silent apply (scripts/automation)
+
+HOOKS:
+  Packages can have a .hooks/ directory with:
+    depends         Dependencies (one package per line)
+    pre-stow        Script to run before stow
+    post-stow       Script to run after stow
+    pre-unstow      Script to run before unstow
+    post-unstow     Script to run after unstow
+
+  Dependencies are auto-resolved and shown in preview.
+  Use --no-hooks to skip all hook processing.
+
+EXAMPLES:
+  dots fish             # Stow fish (interactive, with preview)
+  dots -y fish nvim     # Stow without confirmation
+  dots -n fish          # Preview only
+  dots -q -y fish       # Silent stow (for scripts)
+  dots -D fish          # Unstow fish from both repos
+  dots --sync           # Stow all packages from both repos
+  dots --list           # Show available packages
+  dots --no-hooks fish  # Stow without running hooks
+EOF
+    exit 1
+}
+
+# ==============================================================================
+# Hook Support
+# ==============================================================================
+
+# Get .hooks directory path for a package in a specific repo
+# Args: repo_dir package
+# Returns: path to .hooks dir (may not exist)
+get_hooks_dir() {
+    local repo_dir="$1"
+    local package="$2"
+    echo "$repo_dir/$package/.hooks"
+}
+
+# Check if a hook exists for a package in a repo
+# Args: repo_dir package hook_name (pre-stow, post-stow, etc.)
+# Returns: 0 if exists and executable, 1 otherwise
+hook_exists() {
+    local repo_dir="$1"
+    local package="$2"
+    local hook_name="$3"
+    local hook_path
+    hook_path="$(get_hooks_dir "$repo_dir" "$package")/$hook_name"
+    [[ -x "$hook_path" ]]
+}
+
+# Get list of hooks that exist for a package across all applicable repos
+# Args: package hook_name
+# Returns: space-separated list of hook names that exist (e.g., "pre-stow post-stow")
+get_package_hooks() {
+    local package="$1"
+    local -a hooks=()
+    local -a repos
+    mapfile -t repos < <(get_repos_for_package "$package")
+
+    for hook_name in pre-stow post-stow pre-unstow post-unstow; do
+        for repo in "${repos[@]}"; do
+            if hook_exists "$repo" "$package" "$hook_name"; then
+                hooks+=("$hook_name")
+                break  # Found in at least one repo, don't duplicate
+            fi
+        done
+    done
+
+    echo "${hooks[*]}"
+}
+
+# Count hooks of a specific type across repos
+# Args: package hook_name
+# Returns: count (0, 1, or 2)
+count_hooks() {
+    local package="$1"
+    local hook_name="$2"
+    local count=0
+    local -a repos
+    mapfile -t repos < <(get_repos_for_package "$package")
+
+    for repo in "${repos[@]}"; do
+        hook_exists "$repo" "$package" "$hook_name" && ((count++))
+    done
+
+    echo "$count"
+}
+
+# Run a hook script with proper environment
+# Args: repo_dir package hook_name target_dir
+# Returns: exit code of hook (0 = success)
+run_hook() {
+    local repo_dir="$1"
+    local package="$2"
+    local hook_name="$3"
+    local target_dir="$4"
+    local hook_path
+    hook_path="$(get_hooks_dir "$repo_dir" "$package")/$hook_name"
+
+    [[ -x "$hook_path" ]] || return 0  # No hook, success
+
+    log_verbose "Running $hook_name hook for $package (from $repo_dir)"
+
+    # Export environment for hook
+    export DOTS_PACKAGE="$package"
+    export DOTS_TARGET="$target_dir"
+    export DOTS_ACTION="$ACTION"
+    export DOTS_REPO="$repo_dir"
+
+    # Run hook
+    if ! "$hook_path"; then
+        unset DOTS_PACKAGE DOTS_TARGET DOTS_ACTION DOTS_REPO
+        return 1
+    fi
+
+    unset DOTS_PACKAGE DOTS_TARGET DOTS_ACTION DOTS_REPO
+    return 0
+}
+
+# Run all hooks of a type for a package (public first, then private)
+# Args: package hook_name target_dir
+# Returns: 0 if all succeed, 1 if any fail
+run_hooks_for_package() {
+    local package="$1"
+    local hook_name="$2"
+    local target_dir="$3"
+    local -a repos
+    mapfile -t repos < <(get_repos_for_package "$package")
+
+    for repo in "${repos[@]}"; do
+        if hook_exists "$repo" "$package" "$hook_name"; then
+            if ! run_hook "$repo" "$package" "$hook_name" "$target_dir"; then
+                return 1
+            fi
+        fi
+    done
+
+    return 0
+}
+
+# ==============================================================================
+# Dependency Resolution
+# ==============================================================================
+
+# Parse .hooks/depends file for a package
+# Args: package
+# Returns: space-separated list of dependencies (from all repos)
+get_dependencies() {
+    local package="$1"
+    local -a deps=()
+    local -a repos
+    mapfile -t repos < <(get_repos_for_package "$package")
+
+    for repo in "${repos[@]}"; do
+        local depends_file
+        depends_file="$(get_hooks_dir "$repo" "$package")/depends"
+
+        if [[ -f "$depends_file" ]]; then
+            while IFS= read -r line || [[ -n "$line" ]]; do
+                # Skip comments and empty lines
+                [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+                # Trim whitespace
+                line="${line#"${line%%[![:space:]]*}"}"
+                line="${line%"${line##*[![:space:]]}"}"
+                [[ -n "$line" ]] && deps+=("$line")
+            done < "$depends_file"
+        fi
+    done
+
+    # Return unique deps
+    printf '%s\n' "${deps[@]}" | sort -u | tr '\n' ' '
+}
+
+# Resolve dependencies for a list of packages using topological sort
+# Detects circular dependencies
+# Args: permissive (0=die on missing, 1=warn and skip) packages...
+# Populates: EXEC_PLAN (ordered list), EXEC_PLAN_DEPOF (dependency info)
+resolve_all_dependencies() {
+    local permissive="${1:-0}"
+    shift
+    local -a requested=("$@")
+    local -A requested_set=() # Track explicitly requested packages
+    local -A visited=()       # 0=unvisited, 1=in-progress, 2=done
+    local -A dep_of=()        # Maps dep -> who requested it
+    local -a result=()
+    local -a path=()          # Current DFS path for cycle detection
+
+    # Build set of explicitly requested packages
+    for pkg in "${requested[@]}"; do
+        requested_set[$pkg]=1
+    done
+
+    # DFS function for topological sort
+    visit() {
+        local pkg="$1"
+        local requester="$2"  # Who depends on this (empty for user-requested)
+
+        # Check visit status
+        case "${visited[$pkg]:-0}" in
+            2)  # Already processed - but still record if this was a skipped package
+                if [[ -n "${SKIPPED_DIRECT[$pkg]:-}" || -n "${SKIPPED_DEPS[$pkg]:-}" ]]; then
+                    if [[ -z "$requester" ]]; then
+                        SKIPPED_DIRECT[$pkg]=1
+                    else
+                        if [[ -n "${SKIPPED_DEPS[$pkg]:-}" ]]; then
+                            # Avoid duplicates
+                            if [[ ! ", ${SKIPPED_DEPS[$pkg]}, " == *", $requester, "* ]]; then
+                                SKIPPED_DEPS[$pkg]="${SKIPPED_DEPS[$pkg]}, $requester"
+                            fi
+                        else
+                            SKIPPED_DEPS[$pkg]="$requester"
+                        fi
+                    fi
+                fi
+                return 0
+                ;;
+            1)  # Cycle detected
+                # Build cycle path
+                local cycle_str="$pkg"
+                local i
+                for ((i=${#path[@]}-1; i>=0; i--)); do
+                    cycle_str="${path[i]} → $cycle_str"
+                    [[ "${path[i]}" == "$pkg" ]] && break
+                done
+                die "Circular dependency detected: $cycle_str"
+                ;;
+        esac
+
+        visited[$pkg]=1
+        path+=("$pkg")
+
+        # Record who depends on this (only for non-explicitly-requested packages)
+        if [[ -n "$requester" && -z "${dep_of[$pkg]:-}" && -z "${requested_set[$pkg]:-}" ]]; then
+            dep_of[$pkg]="$requester"
+        fi
+
+        # Validate package exists
+        local repos
+        repos=$(get_repos_for_package "$pkg")
+        if [[ -z "$repos" ]]; then
+            if [[ "$permissive" -eq 1 ]]; then
+                # Record who needed this skipped package
+                if [[ -z "$requester" ]]; then
+                    SKIPPED_DIRECT[$pkg]=1
+                else
+                    if [[ -n "${SKIPPED_DEPS[$pkg]:-}" ]]; then
+                        SKIPPED_DEPS[$pkg]="${SKIPPED_DEPS[$pkg]}, $requester"
+                    else
+                        SKIPPED_DEPS[$pkg]="$requester"
+                    fi
+                fi
+                unset 'path[-1]'
+                visited[$pkg]=2
+                return 0
+            else
+                die "Dependency '$pkg' not found in any repository"
+            fi
+        fi
+
+        # Get dependencies and visit them first
+        local deps_str
+        deps_str=$(get_dependencies "$pkg")
+        local -a deps
+        read -ra deps <<< "$deps_str"
+
+        for dep in "${deps[@]}"; do
+            [[ -n "$dep" ]] && visit "$dep" "$pkg"
+        done
+
+        # Remove from path and mark done
+        unset 'path[-1]'
+        visited[$pkg]=2
+        result+=("$pkg")
+    }
+
+    # Process each requested package
+    for pkg in "${requested[@]}"; do
+        visit "$pkg" ""
+    done
+
+    # Populate global execution plan
+    EXEC_PLAN=("${result[@]}")
+    for pkg in "${result[@]}"; do
+        EXEC_PLAN_DEPOF[$pkg]="${dep_of[$pkg]:-}"
+    done
+}
+
+# ==============================================================================
+# Target Detection
+# ==============================================================================
+
+# Detect if package should target ~ (user) or / (system)
+# Returns: "user" or "system"
+detect_target() {
+    local pkg_dir="$1"
+
+    # Check for system-level paths
+    for sys_path in etc usr var opt; do
+        if [[ -d "$pkg_dir/$sys_path" ]]; then
+            echo "system"
+            return
+        fi
+    done
+
+    echo "user"
+}
+
+# Get target directory for a package (respects REPO_FILTER)
+get_target_for_package() {
+    local package="$1"
+    local target_type=""
+
+    # Only check repos allowed by REPO_FILTER
+    local -a repos
+    mapfile -t repos < <(get_repos_for_package "$package")
+
+    for repo in "${repos[@]}"; do
+        local this_target
+        this_target=$(detect_target "$repo/$package")
+
+        if [[ -z "$target_type" ]]; then
+            target_type="$this_target"
+        elif [[ "$target_type" != "$this_target" ]]; then
+            die "Package '$package' has mixed targets across repos (user vs system)"
+        fi
+    done
+
+    # Default to user if no repos found (shouldn't happen after validate_package)
+    [[ -z "$target_type" ]] && target_type="user"
+
+    [[ "$target_type" == "system" ]] && echo "/" || echo "$HOME"
+}
+
+# ==============================================================================
+# Package Discovery
+# ==============================================================================
+
+# List packages in a single repo (directories excluding hidden and special)
+list_packages_in_repo() {
+    local repo_dir="$1"
+
+    [[ -d "$repo_dir" ]] || return 0
+
+    find "$repo_dir" -maxdepth 1 -mindepth 1 -type d \
+        ! -name '.*' \
+        ! -name 'zz-*' \
+        -printf '%f\n' | sort
+}
+
+# Check if package exists in repo
+package_exists_in_repo() {
+    local package="$1"
+    local repo_dir="$2"
+
+    [[ -d "$repo_dir/$package" ]]
+}
+
+# Get list of repos that have a package
+get_repos_for_package() {
+    local package="$1"
+    local repos=()
+
+    if [[ "$REPO_FILTER" == "both" || "$REPO_FILTER" == "public" ]]; then
+        package_exists_in_repo "$package" "$DOTFILES_PUBLIC" && repos+=("$DOTFILES_PUBLIC")
+    fi
+
+    if [[ "$REPO_FILTER" == "both" || "$REPO_FILTER" == "private" ]]; then
+        [[ -d "$DOTFILES_PRIVATE" ]] && \
+            package_exists_in_repo "$package" "$DOTFILES_PRIVATE" && repos+=("$DOTFILES_PRIVATE")
+    fi
+
+    printf '%s\n' "${repos[@]}"
+}
+
+# Validate package exists
+validate_package() {
+    local package="$1"
+    local repos
+    repos=$(get_repos_for_package "$package")
+
+    [[ -n "$repos" ]] || die "Package '$package' not found in any repository"
+}
+
+# ==============================================================================
+# Preview Display
+# ==============================================================================
+
+# Show preview for a single package
+# Uses global EXEC_PLAN_DEPOF for dependency info
+show_package_preview() {
+    local package="$1"
+    local action="$2"
+
+    # Get repos and target
+    local -a repos
+    mapfile -t repos < <(get_repos_for_package "$package")
+    local target_dir
+    target_dir=$(get_target_for_package "$package")
+
+    # Package header with target info
+    local target_label="~"
+    [[ "$target_dir" == "/" ]] && target_label="/ (system, requires sudo)"
+
+    # Check if this is a dependency
+    local dep_info=""
+    if [[ -n "${EXEC_PLAN_DEPOF[$package]:-}" ]]; then
+        dep_info=" (dependency of: ${EXEC_PLAN_DEPOF[$package]})"
+    fi
+
+    echo "  📦 $package → $target_label$dep_info"
+
+    # Show source repos
+    for repo in "${repos[@]}"; do
+        local repo_label
+        if [[ "$repo" == "$DOTFILES_PUBLIC" ]]; then
+            repo_label="public"
+            echo "     └─ from: ~/.dotfiles ($repo_label)"
+        else
+            repo_label="private"
+            echo "     └─ from: ~/.dotfiles-private ($repo_label)"
+        fi
+    done
+
+    # Show if dual-repo merge will happen
+    if [[ ${#repos[@]} -gt 1 ]]; then
+        echo "     ⚡ dual-repo merge (auto conflict resolution)"
+    fi
+
+    # Show hooks info (unless --no-hooks)
+    if [[ $NO_HOOKS -eq 0 ]]; then
+        local hooks
+        hooks=$(get_package_hooks "$package")
+        if [[ -n "$hooks" ]]; then
+            # Build hook display with counts for dual-repo
+            local hook_display=""
+            for hook_name in $hooks; do
+                local count
+                count=$(count_hooks "$package" "$hook_name")
+                if [[ -n "$hook_display" ]]; then
+                    hook_display="$hook_display, "
+                fi
+                if [[ "$count" -gt 1 ]]; then
+                    hook_display="$hook_display$hook_name ($count)"
+                else
+                    hook_display="$hook_display$hook_name"
+                fi
+            done
+            echo "     ⚡ hooks: $hook_display"
+        fi
+    fi
+
+    echo
+}
+
+# Show preview for all packages
+# Uses global EXEC_PLAN array
+show_preview() {
+    local action="$1"
+
+    # Header
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "  dots: ${action^^} PREVIEW"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo
+
+    for pkg in "${EXEC_PLAN[@]}"; do
+        show_package_preview "$pkg" "$action"
+    done
+
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+}
+
+# Show summary of skipped packages (if any)
+# Uses global SKIPPED_DEPS and SKIPPED_DIRECT arrays
+show_skipped_deps_warning() {
+    # Collect all skipped packages
+    local -A all_skipped=()
+    for pkg in "${!SKIPPED_DEPS[@]}"; do all_skipped[$pkg]=1; done
+    for pkg in "${!SKIPPED_DIRECT[@]}"; do all_skipped[$pkg]=1; done
+
+    [[ ${#all_skipped[@]} -eq 0 ]] && return 0
+
+    echo
+    echo "⚠️  Skipped (not found):"
+    for pkg in "${!all_skipped[@]}"; do
+        local is_direct="${SKIPPED_DIRECT[$pkg]:-}"
+        local needed_by="${SKIPPED_DEPS[$pkg]:-}"
+
+        if [[ -n "$is_direct" && -n "$needed_by" ]]; then
+            echo "   • $pkg (requested directly; also needed by: $needed_by)"
+        elif [[ -n "$is_direct" ]]; then
+            echo "   • $pkg (requested directly)"
+        else
+            echo "   • $pkg (needed by: $needed_by)"
+        fi
+    done
+    echo
+    echo "   Affected packages may be incomplete."
+}
+
+# Prompt for confirmation
+confirm_action() {
+    local action="$1"
+
+    # Auto-yes skips confirmation
+    [[ $AUTO_YES -eq 1 ]] && return 0
+
+    # Interactive prompt
+    echo
+    echo -n "Proceed with $action? [y/N] "
+    read -r response
+    [[ "$response" =~ ^[Yy]$ ]]
+}
+
+# ==============================================================================
+# Stow Execution
+# ==============================================================================
+
+# Build stow command with common options
+# Args: target_dir
+# Returns: array elements via stdout (one per line)
+build_stow_cmd() {
+    local target_dir="$1"
+
+    echo "stow"
+
+    # Ignore markdown files
+    echo "--ignore=$STOW_IGNORE"
+
+    # Verbosity (pass through to stow)
+    if [[ $VERBOSE -ge 1 ]]; then
+        echo "--verbose=$VERBOSE"
+    fi
+
+    # Dry run
+    if [[ $DRY_RUN -eq 1 ]]; then
+        echo "--simulate"
+    fi
+
+    # Target directory
+    echo "--target=$target_dir"
+}
+
+# Run stow for a single repo/package
+# Args: action (-S, -D, -R), repo_dir, package, target_dir
+# Returns: 0 on success, 1 on failure
+run_stow() {
+    local action="$1"
+    local repo_dir="$2"
+    local package="$3"
+    local target_dir="$4"
+
+    local -a cmd
+    mapfile -t cmd < <(build_stow_cmd "$target_dir")
+    cmd+=(--dir="$repo_dir" "$action" "$package")
+
+    log_debug "Running: ${cmd[*]}"
+
+    # Use sudo for system target
+    if [[ "$target_dir" == "/" ]]; then
+        if [[ $DRY_RUN -eq 1 ]]; then
+            # Try unprivileged first for dry-run to avoid password prompt
+            local output
+            if output=$("${cmd[@]}" 2>&1); then
+                echo "$output"
+            else
+                # If permission error, warn and try with sudo
+                if echo "$output" | grep -qiE "permission denied|operation not permitted|access denied"; then
+                    warn "Dry-run preview may be incomplete without sudo"
+                    sudo "${cmd[@]}" 2>&1
+                else
+                    echo "$output"
+                    return 1
+                fi
+            fi
+        else
+            sudo "${cmd[@]}" 2>&1
+        fi
+    else
+        "${cmd[@]}" 2>&1
+    fi
+}
+
+# ==============================================================================
+# Conflict Resolution
+# ==============================================================================
+
+# Check if path is a symlink pointing into a dotfiles repo
+is_dotfiles_symlink() {
+    local path="$1"
+
+    [[ -L "$path" ]] || return 1
+
+    local target
+    target=$(readlink -f "$path" 2>/dev/null) || return 1
+
+    [[ "$target" == "$DOTFILES_PUBLIC"/* || "$target" == "$DOTFILES_PRIVATE"/* ]]
+}
+
+# Unfold a symlinked directory into a real directory with individual symlinks
+# Args: symlink_path target_dir
+unfold_symlink_dir() {
+    local symlink_path="$1"
+    local target_dir="$2"
+
+    [[ -L "$symlink_path" ]] || return 1
+
+    local target
+    target=$(readlink "$symlink_path")
+
+    # Resolve to absolute path
+    local abs_target
+    abs_target=$(readlink -f "$symlink_path")
+
+    [[ -d "$abs_target" ]] || return 1
+
+    log_verbose "Unfolding: $symlink_path"
+
+    if [[ $DRY_RUN -eq 1 ]]; then
+        log "  [dry-run] Would unfold $symlink_path"
+        return 0
+    fi
+
+    # Remove symlink and create directory (with sudo for system targets)
+    run_cmd "$target_dir" rm "$symlink_path"
+    run_cmd "$target_dir" mkdir -p "$symlink_path"
+
+    # Create individual symlinks for each item in original target
+    local item
+    for item in "$abs_target"/*; do
+        [[ -e "$item" ]] || continue
+        local basename
+        basename=$(basename "$item")
+        run_cmd "$target_dir" ln -s "$item" "$symlink_path/$basename"
+        log_debug "Created link: $symlink_path/$basename -> $item"
+    done
+
+    # Also handle hidden files
+    for item in "$abs_target"/.*; do
+        [[ -e "$item" ]] || continue
+        local basename
+        basename=$(basename "$item")
+        [[ "$basename" == "." || "$basename" == ".." ]] && continue
+        run_cmd "$target_dir" ln -s "$item" "$symlink_path/$basename"
+        log_debug "Created link: $symlink_path/$basename -> $item"
+    done
+}
+
+# Find and resolve conflicts for a package between two repos
+# Args: package, target_dir
+resolve_conflicts_for_package() {
+    local package="$1"
+    local target_dir="$2"
+    local max_iterations=10
+    local iteration=0
+
+    # Only needed for dual-repo merges
+    [[ -d "$DOTFILES_PRIVATE/$package" ]] || return 0
+
+    while [[ $iteration -lt $max_iterations ]]; do
+        local changed=0
+
+        # Build candidate paths from public package structure (avoids full target scan)
+        while IFS= read -r -d '' public_dir; do
+            # Skip package root directory itself
+            [[ "$public_dir" == "$DOTFILES_PUBLIC/$package" ]] && continue
+
+            # Get relative path from package root
+            local rel_path="${public_dir#$DOTFILES_PUBLIC/$package/}"
+            [[ -z "$rel_path" ]] && continue
+
+            local target_path="$target_dir/$rel_path"
+            local private_path="$DOTFILES_PRIVATE/$package/$rel_path"
+
+            # Check if target is a symlink to public AND private has content
+            [[ -L "$target_path" ]] || continue
+            [[ -e "$private_path" ]] || continue
+
+            local link_target
+            link_target=$(readlink -f "$target_path" 2>/dev/null) || continue
+
+            if [[ "$link_target" == "$DOTFILES_PUBLIC/$package"/* ]]; then
+                unfold_symlink_dir "$target_path" "$target_dir" && changed=1
+            fi
+        done < <(find "$DOTFILES_PUBLIC/$package" -type d -print0 2>/dev/null)
+
+        [[ $changed -eq 1 ]] || break
+        iteration=$((iteration + 1))
+    done
+
+    if [[ $iteration -ge $max_iterations ]]; then
+        warn "Max conflict resolution iterations reached for '$package'"
+    fi
+}
+
+# ==============================================================================
+# Main Actions
+# ==============================================================================
+
+# Stow a single package from all applicable repos
+do_stow_package() {
+    local package="$1"
+
+    validate_package "$package"
+
+    local -a repos
+    mapfile -t repos < <(get_repos_for_package "$package")
+
+    local target_dir
+    target_dir=$(get_target_for_package "$package")
+
+    log "Stowing package: $package (target: $target_dir)"
+
+    # Run pre-stow hooks (unless --no-hooks)
+    if [[ $NO_HOOKS -eq 0 ]]; then
+        if ! run_hooks_for_package "$package" "pre-stow" "$target_dir"; then
+            die "Pre-stow hook failed for '$package'"
+        fi
+    fi
+
+    if [[ ${#repos[@]} -eq 1 ]]; then
+        # Single repo - simple stow
+        log_verbose "From: ${repos[0]}"
+        if ! run_stow -S "${repos[0]}" "$package" "$target_dir"; then
+            die "Failed to stow '$package' from ${repos[0]}"
+        fi
+    else
+        # Multiple repos - need conflict resolution
+        log_verbose "From: ${repos[*]} (dual-repo merge)"
+
+        # Stow from first repo (public)
+        if ! run_stow -S "${repos[0]}" "$package" "$target_dir"; then
+            die "Failed to stow '$package' from ${repos[0]}"
+        fi
+
+        # Attempt stow from second repo (private)
+        local stow_output
+        if ! stow_output=$(run_stow -S "${repos[1]}" "$package" "$target_dir" 2>&1); then
+            # Check if it's a conflict we can resolve
+            if echo "$stow_output" | grep -q "existing target is"; then
+                log_verbose "Conflict detected, resolving..."
+
+                if [[ $DRY_RUN -eq 0 ]]; then
+                    resolve_conflicts_for_package "$package" "$target_dir"
+
+                    # Restow public repo after resolution
+                    run_stow -R "${repos[0]}" "$package" "$target_dir" || true
+
+                    # Now stow private repo
+                    if ! run_stow -S "${repos[1]}" "$package" "$target_dir"; then
+                        die "Failed to merge '$package' from ${repos[1]} after conflict resolution"
+                    fi
+                else
+                    log "  [dry-run] Would resolve conflicts and restow"
+                fi
+            else
+                echo "$stow_output" >&2
+                die "Failed to stow '$package' from ${repos[1]}"
+            fi
+        fi
+    fi
+
+    # Run post-stow hooks (unless --no-hooks)
+    if [[ $NO_HOOKS -eq 0 ]]; then
+        if ! run_hooks_for_package "$package" "post-stow" "$target_dir"; then
+            warn "Post-stow hook failed for '$package'"
+        fi
+    fi
+
+    log_success "Stowed: $package"
+}
+
+# Unstow a single package from all applicable repos
+do_unstow_package() {
+    local package="$1"
+
+    validate_package "$package"
+
+    local -a repos
+    mapfile -t repos < <(get_repos_for_package "$package")
+
+    local target_dir
+    target_dir=$(get_target_for_package "$package")
+
+    log "Unstowing package: $package"
+
+    # Run pre-unstow hooks (unless --no-hooks)
+    if [[ $NO_HOOKS -eq 0 ]]; then
+        if ! run_hooks_for_package "$package" "pre-unstow" "$target_dir"; then
+            die "Pre-unstow hook failed for '$package'"
+        fi
+    fi
+
+    for repo in "${repos[@]}"; do
+        log_verbose "From: $repo"
+        run_stow -D "$repo" "$package" "$target_dir" 2>/dev/null || true
+    done
+
+    # Run post-unstow hooks (unless --no-hooks)
+    if [[ $NO_HOOKS -eq 0 ]]; then
+        if ! run_hooks_for_package "$package" "post-unstow" "$target_dir"; then
+            warn "Post-unstow hook failed for '$package'"
+        fi
+    fi
+
+    log_success "Unstowed: $package"
+}
+
+# Restow a single package
+do_restow_package() {
+    local package="$1"
+
+    validate_package "$package"
+
+    log "Restowing package: $package"
+
+    local -a repos
+    mapfile -t repos < <(get_repos_for_package "$package")
+    local target_dir
+    target_dir=$(get_target_for_package "$package")
+
+    # Run pre-unstow hooks for the unstow phase (unless --no-hooks)
+    if [[ $NO_HOOKS -eq 0 ]]; then
+        if ! run_hooks_for_package "$package" "pre-unstow" "$target_dir"; then
+            die "Pre-unstow hook failed for '$package'"
+        fi
+    fi
+
+    # Unstow first
+    for repo in "${repos[@]}"; do
+        run_stow -D "$repo" "$package" "$target_dir" 2>/dev/null || true
+    done
+
+    # Run post-unstow hooks (unless --no-hooks)
+    if [[ $NO_HOOKS -eq 0 ]]; then
+        if ! run_hooks_for_package "$package" "post-unstow" "$target_dir"; then
+            warn "Post-unstow hook failed for '$package'"
+        fi
+    fi
+
+    # Now stow fresh (this will run pre-stow and post-stow hooks)
+    do_stow_package "$package"
+}
+
+# List all available packages
+do_list_packages() {
+    echo "Available packages:"
+    echo
+
+    if [[ "$REPO_FILTER" == "both" || "$REPO_FILTER" == "public" ]]; then
+        if [[ -d "$DOTFILES_PUBLIC" ]]; then
+            echo "~/.dotfiles (public):"
+            list_packages_in_repo "$DOTFILES_PUBLIC" | while read -r pkg; do
+                local target
+                target=$(detect_target "$DOTFILES_PUBLIC/$pkg")
+                if [[ "$target" == "system" ]]; then
+                    echo "  $pkg [system]"
+                else
+                    echo "  $pkg"
+                fi
+            done
+            echo
+        fi
+    fi
+
+    if [[ "$REPO_FILTER" == "both" || "$REPO_FILTER" == "private" ]]; then
+        if [[ -d "$DOTFILES_PRIVATE" ]]; then
+            echo "~/.dotfiles-private (private):"
+            list_packages_in_repo "$DOTFILES_PRIVATE" | while read -r pkg; do
+                local target
+                target=$(detect_target "$DOTFILES_PRIVATE/$pkg")
+                if [[ "$target" == "system" ]]; then
+                    echo "  $pkg [system]"
+                else
+                    echo "  $pkg"
+                fi
+            done
+            echo
+        fi
+    fi
+}
+
+# Get all available packages (unique, sorted)
+# Returns: newline-separated list of package names
+get_all_packages() {
+    local -A all_packages
+
+    if [[ "$REPO_FILTER" == "both" || "$REPO_FILTER" == "public" ]]; then
+        while IFS= read -r pkg; do
+            [[ -n "$pkg" ]] && all_packages["$pkg"]=1
+        done < <(list_packages_in_repo "$DOTFILES_PUBLIC")
+    fi
+
+    if [[ "$REPO_FILTER" == "both" || "$REPO_FILTER" == "private" ]]; then
+        if [[ -d "$DOTFILES_PRIVATE" ]]; then
+            while IFS= read -r pkg; do
+                [[ -n "$pkg" ]] && all_packages["$pkg"]=1
+            done < <(list_packages_in_repo "$DOTFILES_PRIVATE")
+        fi
+    fi
+
+    printf '%s\n' "${!all_packages[@]}" | sort
+}
+
+# ==============================================================================
+# Argument Parsing
+# ==============================================================================
+
+parse_args() {
+    local packages=()
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -h|--help)
+                usage
+                ;;
+            --version)
+                echo "dots version $VERSION"
+                exit 0
+                ;;
+            -n|--dry-run|--simulate)
+                DRY_RUN=1
+                shift
+                ;;
+            -y|--yes)
+                AUTO_YES=1
+                shift
+                ;;
+            -q|--quiet)
+                QUIET=1
+                shift
+                ;;
+            -v|--verbose)
+                ((VERBOSE++))
+                shift
+                ;;
+            -vv)
+                VERBOSE=2
+                shift
+                ;;
+            -vvv)
+                VERBOSE=3
+                shift
+                ;;
+            -D|--delete)
+                ACTION="delete"
+                shift
+                ;;
+            -R|--restow)
+                ACTION="restow"
+                shift
+                ;;
+            -S|--stow)
+                ACTION="stow"
+                shift
+                ;;
+            -p|--public)
+                REPO_FILTER="public"
+                shift
+                ;;
+            -P|--private)
+                REPO_FILTER="private"
+                shift
+                ;;
+            --list)
+                ACTION="list"
+                shift
+                ;;
+            --sync)
+                ACTION="sync"
+                shift
+                ;;
+            --no-hooks)
+                NO_HOOKS=1
+                shift
+                ;;
+            -*)
+                die "Unknown option: $1"
+                ;;
+            *)
+                packages+=("$1")
+                shift
+                ;;
+        esac
+    done
+
+    # Handle list action (doesn't need packages)
+    if [[ "$ACTION" == "list" ]]; then
+        do_list_packages
+        exit 0
+    fi
+
+    # Handle sync action (auto-populate packages)
+    if [[ "$ACTION" == "sync" ]]; then
+        mapfile -t packages < <(get_all_packages)
+        [[ ${#packages[@]} -gt 0 ]] || die "No packages found to sync"
+    fi
+
+    # Require at least one package for stow/delete/restow/sync
+    [[ ${#packages[@]} -gt 0 ]] || usage
+
+    # Validate all packages first
+    for pkg in "${packages[@]}"; do
+        validate_package "$pkg"
+    done
+
+    # Resolve dependencies and build execution plan
+    # Dependencies only expanded for stow/sync actions (not delete/restow)
+    # sync uses permissive mode (warn on missing deps), stow is strict
+    if [[ $NO_HOOKS -eq 0 && ("$ACTION" == "stow" || "$ACTION" == "sync") ]]; then
+        local permissive=0
+        [[ "$ACTION" == "sync" ]] && permissive=1
+        resolve_all_dependencies "$permissive" "${packages[@]}"
+    else
+        EXEC_PLAN=("${packages[@]}")
+        for pkg in "${packages[@]}"; do
+            EXEC_PLAN_DEPOF[$pkg]=""
+        done
+    fi
+
+    # Show preview (unless quiet)
+    [[ $QUIET -eq 0 ]] && show_preview "$ACTION"
+
+    # Show skipped deps warning (always, even in quiet mode)
+    show_skipped_deps_warning
+
+    # Dry-run stops here
+    if [[ $DRY_RUN -eq 1 ]]; then
+        [[ $QUIET -eq 0 ]] && echo && echo "  (dry-run mode - no changes made, hooks not executed)"
+        exit 0
+    fi
+
+    # Confirm (unless -y; -q only suppresses preview, not confirmation)
+    if ! confirm_action "$ACTION"; then
+        echo "Aborted."
+        exit 0
+    fi
+
+    # Execute using resolved execution plan
+    for pkg in "${EXEC_PLAN[@]}"; do
+        case "$ACTION" in
+            stow|sync) do_stow_package "$pkg" ;;
+            delete)    do_unstow_package "$pkg" ;;
+            restow)    do_restow_package "$pkg" ;;
+        esac
+    done
+}
+
+# ==============================================================================
+# Main
+# ==============================================================================
+
+main() {
+    # Check dependencies
+    command -v stow &>/dev/null || die "Required command not found: stow"
+
+    # Validate at least public repo exists
+    [[ -d "$DOTFILES_PUBLIC" ]] || die "Public dotfiles repository not found: $DOTFILES_PUBLIC"
+
+    # Parse and execute
+    parse_args "$@"
+}
+
+main "$@"

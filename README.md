@@ -1,162 +1,147 @@
 # gubasso's dotfiles
 
-My personal dotfiles, managed with [GNU Stow](https://www.gnu.org/software/stow/).
+Personal dotfiles managed with [GNU Stow](https://www.gnu.org/software/stow/), enhanced with the `dots` wrapper script.
 
-## General Info
-
-Config file headers with text ASCII art (e.g. Fish config):
-
-```sh
-toilet -f future -F border "Fish config"
-```
-
----
-
-## Overview
-
-Managing your shell and application configurations (“dotfiles”) with Stow allows you to:
-
-* Keep configurations versioned in Git.
-* Easily deploy consistent setups across machines.
-* Modularize per-application configs.
-
-This guide covers both non-root (“user”) and root (“system”) setups.
-
-## Prerequisites
-
-1. **Git**: for cloning this repo.
-2. **GNU Stow**:
-
-   ```bash
-    # Debian/Ubuntu
-    sudo apt update
-    sudo apt install stow
-
-    # Arch Linux
-    sudo pacman -Syu stow
-
-    # macOS (Homebrew)
-    brew install stow
-   ```
-
-## Installation
-
-### 1. Clone the Repository
+## Quick Start
 
 ```bash
+# Clone repositories
 git clone https://github.com/gubasso/dotfiles.git ~/.dotfiles
-cd ~/.dotfiles
+git clone git@gitlab.com:gubasso/dotfiles-private.git ~/.dotfiles-private  # optional
+
+# Deploy the dots command first
+cd ~/.dotfiles && stow -vt ~ bin
+
+# Sync all packages
+dots --sync
+
+# Or deploy individual packages
+dots fish nvim starship
 ```
 
-### 2. Stowing Packages (User-Level)
+## The `dots` Command
 
-* **Dry run** to preview changes:
+The `dots` script wraps GNU Stow with features tailored for this dotfiles setup.
 
-  ```bash
-  stow -nvt ~ *
-  ```
+### Basic Usage
 
-  * `-n`/`--no` : show what would happen (don't apply).
-  * `-v`/`--verbose` : detailed output.
-  * `-t ~`/`--target=~` : where to create symlinks.
-  * `*` : all packages (every directory).
+```bash
+dots <package>...           # Stow packages
+dots -D <package>...        # Unstow packages
+dots -R <package>...        # Restow (unstow + stow)
+dots --list                 # List available packages
+dots --sync                 # Stow all packages
+```
 
-* **Apply** symlinks:
+### Options
 
-  ```bash
-  stow -vt ~ *
-  ```
+| Option | Description |
+|--------|-------------|
+| `-n, --dry-run` | Preview changes without applying |
+| `-y, --yes` | Skip confirmation prompt |
+| `-q, --quiet` | Minimal output (still prompts unless `-y`) |
+| `-v, --verbose` | Verbose output (repeatable: `-vv`) |
+| `-p, --public` | Only operate on `~/.dotfiles` |
+| `-P, --private` | Only operate on `~/.dotfiles-private` |
+| `--no-hooks` | Skip hook scripts and dependency resolution |
+| `--version` | Show version |
+| `-h, --help` | Show help |
 
-## Usage Examples
+### Examples
 
-* Link a single package (e.g., Alacritty):
+```bash
+# Preview what would happen
+dots -n fish
 
-  ```bash
-  stow -vt ~ alacritty
-  ```
+# Stow with verbose output
+dots -v nvim kitty
 
-  This creates symlinks from:
+# Only stow from public repo
+dots -p fish
 
-  ```text
-  ~/.dotfiles/alacritty/.config/alacritty/*.yml → ~/.config/alacritty/*.yml
-  ```
+# Restow after editing configs
+dots -R fish
 
-* Link multiple packages:
+# Silent execution for scripts
+dots -q -y fish nvim
+```
 
-  ```bash
-  stow -vt ~ bash nvim git
-  ```
+### Features
 
-## System-Level (Root) Setup
+**Ignores documentation files**: All `*.md` files (README, CLAUDE.md, etc.) are automatically excluded.
 
-When you need to manage system configs (e.g., services in `/etc/systemd`), perform Stow under root:
+**Auto-detects target**: Packages containing `etc/`, `usr/`, `var/`, or `opt/` directories are automatically stowed to `/` (with sudo). All others stow to `~`.
 
-**Stow to `/`**:
+**Dual-repo merge**: When both `~/.dotfiles` and `~/.dotfiles-private` have the same package, `dots` automatically resolves conflicts by converting stow's "folded" directory symlinks into real directories with individual file symlinks.
 
-   ```bash
-   sudo stow -vt / systemd_root bin_root shell_root
-   ```
+### Hooks
 
-   * `-t /` : target is the filesystem root.
-   * `--adopt` : (optional) move existing files into the repo before linking:
+Packages can include a `.hooks/` directory with:
 
-     ```bash
-     sudo stow -vt / --adopt systemd_root
-     ```
+| File | Purpose |
+|------|---------|
+| `depends` | List of package dependencies (one per line) |
+| `pre-stow` | Script run before stowing |
+| `post-stow` | Script run after stowing |
+| `pre-unstow` | Script run before unstowing |
+| `post-unstow` | Script run after unstowing |
 
-## Real-World Examples
+Dependencies are automatically resolved for `stow` and `sync` operations. Use `--no-hooks` to skip all hook processing.
 
-Based on your repository tree:
+**Example `.hooks/depends`:**
+```
+shell
+starship
+```
 
-* **Alacritty**:
+## Repository Structure
 
-  ```bash
-  cd ~/.dotfiles
-  stow -vt ~ alacritty
-  ```
+Each top-level directory is a stow "package" that mirrors the target filesystem:
 
-* **Custom Scripts** (`bin`):
+```
+~/.dotfiles/
+├── fish/
+│   └── .config/fish/       → ~/.config/fish/
+├── nvim/
+│   └── .config/nvim/       → ~/.config/nvim/
+├── bin/
+│   └── .local/bin/         → ~/.local/bin/
+├── shell/
+│   └── .profile            → ~/.profile
+└── greetd/                  # System package
+    └── etc/greetd/         → /etc/greetd/
+```
 
-  ```bash
-  stow -vt ~ bin
-  ```
+### Package Types
 
-* **User Shell Configs** (`bash`, `zsh`):
+| Type | Example Structure | Target | Requires |
+|------|-------------------|--------|----------|
+| User | `.config/`, `.local/`, `.*` | `~` | User |
+| System | `etc/`, `usr/` | `/` | sudo |
 
-  ```bash
-  stow -vt ~ bash zsh
-  ```
+### Dual Repository Setup
 
-* **Systemd Services** (`systemd_root`):
+- **`~/.dotfiles`** (public): Configs safe to share publicly
+- **`~/.dotfiles-private`** (private): Secrets, API keys, machine-specific overrides
 
-  ```bash
-  sudo stow -vt / systemd_root
-  ```
+Both use the same structure. Private configs can extend or override public ones for the same package.
 
-* **Root Shell Environments** (`shell_root`):
+## Manual Stow
 
-  ```bash
-  sudo stow -vt / shell_root
-  ```
+For edge cases, you can use stow directly:
 
-## Troubleshooting
+```bash
+cd ~/.dotfiles
 
-* **Conflict Detected**:
-  If Stow reports existing files not owned by it, you can:
+# Preview changes
+stow -nvt ~ <package>
 
-  ```bash
-  stow -nvt ~ --adopt bash
-  ```
+# Apply symlinks
+stow -vt ~ <package>
 
-  to move originals into `~/.dotfiles/bash/` then retry.
+# System-level package
+sudo stow -vt / <package>
 
-* **Inspecting Symlinks**:
-
-  ```bash
-  find ~/.config -maxdepth 2 -type l
-  ```
----
-
-## References
-
-[^1]: [Sync your .dotfiles with Git and GNU Stow like a pro! - DevInsideYou](https://www.youtube.com/watch?v=CFzEuBGPPPg)
+# Adopt existing files into repo
+stow -vt ~ --adopt <package>
+```
