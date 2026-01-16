@@ -1,29 +1,26 @@
 # Brave Browser Configuration
 
-Brave browser setup optimized for Wayland with hardware acceleration.
+General Brave browser setup.
 
 ## Contents
 
 ```
 brave/
-├── .config/
-│   └── brave-flags.conf                    # Startup flags for Wayland/GPU
+├── .hooks/
+│   └── depends                             # Requires: bin
 └── .local/share/
+    ├── applications/
+    │   └── brave-browser.desktop           # Overrides system .desktop, uses brave-launcher
     └── brave-unpacked-extensions/
         └── open-temp-chat/                 # ChatGPT temp chat extension
 ```
 
-## Flags Configuration
+## Desktop Entry
 
-`brave-flags.conf` is read by the `brave-launcher` script (from the `bin` package) and applies these optimizations:
+The `brave-browser.desktop` file overrides the system Brave desktop entry (XDG precedence).
+It launches Brave via `brave-launcher` which reads custom flags from `~/.config/brave/flags.conf`.
 
-| Category | Flags |
-|----------|-------|
-| **Wayland** | `--ozone-platform=wayland`, `--enable-features=WaylandWindowDecorations` |
-| **GPU** | `--use-angle=gl`, `--enable-gpu-rasterization`, `--enable-zero-copy` |
-| **VA-API** | `--enable-features=VaapiVideoDecoder,VaapiVideoDecodeLinuxGL` |
-| **WebRTC** | `--enable-features=WebRTCPipeWireCapturer` (screen sharing) |
-| **Privacy** | `--disable-crash-reporter`, `--disable-breakpad` |
+**Requires:** `bin` package (provides `brave-launcher`)
 
 ## Unpacked Extensions
 
@@ -32,7 +29,7 @@ brave/
 Minimal MV3 extension that opens ChatGPT in temporary chat mode via keyboard shortcut.
 
 **Features:**
-- Opens `https://chatgpt.com/?temporary-chat=true` in a new tab
+- Opens `https://chatgpt.com/?temporary-chat=true&hints=search` in a new tab
 - Configurable keyboard shortcut
 - No data collection, minimal permissions (only `tabs`)
 
@@ -61,7 +58,3 @@ Minimal MV3 extension that opens ChatGPT in temporary chat mode via keyboard sho
 After modifying extension files, reload in Brave:
 - Go to `brave://extensions/`
 - Click the refresh icon on the extension card
-
-## Dependencies
-
-- `bin` package: provides `brave-launcher` script

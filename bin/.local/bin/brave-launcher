@@ -1,18 +1,37 @@
-#!/usr/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 
-XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
-USER_FLAGS_FILE="$XDG_CONFIG_HOME/brave-flags.conf"
+FLAGS_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/brave/flags.conf"
 
-collect_flags () {
-  local file=$1
-  [[ -f $file ]] || return
-  # shellcheck disable=SC2207
-  mapfile -t lines < <(grep -vE '^\s*($|#)' "$file")
-  echo "${lines[*]}"
-}
+# Read flags (one arg per line), ignore blanks and comments.
+flags=()
+if [[ -f "$FLAGS_FILE" ]]; then
+  while IFS= read -r line; do
+    [[ -z "${line//[[:space:]]/}" ]] && continue
+    [[ "$line" =~ ^[[:space:]]*# ]] && continue
+    flags+=("$line")
+  done < "$FLAGS_FILE"
+fi
 
-USER_FLAGS=$(collect_flags "$USER_FLAGS_FILE")
+# Allow explicit override (useful for unusual installs)
+# e.g. BRAVE_CMD="/opt/brave/brave" brave-launcher
+if [[ -n "${BRAVE_CMD:-}" ]]; then
+  exec "${BRAVE_CMD}" "${flags[@]}" "$@"
+fi
 
-BRAVE_BIN="/usr/bin/brave"
-exec "$BRAVE_BIN" $USER_FLAGS "$@"
+# Prefer native binaries if present
+if command -v brave-browser-stable >/dev/null 2>&1; then
+  exec brave-browser-stable "${flags[@]}" "$@"
+elif command -v brave-browser >/dev/null 2>&1; then
+  exec brave-browser "${flags[@]}" "$@"
+elif command -v brave >/dev/null 2>&1; then
+  exec brave "${flags[@]}" "$@"
+fi
+
+# Flatpak fallback (if installed as Flatpak)
+if command -v flatpak >/dev/null 2>&1 && flatpak info com.brave.Browser >/dev/null 2>&1; then
+  exec flatpak run com.brave.Browser "${flags[@]}" "$@"
+fi
+
+echo "Could not find Brave (native binary or Flatpak)." >&2
+exit 1

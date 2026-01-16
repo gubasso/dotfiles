@@ -1,0 +1,3 @@
+# brave-nova
+
+Host: `nova`

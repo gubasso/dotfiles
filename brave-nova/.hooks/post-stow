@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+LAUNCHER="$HOME/.local/bin/brave-launcher"
+FLAGS_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/brave/flags.conf"
+
+# Verify brave-launcher exists
+if [[ ! -x "$LAUNCHER" ]]; then
+  echo "WARNING: $LAUNCHER not found or not executable" >&2
+  echo "  Ensure 'bin' package is stowed: dots bin" >&2
+  exit 1
+fi
+
+# Verify flags.conf exists
+if [[ ! -f "$FLAGS_FILE" ]]; then
+  echo "WARNING: $FLAGS_FILE not found" >&2
+  echo "  brave-nova should have stowed this file" >&2
+  exit 1
+fi
+
+echo "brave-nova: configured successfully"
+echo "  - brave-launcher: $LAUNCHER"
+echo "  - flags.conf: $FLAGS_FILE"

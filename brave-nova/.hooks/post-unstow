@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "brave-nova: unstowed"
+echo "  - flags.conf removed"
+echo "  - System brave-browser.desktop will be used (XDG precedence)"

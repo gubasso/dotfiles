@@ -273,6 +273,62 @@ test_dependency_resolution_and_label() {
     [[ -n "$dep_line" && -n "$app_line" && "$dep_line" -lt "$app_line" ]]
 }
 
+test_multi_level_dependency_chain() {
+    setup_env
+    trap cleanup_env RETURN
+
+    # Create chain: app3 -> app2 -> app1 (like brave-nova -> brave -> bin)
+    make_pkg_file "$DOTFILES_PUBLIC" "app1" ".config/app1/config"
+    make_pkg_file "$DOTFILES_PUBLIC" "app2" ".config/app2/config"
+    make_pkg_file "$DOTFILES_PUBLIC" "app3" ".config/app3/config"
+    make_dep "$DOTFILES_PUBLIC" "app2" "app1"
+    make_dep "$DOTFILES_PUBLIC" "app3" "app2"
+
+    run_dots "" -n -y app3
+    assert_eq "$RUN_STATUS" "0" || return 1
+
+    # All three should appear
+    assert_contains "$RUN_OUTPUT" "app1" || return 1
+    assert_contains "$RUN_OUTPUT" "app2" || return 1
+    assert_contains "$RUN_OUTPUT" "app3" || return 1
+
+    # Verify order: app1 before app2 before app3 (match package listing lines)
+    local app1_line app2_line app3_line
+    app1_line=$(printf "%s" "$RUN_OUTPUT" | grep -n 'app1 →' | head -1 | cut -d: -f1)
+    app2_line=$(printf "%s" "$RUN_OUTPUT" | grep -n 'app2 →' | head -1 | cut -d: -f1)
+    app3_line=$(printf "%s" "$RUN_OUTPUT" | grep -n 'app3 →' | head -1 | cut -d: -f1)
+    [[ -n "$app1_line" && -n "$app2_line" && -n "$app3_line" ]] || return 1
+    [[ "$app1_line" -lt "$app2_line" && "$app2_line" -lt "$app3_line" ]] || return 1
+}
+
+test_multiple_dependencies() {
+    setup_env
+    trap cleanup_env RETURN
+
+    # Create: app depends on both dep1 and dep2 (like brave-nova depends on brave AND bin)
+    make_pkg_file "$DOTFILES_PUBLIC" "dep1" ".config/dep1/config"
+    make_pkg_file "$DOTFILES_PUBLIC" "dep2" ".config/dep2/config"
+    make_pkg_file "$DOTFILES_PUBLIC" "app" ".config/app/config"
+    mkdir -p "$DOTFILES_PUBLIC/app/.hooks"
+    printf "dep1\ndep2\n" > "$DOTFILES_PUBLIC/app/.hooks/depends"
+
+    run_dots "" -n -y app
+    assert_eq "$RUN_STATUS" "0" || return 1
+
+    # All should appear
+    assert_contains "$RUN_OUTPUT" "dep1" || return 1
+    assert_contains "$RUN_OUTPUT" "dep2" || return 1
+    assert_contains "$RUN_OUTPUT" "app" || return 1
+
+    # Both deps should come before app (match package listing lines)
+    local dep1_line dep2_line app_line
+    dep1_line=$(printf "%s" "$RUN_OUTPUT" | grep -n 'dep1 →' | head -1 | cut -d: -f1)
+    dep2_line=$(printf "%s" "$RUN_OUTPUT" | grep -n 'dep2 →' | head -1 | cut -d: -f1)
+    app_line=$(printf "%s" "$RUN_OUTPUT" | grep -n 'app →' | head -1 | cut -d: -f1)
+    [[ -n "$dep1_line" && -n "$dep2_line" && -n "$app_line" ]] || return 1
+    [[ "$dep1_line" -lt "$app_line" && "$dep2_line" -lt "$app_line" ]] || return 1
+}
+
 test_no_hooks_skips_deps() {
     setup_env
     trap cleanup_env RETURN
@@ -338,6 +394,8 @@ run_test "preview confirm default" test_preview_confirm_default
 run_test "quiet still confirms" test_quiet_still_confirms
 run_test "dry-run no execution" test_dry_run_no_execution
 run_test "dependency resolution label" test_dependency_resolution_and_label
+run_test "multi-level dependency chain" test_multi_level_dependency_chain
+run_test "multiple dependencies" test_multiple_dependencies
 run_test "no-hooks skips deps" test_no_hooks_skips_deps
 run_test "sync permissive warning" test_sync_permissive_missing_dep_warning
 run_test "repo filter target detection" test_repo_filter_target_detection
