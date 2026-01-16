@@ -1,26 +1,45 @@
 # Brave Browser Configuration
 
-General Brave browser setup.
+General Brave browser setup with webapp profiles.
 
 ## Contents
 
 ```
 brave/
 ├── .hooks/
-│   └── depends                             # Requires: bin
+│   ├── depends                             # Requires: bin
+│   └── post-stow                           # Auto-creates profiles via brave-profile-setup
 └── .local/share/
     ├── applications/
-    │   └── brave-browser.desktop           # Overrides system .desktop, uses brave-launcher
+    │   ├── brave-browser.desktop           # Main browser (Default profile)
+    │   ├── webapp-ai.desktop               # AI assistants (AI profile)
+    │   ├── webapp-google.desktop           # Google Workspace (Google profile)
+    │   └── webapp-social.desktop           # Social media (Social profile)
     └── brave-unpacked-extensions/
         └── open-temp-chat/                 # ChatGPT temp chat extension
 ```
 
-## Desktop Entry
+## Desktop Entries
 
-The `brave-browser.desktop` file overrides the system Brave desktop entry (XDG precedence).
-It launches Brave via `brave-launcher` which reads custom flags from `~/.config/brave/flags.conf`.
+All `.desktop` files use `brave-launcher` which reads custom flags from `~/.config/brave/flags.conf`.
 
-**Requires:** `bin` package (provides `brave-launcher`)
+| Launcher | Profile | Use Case |
+|----------|---------|----------|
+| `brave-browser.desktop` | Default | General browsing |
+| `webapp-ai.desktop` | AI | Gemini, ChatGPT, Claude |
+| `webapp-google.desktop` | Google | Gmail, Drive, Calendar |
+| `webapp-social.desktop` | Social | Whatsapp, X, LinkedIn |
+
+**Requires:** `bin` package (provides `brave-launcher` and `brave-profile-setup`)
+
+## Profile Setup
+
+The `post-stow` hook automatically runs `brave-profile-setup AI Google Social` which:
+1. Detects Brave data directory (native or Flatpak)
+2. Creates profile directories with semantic names
+3. Copies Extensions and Preferences from Default profile
+
+**First-time setup:** Run Brave once to create the Default profile with your desired extensions and settings before running `dots brave`.
 
 ## Unpacked Extensions
 

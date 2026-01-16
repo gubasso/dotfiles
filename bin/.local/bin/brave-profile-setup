@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Creates Brave profiles with semantic names and copies settings from Default
+# Usage: brave-profile-setup <profile_name>...
+# Example: brave-profile-setup AI Google Social
+#
+# Environment:
+#   BRAVE_USER_DATA - Override auto-detected data directory
+
+if [[ $# -eq 0 ]]; then
+    echo "Usage: brave-profile-setup <profile_name>..." >&2
+    echo "Example: brave-profile-setup AI Google Social" >&2
+    exit 1
+fi
+
+# Auto-detect Brave user data directory
+# Mirrors brave-launcher precedence: native commands first, Flatpak as fallback
+detect_brave_data_dir() {
+    # Allow override
+    if [[ -n "${BRAVE_USER_DATA:-}" ]]; then
+        echo "$BRAVE_USER_DATA"
+        return
+    fi
+
+    local native_dir="${XDG_CONFIG_HOME:-$HOME/.config}/BraveSoftware/Brave-Browser"
+    local flatpak_dir="$HOME/.var/app/com.brave.Browser/config/BraveSoftware/Brave-Browser"
+
+    # Prefer existing directory with Default profile
+    if [[ -d "$native_dir/Default" ]]; then
+        echo "$native_dir"
+    elif [[ -d "$flatpak_dir/Default" ]]; then
+        echo "$flatpak_dir"
+    # No Default exists yet - follow brave-launcher precedence (native first)
+    elif command -v brave-browser-stable >/dev/null 2>&1 \
+      || command -v brave-browser >/dev/null 2>&1 \
+      || command -v brave >/dev/null 2>&1; then
+        echo "$native_dir"
+    elif command -v flatpak >/dev/null 2>&1 && flatpak info com.brave.Browser >/dev/null 2>&1; then
+        echo "$flatpak_dir"
+    else
+        echo "$native_dir"
+    fi
+}
+
+BRAVE_USER_DATA="$(detect_brave_data_dir)"
+DEFAULT_PROFILE="$BRAVE_USER_DATA/Default"
+
+echo "Using data directory: $BRAVE_USER_DATA"
+
+# Check if Brave has ever been run (Default profile exists)
+if [[ ! -d "$DEFAULT_PROFILE" ]]; then
+    echo "WARNING: Default profile not found at $DEFAULT_PROFILE" >&2
+    echo "  Run Brave at least once to create the Default profile first." >&2
+    echo "  Profiles will be created empty (Brave auto-creates on first launch)." >&2
+fi
+
+for profile in "$@"; do
+    profile_dir="$BRAVE_USER_DATA/$profile"
+
+    if [[ -d "$profile_dir" ]]; then
+        echo "✓ Profile '$profile' already exists"
+        continue
+    fi
+
+    echo "Creating profile: $profile"
+    mkdir -p "$profile_dir"
+
+    # Copy Extensions directory if Default exists
+    if [[ -d "$DEFAULT_PROFILE/Extensions" ]]; then
+        cp -r "$DEFAULT_PROFILE/Extensions" "$profile_dir/"
+        echo "  ✓ Copied Extensions from Default"
+    fi
+
+    # Copy Preferences (browser settings) if Default exists
+    if [[ -f "$DEFAULT_PROFILE/Preferences" ]]; then
+        cp "$DEFAULT_PROFILE/Preferences" "$profile_dir/"
+        echo "  ✓ Copied Preferences from Default"
+    fi
+done
+
+echo ""
+echo "Done. Launch each profile to complete setup:"
+for profile in "$@"; do
+    echo "  brave-launcher --profile-directory=$profile"
+done

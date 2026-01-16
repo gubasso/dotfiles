@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+LAUNCHER="$HOME/.local/bin/brave-launcher"
+PROFILE_SETUP="$HOME/.local/bin/brave-profile-setup"
+
+# Verify brave-launcher exists
+if [[ ! -x "$LAUNCHER" ]]; then
+    echo "WARNING: $LAUNCHER not found or not executable" >&2
+    echo "  Ensure 'bin' package is stowed: dots bin" >&2
+    exit 1
+fi
+
+# Create semantic profiles (idempotent - skips existing)
+if [[ -x "$PROFILE_SETUP" ]]; then
+    echo "Setting up Brave profiles..."
+    "$PROFILE_SETUP" AI Google Social
+else
+    echo "Note: brave-profile-setup not found, profiles will be created on first launch"
+fi
+
+echo ""
+echo "brave: configured successfully"
+echo "  Desktop entries installed for: Brave, WebApp AI, WebApp Google, WebApp Social"

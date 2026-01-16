@@ -1,0 +1,17 @@
+[Desktop Entry]
+Type=Application
+Name=WebApp Google
+Comment=Google Workspace (Gmail, Drive, Calendar, etc.)
+Exec=/bin/sh -c "\"\\$HOME/.local/bin/brave-launcher\" \"--profile-directory=Google\" \"\\$@\"" _ %U
+Terminal=false
+Categories=Network;WebBrowser;
+Icon=brave-browser
+Actions=new-window;new-private-window;
+
+[Desktop Action new-window]
+Name=New Window
+Exec=/bin/sh -c "\"\\$HOME/.local/bin/brave-launcher\" \"--profile-directory=Google\""
+
+[Desktop Action new-private-window]
+Name=New Incognito Window
+Exec=/bin/sh -c "\"\\$HOME/.local/bin/brave-launcher\" \"--profile-directory=Google\" --incognito"
