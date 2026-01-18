@@ -2,15 +2,53 @@
 set -euo pipefail
 
 # Creates Brave profiles with semantic names and copies settings from Default
-# Usage: brave-profile-setup <profile_name>...
+# Usage: brave-profile-setup [-i|--interactive] <profile_name>...
 # Example: brave-profile-setup AI Google Social
+#
+# Options:
+#   -i, --interactive  Prompt before updating existing profiles
 #
 # Environment:
 #   BRAVE_USER_DATA - Override auto-detected data directory
 
-if [[ $# -eq 0 ]]; then
-    echo "Usage: brave-profile-setup <profile_name>..." >&2
+INTERACTIVE=false
+
+show_usage() {
+    echo "Usage: brave-profile-setup [-i|--interactive] <profile_name>..." >&2
     echo "Example: brave-profile-setup AI Google Social" >&2
+    echo "" >&2
+    echo "Options:" >&2
+    echo "  -i, --interactive  Prompt before updating existing profiles" >&2
+    echo "  -h, --help         Show this help message" >&2
+}
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -i|--interactive)
+            INTERACTIVE=true
+            shift
+            ;;
+        -h|--help)
+            show_usage
+            exit 0
+            ;;
+        --)
+            shift
+            break
+            ;;
+        -*)
+            echo "Unknown option: $1" >&2
+            show_usage
+            exit 1
+            ;;
+        *)
+            break
+            ;;
+    esac
+done
+
+if [[ $# -eq 0 ]]; then
+    show_usage
     exit 1
 fi
 
@@ -59,7 +97,17 @@ for profile in "$@"; do
     profile_dir="$BRAVE_USER_DATA/$profile"
 
     if [[ -d "$profile_dir" ]]; then
-        echo "Updating profile: $profile"
+        if [[ "$INTERACTIVE" == true ]]; then
+            read -rp "Profile '$profile' exists. Update from Default? [y/N] " answer
+            if [[ ! "$answer" =~ ^[Yy]$ ]]; then
+                echo "Skipping profile: $profile"
+                continue
+            fi
+            echo "Updating profile: $profile"
+        else
+            echo "Skipping existing profile: $profile"
+            continue
+        fi
     else
         echo "Creating profile: $profile"
         mkdir -p "$profile_dir"
