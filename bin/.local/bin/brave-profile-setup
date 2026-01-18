@@ -59,20 +59,20 @@ for profile in "$@"; do
     profile_dir="$BRAVE_USER_DATA/$profile"
 
     if [[ -d "$profile_dir" ]]; then
-        echo "✓ Profile '$profile' already exists"
-        continue
+        echo "Updating profile: $profile"
+    else
+        echo "Creating profile: $profile"
+        mkdir -p "$profile_dir"
     fi
 
-    echo "Creating profile: $profile"
-    mkdir -p "$profile_dir"
-
-    # Copy Extensions directory if Default exists
+    # Copy/update Extensions directory if Default exists
     if [[ -d "$DEFAULT_PROFILE/Extensions" ]]; then
+        rm -rf "$profile_dir/Extensions"
         cp -r "$DEFAULT_PROFILE/Extensions" "$profile_dir/"
         echo "  ✓ Copied Extensions from Default"
     fi
 
-    # Copy Preferences (browser settings) if Default exists
+    # Copy/update Preferences if Default exists
     if [[ -f "$DEFAULT_PROFILE/Preferences" ]]; then
         cp "$DEFAULT_PROFILE/Preferences" "$profile_dir/"
         echo "  ✓ Copied Preferences from Default"
